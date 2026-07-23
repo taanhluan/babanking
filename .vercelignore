@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+
+prisma/dev.db
+prisma/*.db
+
+.agents/
+.openai/
+.vercel/
+skills-lock.json
