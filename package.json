@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cloudflare": "opennextjs-cloudflare build",
+    "build:cloudflare": "CLOUDFLARE_PUBLIC_PREVIEW=1 opennextjs-cloudflare build",
     "start": "next start",
     "lint": "eslint .",
     "db:generate": "prisma generate",

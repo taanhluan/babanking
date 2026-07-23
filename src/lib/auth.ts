@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SignJWT, jwtVerify } from 'jose';
 import type { Role } from '@prisma/client';
-import { db } from './db';
+import { db } from '@/lib/db';
 import { hasRole } from './permissions';
 import { safeCallback } from './access-policy';
 export { safeCallback } from './access-policy';

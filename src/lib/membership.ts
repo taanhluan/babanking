@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Role } from '@prisma/client';
 import { redirect } from 'next/navigation';
-import { db } from './db';
+import { db } from '@/lib/db';
 import { getCurrentUser } from './auth';
 import { isMembershipActive } from './access-policy';
 export { isMembershipActive } from './access-policy';

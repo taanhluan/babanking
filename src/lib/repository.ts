@@ -1,6 +1,6 @@
 import 'server-only';
 import type { ContentType } from '@prisma/client';
-import { db } from './db';
+import { db } from '@/lib/db';
 import { requirePremiumAccess } from './membership';
 import { bankingJourneyContent, baPracticeContent, caseStudyContent, careerLevelContent, searchIndex } from '@/data/content';
 const staticByType = { BANKING_JOURNEY: bankingJourneyContent, BA_PRACTICE: baPracticeContent, CASE_STUDY: caseStudyContent, CAREER_LEVEL: careerLevelContent } as const;
