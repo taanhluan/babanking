@@ -11,6 +11,8 @@ build/
 .turbo/
 .cache/
 *.tsbuildinfo
+.open-next/
+.wrangler/
 
 # Environment variables
 .env
