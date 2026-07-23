@@ -8,7 +8,7 @@ administration without exposing premium content to unauthorised visitors.
 ## Technology stack
 
 - Next.js App Router, React, TypeScript, and Tailwind CSS
-- Prisma ORM with SQLite for local development
+- Prisma ORM with PostgreSQL
 - Signed HTTP-only sessions with `jose` and password hashing with `bcryptjs`
 - Zod validation, Vitest unit tests, and runtime E2E checks
 
@@ -39,7 +39,7 @@ Terminology follows the shared glossary: Banking Journey → Hành trình nghi�
 
 ## Phase 5 access architecture
 
-This Next.js 16 application is a controlled paid-membership knowledge platform. Authentication uses signed HTTP-only sessions, Prisma/SQLite, bcrypt, and server actions. SQLite is for local development; use PostgreSQL and distributed rate limiting for production.
+This Next.js 16 application is a controlled paid-membership knowledge platform. Authentication uses signed HTTP-only sessions, Prisma/PostgreSQL, bcrypt, and server actions. Use distributed rate limiting for production.
 
 There is no public registration. Public routes are `/`, `/login`, `/request-access`, `/activate/[token]`, `/privacy`, `/terms`, and `/membership-terms`. Banking Journeys, BA Practice, Case Studies, Career Roadmap, search, workspace, contributor, and reviewer routes are premium. Admin routes require `ADMIN`.
 
@@ -88,6 +88,25 @@ npm run dev
 
 The seed is idempotent. It imports existing premium content and creates a non-public, zero-price development sample plan. A paid development member and corresponding verified development ledger record are created only when member seed variables are set.
 
+## Vercel production deployment
+
+The application runtime is deployed to Vercel. PostgreSQL is provisioned through
+Vercel Marketplace (Neon or Prisma Postgres) and connected through
+`DATABASE_URL`; Vercel itself is not the database server.
+
+Configure `AUTH_SECRET`, `APP_BASE_URL`, and
+`ACTIVATION_TOKEN_TTL_HOURS` for Production. Then initialize or update the
+database before the first production release:
+
+```bash
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+Seed account variables are optional and should be configured only long enough
+to create the intended accounts, then removed from the deployment environment.
+Never commit production credentials.
+
 ## Leakage safeguards
 
 - no public premium static generation or `generateStaticParams`;
@@ -120,7 +139,7 @@ Unit tests cover membership windows, access sources, safe callbacks, activation 
 - Payment is administratively verified; there is no automated gateway, invoice engine, tax handling, refund automation, or fake checkout.
 - Email delivery is not configured; admins securely copy one-time activation links.
 - The cooldown is database-backed per email but is not a full distributed abuse-prevention system. Production needs IP/device-aware distributed rate limiting for login, request, and activation attempts.
-- SQLite is not suitable for multi-instance production.
+- Production database migrations must be applied before deploying application code that depends on them.
 - The draft Privacy, Platform Terms, and Membership Terms require legal review. Refund policy, legal entity, receiving jurisdiction, currency, invoice requirements, privacy retention, and contact process remain business decisions.
 
 Phase 5B should begin only after selecting the payment provider and confirming the receiving legal entity, supported currency, invoice/tax obligations, chargeback handling, webhook verification, reconciliation, and approved refund policy. Integrate the provider behind the existing payment service/ledger rather than weakening membership authorization.
