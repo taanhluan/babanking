@@ -1,11 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "banking-ba-knowledge-hub",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2026-05-03",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "main": "vinext/server/fetch-handler",
   "assets": {
-    "directory": ".open-next/assets",
+    "directory": "dist/client",
+    "not_found_handling": "none",
     "binding": "ASSETS"
+  },
+  "cache": {
+    "enabled": true
   }
 }
