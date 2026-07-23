@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+const base=process.env.TEST_BASE_URL||'http://localhost:3000';
+const root=await fetch(base,{redirect:'manual'});assert.equal(root.status,307);assert.match(root.headers.get('location')??'',/^\/(en|vi)$/);
+for(const locale of ['en','vi'])for(const route of ['','/login','/request-access','/privacy','/terms','/membership-terms']){const response=await fetch(`${base}/${locale}${route}`,{redirect:'manual'});assert.equal(response.status,200,`/${locale}${route} should be public`);const body=await response.text();assert.equal(body.includes(`<html lang=\"${locale}\"`),true,`/${locale}${route} has wrong html lang`)}
+const markers=['Customer Onboarding','Payment Initiation','Fit-Gap Assessment','contentJson'];
+for(const locale of ['en','vi'])for(const route of ['/banking-journeys','/banking-journeys/customer-onboarding','/ba-practice','/case-studies','/career-roadmap','/search','/workspace','/contributor','/review','/admin']){const response=await fetch(`${base}/${locale}${route}`,{redirect:'manual'});assert.equal(response.status,307,`/${locale}${route} should redirect anonymously`);const body=await response.text();for(const marker of markers)assert.equal(body.includes(marker),false,`/${locale}${route} leaked ${marker}`)}
+const sitemap=await(await fetch(`${base}/sitemap.xml`)).text();for(const locale of ['en','vi']){assert.equal(sitemap.includes(`<loc>${base}/${locale}</loc>`),true);for(const route of ['/banking-journeys','/search','/workspace'])assert.equal(sitemap.includes(`<loc>${base}/${locale}${route}</loc>`),false)}
+console.log('Bilingual public routes, HTML lang, premium redirects, leakage markers, and sitemap checks passed.');

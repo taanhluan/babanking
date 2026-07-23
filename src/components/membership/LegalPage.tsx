@@ -1,0 +1,2 @@
+import { Navbar } from '@/components/layout/Navbar'; import { Footer } from '@/components/layout/Footer';
+export function LegalPage({title,children}:{title:string;children:React.ReactNode}){return <><Navbar/><main className="px-4 py-16 sm:px-6"><article className="prose prose-slate mx-auto max-w-3xl"><h1 className="text-4xl font-semibold text-navy">{title}</h1><div className="mt-8 space-y-5 leading-8 text-textSecondary">{children}</div></article></main><Footer/></>}

@@ -1,0 +1,421 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEMBER
+  CONTRIBUTOR
+  REVIEWER
+  ADMIN
+}
+
+enum ContentType {
+  BANKING_JOURNEY
+  BA_PRACTICE
+  CASE_STUDY
+  CAREER_LEVEL
+}
+
+enum RevisionStatus {
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum AccountStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum AccessRequestStatus {
+  NEW
+  CONTACTED
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum BillingPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  CUSTOM
+}
+
+enum AccessSource {
+  PAID
+  INTERNAL
+  COMPLIMENTARY
+}
+
+enum RenewalStatus {
+  REQUESTED
+  CONTACTED
+  PAYMENT_PENDING
+  COMPLETED
+  REJECTED
+}
+
+enum TranslationStatus {
+  NOT_STARTED
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  PUBLISHED
+  OUTDATED
+}
+
+model User {
+  id                   String                   @id @default(cuid())
+  name                 String
+  email                String                   @unique
+  passwordHash         String
+  role                 Role                     @default(MEMBER)
+  isActive             Boolean                  @default(true)
+  accountStatus        AccountStatus            @default(ACTIVE)
+  preferredLocale      String                   @default("en")
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  lastLoginAt          DateTime?
+  ownedContent         ContentItem[]            @relation("ContentOwner")
+  revisions            ContentRevision[]        @relation("RevisionAuthor")
+  reviews              ContentRevision[]        @relation("RevisionReviewer")
+  bookmarks            Bookmark[]
+  activities           ReadingActivity[]
+  careerPreference     UserCareerPreference?
+  auditLogs            AuditLog[]
+  memberships          Membership[]             @relation("MemberMemberships")
+  createdMemberships   Membership[]             @relation("MembershipCreator")
+  payments             PaymentRecord[]          @relation("MemberPayments")
+  verifiedPayments     PaymentRecord[]          @relation("PaymentVerifier")
+  activationTokens     AccountActivationToken[]
+  convertedRequests    AccessRequest[]          @relation("ConvertedUser")
+  renewalRequests      RenewalRequest[]
+  authoredTranslations ContentTranslation[]     @relation("TranslationOwner")
+  translationRevisions TranslationRevision[]    @relation("TranslationAuthor")
+  translationReviews   TranslationRevision[]    @relation("TranslationReviewer")
+
+  @@index([email])
+  @@index([role, isActive])
+}
+
+model MembershipPlan {
+  id              String                      @id @default(cuid())
+  name            String
+  code            String                      @unique
+  description     String
+  price           Int
+  currency        String
+  billingPeriod   BillingPeriod
+  durationDays    Int
+  featuresJson    String                      @default("[]")
+  displayOrder    Int                         @default(0)
+  isActive        Boolean                     @default(true)
+  isPublic        Boolean                     @default(false)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  requests        AccessRequest[]
+  memberships     Membership[]
+  payments        PaymentRecord[]
+  renewalRequests RenewalRequest[]
+  translations    MembershipPlanTranslation[]
+
+  @@index([isActive, isPublic, displayOrder])
+}
+
+model MembershipPlanTranslation {
+  id           String         @id @default(cuid())
+  planId       String
+  locale       String
+  name         String
+  description  String
+  featuresJson String         @default("[]")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  plan         MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, locale])
+  @@index([locale])
+}
+
+model AccessRequest {
+  id                    String              @id @default(cuid())
+  name                  String
+  email                 String
+  organization          String?
+  jobTitle              String
+  currentBALevel        String?
+  primaryInterest       String
+  professionalObjective String
+  requestedPlanId       String?
+  status                AccessRequestStatus @default(NEW)
+  consentAccepted       Boolean
+  preferredLocale       String              @default("en")
+  adminNote             String?
+  rejectionReason       String?
+  contactedAt           DateTime?
+  convertedUserId       String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  requestedPlan         MembershipPlan?     @relation(fields: [requestedPlanId], references: [id])
+  convertedUser         User?               @relation("ConvertedUser", fields: [convertedUserId], references: [id])
+  payments              PaymentRecord[]
+
+  @@index([email, createdAt])
+  @@index([status, createdAt])
+}
+
+model Membership {
+  id           String           @id @default(cuid())
+  userId       String
+  planId       String?
+  status       MembershipStatus @default(PENDING)
+  accessSource AccessSource
+  startsAt     DateTime
+  expiresAt    DateTime
+  suspendedAt  DateTime?
+  cancelledAt  DateTime?
+  createdById  String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User             @relation("MemberMemberships", fields: [userId], references: [id])
+  plan         MembershipPlan?  @relation(fields: [planId], references: [id])
+  createdBy    User             @relation("MembershipCreator", fields: [createdById], references: [id])
+  payments     PaymentRecord[]
+
+  @@index([userId, status, startsAt, expiresAt])
+  @@index([planId, status])
+}
+
+model PaymentRecord {
+  id                String          @id @default(cuid())
+  userId            String?
+  membershipId      String?
+  accessRequestId   String?
+  planId            String?
+  amount            Int
+  currency          String
+  method            String
+  provider          String?
+  providerReference String?
+  status            PaymentStatus   @default(PENDING)
+  paidAt            DateTime?
+  verifiedAt        DateTime?
+  verifiedById      String?
+  adminNote         String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  user              User?           @relation("MemberPayments", fields: [userId], references: [id])
+  membership        Membership?     @relation(fields: [membershipId], references: [id])
+  accessRequest     AccessRequest?  @relation(fields: [accessRequestId], references: [id])
+  plan              MembershipPlan? @relation(fields: [planId], references: [id])
+  verifiedBy        User?           @relation("PaymentVerifier", fields: [verifiedById], references: [id])
+
+  @@unique([provider, providerReference])
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([accessRequestId])
+}
+
+model AccountActivationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt, usedAt])
+}
+
+model RenewalRequest {
+  id              String          @id @default(cuid())
+  userId          String
+  requestedPlanId String?
+  status          RenewalStatus   @default(REQUESTED)
+  memberNote      String?
+  adminNote       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id])
+  requestedPlan   MembershipPlan? @relation(fields: [requestedPlanId], references: [id])
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model ContentItem {
+  id                  String               @id @default(cuid())
+  type                ContentType
+  slug                String
+  stableKey           String?              @unique
+  ownerId             String?
+  publishedRevisionId String?              @unique
+  isArchived          Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  owner               User?                @relation("ContentOwner", fields: [ownerId], references: [id])
+  revisions           ContentRevision[]    @relation("ContentRevisions")
+  publishedRevision   ContentRevision?     @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
+  bookmarks           Bookmark[]
+  activities          ReadingActivity[]
+  translations        ContentTranslation[]
+
+  @@unique([type, slug])
+  @@index([type, isArchived])
+  @@index([ownerId])
+}
+
+model ContentTranslation {
+  id                  String                @id @default(cuid())
+  contentItemId       String
+  locale              String
+  slug                String
+  title               String
+  summary             String
+  status              TranslationStatus     @default(NOT_STARTED)
+  ownerId             String?
+  publishedRevisionId String?               @unique
+  sourceUpdatedAt     DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  contentItem         ContentItem           @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  owner               User?                 @relation("TranslationOwner", fields: [ownerId], references: [id])
+  revisions           TranslationRevision[] @relation("TranslationRevisions")
+  publishedRevision   TranslationRevision?  @relation("PublishedTranslationRevision", fields: [publishedRevisionId], references: [id])
+
+  @@unique([contentItemId, locale])
+  @@unique([locale, slug])
+  @@index([locale, status])
+  @@index([ownerId, status])
+}
+
+model TranslationRevision {
+  id                   String              @id @default(cuid())
+  contentTranslationId String
+  version              Int
+  status               RevisionStatus      @default(DRAFT)
+  contentJson          String
+  schemaVersion        Int                 @default(1)
+  authorId             String?
+  reviewerId           String?
+  reviewNote           String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  submittedAt          DateTime?
+  reviewedAt           DateTime?
+  publishedAt          DateTime?
+  contentTranslation   ContentTranslation  @relation("TranslationRevisions", fields: [contentTranslationId], references: [id], onDelete: Cascade)
+  publishedFor         ContentTranslation? @relation("PublishedTranslationRevision")
+  author               User?               @relation("TranslationAuthor", fields: [authorId], references: [id])
+  reviewer             User?               @relation("TranslationReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([contentTranslationId, version])
+  @@index([status, submittedAt])
+  @@index([authorId, status])
+}
+
+model ContentRevision {
+  id            String         @id @default(cuid())
+  contentItemId String
+  version       Int
+  status        RevisionStatus @default(DRAFT)
+  contentJson   String
+  schemaVersion Int            @default(1)
+  authorId      String?
+  reviewerId    String?
+  reviewNote    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  publishedAt   DateTime?
+  contentItem   ContentItem    @relation("ContentRevisions", fields: [contentItemId], references: [id], onDelete: Cascade)
+  publishedFor  ContentItem?   @relation("PublishedRevision")
+  author        User?          @relation("RevisionAuthor", fields: [authorId], references: [id])
+  reviewer      User?          @relation("RevisionReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([contentItemId, version])
+  @@index([status, submittedAt])
+  @@index([authorId, status])
+}
+
+model Bookmark {
+  id            String      @id @default(cuid())
+  userId        String
+  contentItemId String
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentItemId])
+  @@index([userId, createdAt])
+}
+
+model ReadingActivity {
+  id            String      @id @default(cuid())
+  userId        String
+  contentItemId String
+  progress      Int         @default(0)
+  completed     Boolean     @default(false)
+  lastViewedAt  DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentItemId])
+  @@index([userId, lastViewedAt])
+}
+
+model UserCareerPreference {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  currentLevelSlug String
+  targetLevelSlug  String
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  action       String
+  entityType   String
+  entityId     String
+  metadataJson String?
+  createdAt    DateTime @default(now())
+  actor        User?    @relation(fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([action, entityType])
+}
