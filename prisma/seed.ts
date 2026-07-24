@@ -1,7 +1,15 @@
 import { PrismaClient, ContentType, RevisionStatus, Role } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { bankingJourneyContent, baPracticeContent, caseStudyContent, careerLevelContent } from '../src/data/content';
+import {
+  assertDatabaseOperationAllowed,
+  parseServerEnvironment,
+} from '../src/server/environment-core';
+import { loadEnvironmentFiles } from '../scripts/load-environment-files';
 
+loadEnvironmentFiles();
+const seedEnvironment = parseServerEnvironment(process.env, { requireAuthSecret: false });
+assertDatabaseOperationAllowed('seed-development', seedEnvironment);
 const prisma = new PrismaClient();
 const groups = [
   [ContentType.BANKING_JOURNEY, bankingJourneyContent],

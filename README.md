@@ -75,18 +75,129 @@ The payment ledger is not a checkout, tax invoice, or accounting system. Phase 5
 
 ## Environment and setup
 
-Copy `.env.example` to `.env`. Required values are `DATABASE_URL` and an `AUTH_SECRET` of at least 32 characters. `APP_BASE_URL` is used when generating activation links. Admin and development-member seeds run only when their environment variables are supplied; no real credentials are committed.
+Copy `.env.example` to `.env.local`, then replace every placeholder with credentials for the Neon **development** branch. Never use the production Neon connection string locally. `AUTH_SECRET` must contain at least 32 characters and `APP_BASE_URL` is used when generating activation links.
 
 ```bash
 npm install
+npm run db:check-env
 npx prisma validate
 npx prisma generate
-npx prisma migrate dev
-npm run db:seed
+npm run db:migrate:dev
+npm run db:seed:dev
 npm run dev
 ```
 
-The seed is idempotent. It imports existing premium content and creates a non-public, zero-price development sample plan. A paid development member and corresponding verified development ledger record are created only when member seed variables are set.
+The safety check must report a matching `development` application and database label before migration or seed commands are run. The development seed is idempotent and is blocked for Preview and Production.
+
+## Database Environment Isolation
+
+### Architecture
+
+```text
+Local feature branch → .env.local → Neon development branch
+Vercel Preview      → Preview variables → Neon preview branch
+Vercel Production   → Production variables → Neon production branch
+```
+
+`DATABASE_URL` must be different in all three environments. `DATABASE_ENVIRONMENT` is an explicit safety label; it is not inferred from a Neon hostname. `APP_ENV` takes precedence over validated `VERCEL_ENV`. Conflicting or unknown values fail closed because Vercel Preview normally uses `NODE_ENV=production`.
+
+Prisma uses the pooled `DATABASE_URL` for application traffic and the non-pooled `DIRECT_URL` for migrations. Connection strings and secrets are never stored in source control or shown by the Admin diagnostics page.
+
+### Local development
+
+Create `.env.local` with development-only values:
+
+```dotenv
+APP_ENV="development"
+DATABASE_ENVIRONMENT="development"
+DATABASE_URL="<NEON_DEVELOPMENT_POOLED_CONNECTION_STRING>"
+DIRECT_URL="<NEON_DEVELOPMENT_DIRECT_CONNECTION_STRING>"
+APP_BASE_URL="http://localhost:3000"
+AUTH_SECRET="<LOCAL_SECRET_AT_LEAST_32_CHARACTERS>"
+ALLOW_PRODUCTION_DATABASE_OPERATIONS="false"
+ENABLE_STATIC_CONTENT_FALLBACK="false"
+```
+
+Run `npm run db:check-env` before any database-changing command. The application also validates the environment before its first database access and refuses a development-to-production mismatch.
+
+### Neon branch setup
+
+Perform these steps manually; do not rename or delete an existing branch:
+
+1. Open **Neon Console → Project → Branches**.
+2. Identify the branch currently used by the live site. Preserve its current name and designate its role as Production.
+3. Create a `development` branch from that production branch.
+4. Create a separate `preview` branch from that production branch.
+5. For each branch, obtain its pooled connection string and its direct connection string.
+6. Put only the development strings in local `.env.local`. Never paste connection strings into this README, an issue, a commit, or a browser-visible variable.
+
+A Neon hostname is not a reliable human-readable branch identity. The explicit label is mandatory. A database marker table can be added in a later reviewed migration, but this safety phase does not create one.
+
+### Vercel environment setup
+
+Open **Vercel Project → Settings → Environment Variables** and scope each value explicitly:
+
+| Variable | Preview | Production |
+|---|---|---|
+| `APP_ENV` | `preview` | `production` |
+| `DATABASE_ENVIRONMENT` | `preview` | `production` |
+| `DATABASE_URL` | `<NEON_PREVIEW_POOLED_CONNECTION_STRING>` | `<NEON_PRODUCTION_POOLED_CONNECTION_STRING>` |
+| `DIRECT_URL` | `<NEON_PREVIEW_DIRECT_CONNECTION_STRING>` | `<NEON_PRODUCTION_DIRECT_CONNECTION_STRING>` |
+| `APP_BASE_URL` | Omit to derive from `VERCEL_BRANCH_URL` | `<PRODUCTION_SITE_URL>` |
+| `ALLOW_PRODUCTION_DATABASE_OPERATIONS` | `false` | `false` |
+| `ENABLE_STATIC_CONTENT_FALLBACK` | `false` | `false` |
+
+Configure `AUTH_SECRET` and other secrets independently for Preview and Production. Do not copy Production secrets into Preview automatically. Remove the Preview and Development scopes from any database variable that contains the Production connection string, then redeploy each environment after saving its correct values.
+
+Preview derives its origin from Vercel's system-provided `VERCEL_BRANCH_URL`
+(falling back to `VERCEL_URL`) when `APP_BASE_URL` is not explicitly set. This
+prevents Preview activation links from using the Production domain.
+
+Verify **Vercel Project → Settings → Environments → Production → Branch Tracking**. The expected branch for this repository is `main`; preserve a different configured branch and investigate before changing it. Feature branches and pull requests must create Preview deployments.
+
+### Safe Prisma commands
+
+- `npm run db:check-env` — safe identity inspection; prints host and database name but never credentials or a URL.
+- `npm run db:migrate:status` — read-only migration status after validating matching environment labels.
+- `npm run db:migrate:dev` — only development application to development database; runs `prisma migrate dev`.
+- `npm run db:migrate:deploy` — only matching Preview/Preview or Production/Production; runs `prisma migrate deploy`.
+- `npm run db:seed:dev` — development only.
+- `npm run db:import:sqlite:dev` — development only.
+- `npm run db:studio` — development only.
+
+Never run `prisma migrate dev`, `prisma migrate reset`, `prisma db push`, the development seed, or the legacy SQLite import against Production. Production destructive operations remain blocked unless a separately reviewed procedure explicitly enables them. There is no production seed command.
+
+### Migration deployment
+
+Develop and generate migrations locally against Neon development, then run tests. A Feature/PR Preview may apply already-reviewed migrations with `npm run db:migrate:deploy` against Neon preview. After review and merge to `main`, a single controlled release step may run the same deploy command against Neon production.
+
+Do not run migrations during application startup. Do not use `migrate dev`, `db push`, or `migrate reset` in a Vercel build. If migration deployment is later added to CI, serialize the job so concurrent serverless builds cannot race.
+
+### Git workflow
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b feature/knowledge-access-matrix
+# develop and validate against Neon development
+git push -u origin feature/knowledge-access-matrix
+```
+
+The feature branch deploys to Vercel Preview backed by Neon preview. Release only through a reviewed pull request merged to `main`, followed by the controlled Production migration and deployment.
+
+### Admin diagnostics and troubleshooting
+
+Administrators can open `/admin/system/environment`. It shows only the application label, database label, host, database name, Vercel label, fallback state, configuration state, and safety status. It never shows usernames, passwords, query parameters, full URLs, API keys, or authentication secrets. A development banner is visible only inside Admin pages.
+
+If the application reports an environment mismatch:
+
+1. Stop migration, seed, and import commands.
+2. Check `APP_ENV`, `DATABASE_ENVIRONMENT`, and `VERCEL_ENV` without logging their secret values.
+3. Confirm the selected Neon branch in the Neon Console.
+4. Replace the incorrectly scoped environment variable.
+5. Run `npm run db:check-env` again and redeploy.
+
+For a suspected credential incident, rotate the affected Neon role password and application secrets, update only the correct local/Vercel scopes, inspect Git history and deployment logs, invalidate exposed credentials, and review database/audit activity. Never rewrite shared Git history automatically; coordinate remediation with repository owners.
 
 ## Vercel production deployment
 
@@ -94,18 +205,15 @@ The application runtime is deployed to Vercel. PostgreSQL is provisioned through
 Vercel Marketplace (Neon or Prisma Postgres) and connected through
 `DATABASE_URL`; Vercel itself is not the database server.
 
-Configure `AUTH_SECRET`, `APP_BASE_URL`, and
-`ACTIVATION_TOKEN_TTL_HOURS` for Production. Then initialize or update the
-database before the first production release:
+Configure the Production variables listed above and
+`ACTIVATION_TOKEN_TTL_HOURS`. Apply reviewed migrations in one controlled
+release step before application code depends on them:
 
 ```bash
 npm run db:migrate:deploy
-npm run db:seed
 ```
 
-Seed account variables are optional and should be configured only long enough
-to create the intended accounts, then removed from the deployment environment.
-Never commit production credentials.
+There is no automatic Production seed. Never commit Production credentials.
 
 ## Leakage safeguards
 
@@ -123,9 +231,9 @@ Public branding assets may remain in `/public`. No protected downloads are curre
 ## Validation
 
 ```bash
+npm run db:check-env
 npx prisma validate
 npx prisma generate
-npm run db:seed
 npm run test
 npm run lint
 npx tsc --noEmit

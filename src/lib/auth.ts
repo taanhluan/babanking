@@ -6,12 +6,11 @@ import type { Role } from '@prisma/client';
 import { db } from '@/lib/db';
 import { hasRole } from './permissions';
 import { safeCallback } from './access-policy';
+import { getServerEnvironment } from '@/server/env';
 export { safeCallback } from './access-policy';
 const COOKIE = 'bba_session';
 const secret = () => {
-  const value = process.env.AUTH_SECRET;
-  if (!value || value.length < 32) throw new Error('AUTH_SECRET must contain at least 32 characters.');
-  return new TextEncoder().encode(value);
+  return new TextEncoder().encode(getServerEnvironment().AUTH_SECRET);
 };
 export async function createSession(userId: string) {
   const token = await new SignJWT({ userId }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('8h').sign(secret());
