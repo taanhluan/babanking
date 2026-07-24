@@ -15,6 +15,7 @@ export default async function EnvironmentDiagnosticsPage() {
     ['Database configured', diagnostic.configured ? 'Yes' : 'No'],
     ['Credentials hidden', diagnostic.credentialsHidden ? 'Yes' : 'No'],
     ['Static fallback', diagnostic.staticFallbackEnabled ? 'Enabled' : 'Disabled'],
+    ['Knowledge access matrix', getServerEnvironment().KNOWLEDGE_ACCESS_MATRIX_MODE],
   ] as const;
 
   return (

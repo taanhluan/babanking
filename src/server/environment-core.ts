@@ -46,6 +46,7 @@ export interface ServerEnvironment {
   AUTH_SECRET?: string;
   ALLOW_PRODUCTION_DATABASE_OPERATIONS: boolean;
   ENABLE_STATIC_CONTENT_FALLBACK: boolean;
+  KNOWLEDGE_ACCESS_MATRIX_MODE: 'disabled' | 'shadow' | 'enforced';
   VERCEL_ENV?: 'development' | 'preview' | 'production';
 }
 
@@ -98,6 +99,7 @@ export function parseServerEnvironment(
       : z.string().min(32),
     ALLOW_PRODUCTION_DATABASE_OPERATIONS: booleanEnvironmentSchema,
     ENABLE_STATIC_CONTENT_FALLBACK: booleanEnvironmentSchema,
+    KNOWLEDGE_ACCESS_MATRIX_MODE: z.enum(['disabled', 'shadow', 'enforced']),
     VERCEL_ENV: vercelEnvironmentSchema.optional(),
   });
   const parsed = schema.parse(normalizedSource);

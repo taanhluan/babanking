@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "tsx scripts/run-deployment-migrations.ts && prisma generate && next build",
     "postinstall": "prisma generate",
     "build:cloudflare": "CLOUDFLARE_PUBLIC_PREVIEW=1 opennextjs-cloudflare build",
     "build:vinext": "node scripts/build-vinext-preview.mjs",
@@ -18,6 +18,7 @@
     "db:migrate:deploy": "tsx scripts/run-safe-prisma-command.ts migrate-deploy",
     "db:import:sqlite:dev": "tsx scripts/run-safe-prisma-command.ts import-sqlite-development",
     "db:seed:dev": "tsx scripts/run-safe-prisma-command.ts seed-development",
+    "db:seed:knowledge-access": "tsx scripts/seed-knowledge-access.ts",
     "db:studio": "tsx scripts/run-safe-prisma-command.ts studio",
     "test": "vitest run",
     "test:e2e": "node scripts/e2e.mjs",
@@ -58,5 +59,11 @@
     "vite": "^8.0.0",
     "vitest": "^4.1.10",
     "wrangler": "^4.86.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.14"
+    },
+    "sharp": "^0.35.0"
   }
 }

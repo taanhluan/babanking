@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -94,35 +94,89 @@ enum TranslationStatus {
   OUTDATED
 }
 
+enum KnowledgePermission {
+  VIEW
+  CREATE
+  EDIT
+  REVIEW
+  PUBLISH
+  MANAGE
+}
+
+enum GrantEffect {
+  ALLOW
+  DENY
+}
+
+enum GrantStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum PackageAssignmentStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum KnowledgeScopeType {
+  BANKING_DOMAIN
+  BA_PRACTICE
+  CAREER
+  CUSTOM
+}
+
+enum ContentAccessMode {
+  ANY_SCOPE
+  ALL_SCOPES
+  CONTENT_GRANT_ONLY
+}
+
+enum ContentScopeRelationship {
+  PRIMARY
+  SECONDARY
+  SUPPORTING
+}
+
 model User {
-  id                   String                   @id @default(cuid())
+  id                   String                           @id @default(cuid())
   name                 String
-  email                String                   @unique
+  email                String                           @unique
   passwordHash         String
-  role                 Role                     @default(MEMBER)
-  isActive             Boolean                  @default(true)
-  accountStatus        AccountStatus            @default(ACTIVE)
-  preferredLocale      String                   @default("en")
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+  role                 Role                             @default(MEMBER)
+  isActive             Boolean                          @default(true)
+  accountStatus        AccountStatus                    @default(ACTIVE)
+  preferredLocale      String                           @default("en")
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
   lastLoginAt          DateTime?
-  ownedContent         ContentItem[]            @relation("ContentOwner")
-  revisions            ContentRevision[]        @relation("RevisionAuthor")
-  reviews              ContentRevision[]        @relation("RevisionReviewer")
+  ownedContent         ContentItem[]                    @relation("ContentOwner")
+  revisions            ContentRevision[]                @relation("RevisionAuthor")
+  reviews              ContentRevision[]                @relation("RevisionReviewer")
   bookmarks            Bookmark[]
   activities           ReadingActivity[]
   careerPreference     UserCareerPreference?
   auditLogs            AuditLog[]
-  memberships          Membership[]             @relation("MemberMemberships")
-  createdMemberships   Membership[]             @relation("MembershipCreator")
-  payments             PaymentRecord[]          @relation("MemberPayments")
-  verifiedPayments     PaymentRecord[]          @relation("PaymentVerifier")
+  memberships          Membership[]                     @relation("MemberMemberships")
+  createdMemberships   Membership[]                     @relation("MembershipCreator")
+  payments             PaymentRecord[]                  @relation("MemberPayments")
+  verifiedPayments     PaymentRecord[]                  @relation("PaymentVerifier")
   activationTokens     AccountActivationToken[]
-  convertedRequests    AccessRequest[]          @relation("ConvertedUser")
+  convertedRequests    AccessRequest[]                  @relation("ConvertedUser")
   renewalRequests      RenewalRequest[]
-  authoredTranslations ContentTranslation[]     @relation("TranslationOwner")
-  translationRevisions TranslationRevision[]    @relation("TranslationAuthor")
-  translationReviews   TranslationRevision[]    @relation("TranslationReviewer")
+  authoredTranslations ContentTranslation[]             @relation("TranslationOwner")
+  translationRevisions TranslationRevision[]            @relation("TranslationAuthor")
+  translationReviews   TranslationRevision[]            @relation("TranslationReviewer")
+  scopeGrants          UserScopeGrant[]                 @relation("ScopeGrantUser")
+  scopeGrantsGiven     UserScopeGrant[]                 @relation("ScopeGrantCreator")
+  scopeGrantsRevoked   UserScopeGrant[]                 @relation("ScopeGrantRevoker")
+  contentGrants        UserContentGrant[]               @relation("ContentGrantUser")
+  contentGrantsGiven   UserContentGrant[]               @relation("ContentGrantCreator")
+  contentGrantsRevoked UserContentGrant[]               @relation("ContentGrantRevoker")
+  packageAssignments   UserKnowledgePackageAssignment[] @relation("PackageAssignmentUser")
+  packagesAssigned     UserKnowledgePackageAssignment[] @relation("PackageAssignmentCreator")
+  packagesRevoked      UserKnowledgePackageAssignment[] @relation("PackageAssignmentRevoker")
 
   @@index([email])
   @@index([role, isActive])
@@ -275,25 +329,30 @@ model RenewalRequest {
 }
 
 model ContentItem {
-  id                  String               @id @default(cuid())
+  id                  String                  @id @default(cuid())
   type                ContentType
   slug                String
-  stableKey           String?              @unique
+  stableKey           String?                 @unique
   ownerId             String?
-  publishedRevisionId String?              @unique
-  isArchived          Boolean              @default(false)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  owner               User?                @relation("ContentOwner", fields: [ownerId], references: [id])
-  revisions           ContentRevision[]    @relation("ContentRevisions")
-  publishedRevision   ContentRevision?     @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
+  publishedRevisionId String?                 @unique
+  isArchived          Boolean                 @default(false)
+  accessMode          ContentAccessMode       @default(ANY_SCOPE)
+  previewJson         String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  owner               User?                   @relation("ContentOwner", fields: [ownerId], references: [id])
+  revisions           ContentRevision[]       @relation("ContentRevisions")
+  publishedRevision   ContentRevision?        @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
   bookmarks           Bookmark[]
   activities          ReadingActivity[]
   translations        ContentTranslation[]
+  knowledgeScopes     ContentKnowledgeScope[]
+  userContentGrants   UserContentGrant[]
 
   @@unique([type, slug])
   @@index([type, isArchived])
   @@index([ownerId])
+  @@index([accessMode])
 }
 
 model ContentTranslation {
@@ -419,4 +478,146 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([action, entityType])
+}
+
+model KnowledgeScope {
+  id                 String                       @id @default(cuid())
+  code               String                       @unique
+  type               KnowledgeScopeType
+  nameEn             String
+  nameVi             String
+  descriptionEn      String
+  descriptionVi      String
+  parentId           String?
+  displayOrder       Int                          @default(0)
+  isActive           Boolean                      @default(true)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  parent             KnowledgeScope?              @relation("ScopeHierarchy", fields: [parentId], references: [id])
+  children           KnowledgeScope[]             @relation("ScopeHierarchy")
+  contentMappings    ContentKnowledgeScope[]
+  userGrants         UserScopeGrant[]
+  packagePermissions KnowledgePackagePermission[]
+
+  @@index([isActive, displayOrder])
+  @@index([parentId])
+}
+
+model ContentKnowledgeScope {
+  id               String                   @id @default(cuid())
+  contentItemId    String
+  knowledgeScopeId String
+  relationshipType ContentScopeRelationship @default(PRIMARY)
+  isRequired       Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  contentItem      ContentItem              @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  knowledgeScope   KnowledgeScope           @relation(fields: [knowledgeScopeId], references: [id])
+
+  @@unique([contentItemId, knowledgeScopeId])
+  @@index([contentItemId])
+  @@index([knowledgeScopeId])
+}
+
+model UserScopeGrant {
+  id               String              @id @default(cuid())
+  userId           String
+  knowledgeScopeId String
+  permission       KnowledgePermission
+  effect           GrantEffect         @default(ALLOW)
+  status           GrantStatus         @default(ACTIVE)
+  startsAt         DateTime?
+  expiresAt        DateTime?
+  grantedById      String
+  reason           String
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  revokedAt        DateTime?
+  revokedById      String?
+  user             User                @relation("ScopeGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  knowledgeScope   KnowledgeScope      @relation(fields: [knowledgeScopeId], references: [id])
+  grantedBy        User                @relation("ScopeGrantCreator", fields: [grantedById], references: [id])
+  revokedBy        User?               @relation("ScopeGrantRevoker", fields: [revokedById], references: [id])
+
+  @@index([userId, status, startsAt, expiresAt])
+  @@index([knowledgeScopeId, status])
+  @@index([userId, knowledgeScopeId, permission, effect, status])
+  @@index([expiresAt])
+}
+
+model UserContentGrant {
+  id            String              @id @default(cuid())
+  userId        String
+  contentItemId String
+  permission    KnowledgePermission
+  effect        GrantEffect         @default(ALLOW)
+  status        GrantStatus         @default(ACTIVE)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  grantedById   String
+  reason        String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  revokedAt     DateTime?
+  revokedById   String?
+  user          User                @relation("ContentGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  contentItem   ContentItem         @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  grantedBy     User                @relation("ContentGrantCreator", fields: [grantedById], references: [id])
+  revokedBy     User?               @relation("ContentGrantRevoker", fields: [revokedById], references: [id])
+
+  @@index([userId, status, startsAt, expiresAt])
+  @@index([contentItemId, status])
+  @@index([userId, contentItemId, permission, effect, status])
+}
+
+model KnowledgePackage {
+  id            String                           @id @default(cuid())
+  code          String                           @unique
+  nameEn        String
+  nameVi        String
+  descriptionEn String
+  descriptionVi String
+  isActive      Boolean                          @default(true)
+  displayOrder  Int                              @default(0)
+  createdAt     DateTime                         @default(now())
+  updatedAt     DateTime                         @updatedAt
+  permissions   KnowledgePackagePermission[]
+  assignments   UserKnowledgePackageAssignment[]
+
+  @@index([isActive, displayOrder])
+}
+
+model KnowledgePackagePermission {
+  id               String              @id @default(cuid())
+  packageId        String
+  knowledgeScopeId String
+  permission       KnowledgePermission
+  createdAt        DateTime            @default(now())
+  package          KnowledgePackage    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  knowledgeScope   KnowledgeScope      @relation(fields: [knowledgeScopeId], references: [id])
+
+  @@unique([packageId, knowledgeScopeId, permission])
+  @@index([knowledgeScopeId])
+}
+
+model UserKnowledgePackageAssignment {
+  id           String                  @id @default(cuid())
+  userId       String
+  packageId    String
+  status       PackageAssignmentStatus @default(ACTIVE)
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  assignedById String
+  reason       String
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  revokedAt    DateTime?
+  revokedById  String?
+  user         User                    @relation("PackageAssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  package      KnowledgePackage        @relation(fields: [packageId], references: [id])
+  assignedBy   User                    @relation("PackageAssignmentCreator", fields: [assignedById], references: [id])
+  revokedBy    User?                   @relation("PackageAssignmentRevoker", fields: [revokedById], references: [id])
+
+  @@index([userId, status, startsAt, expiresAt])
+  @@index([packageId, status])
+  @@index([userId, packageId, status])
 }

@@ -17,6 +17,7 @@ const baseSource: EnvironmentSource = {
   AUTH_SECRET: 'test-secret-that-is-longer-than-thirty-two-characters',
   ALLOW_PRODUCTION_DATABASE_OPERATIONS: 'false',
   ENABLE_STATIC_CONTENT_FALLBACK: 'false',
+  KNOWLEDGE_ACCESS_MATRIX_MODE: 'enforced',
 };
 
 function environment(overrides: Partial<ServerEnvironment> = {}): ServerEnvironment {

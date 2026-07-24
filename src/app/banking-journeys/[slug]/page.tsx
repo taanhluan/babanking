@@ -1,30 +1,3 @@
-import { notFound } from 'next/navigation';
-import { Footer } from '@/components/layout/Footer'; import { Navbar } from '@/components/layout/Navbar'; import { Container } from '@/components/ui/Container';
-import { ArticleLayout, Callout, ContentHero, ContentSection, JsonLd, List, PreviousNext, ProcessFlow, RelatedContent } from '@/components/content/Editorial';
-import { bankingJourneyContent, baPracticeContent, caseStudyContent } from '@/data/content';
-import { KnowledgeActions } from '@/components/member/KnowledgeActions';
-import { requirePremiumAccess } from '@/lib/membership';
-import {getCurrentLocale} from '@/i18n/server'; import {TranslationUnavailable} from '@/components/content/TranslationUnavailable';
-
-export default async function JourneyDetail({ params }: { params: Promise<{ slug: string }> }) {
-  await requirePremiumAccess('/banking-journeys');
-  if(await getCurrentLocale()==='vi')return <TranslationUnavailable englishPath={`/banking-journeys/${(await params).slug}`}/>;
-  const { slug } = await params; const item = bankingJourneyContent.find((x) => x.slug === slug); if (!item) notFound();
-  const index = bankingJourneyContent.indexOf(item), prev = bankingJourneyContent[index - 1], next = bankingJourneyContent[index + 1];
-  const practices = item.relatedPracticeSlugs.flatMap((slug) => { const x = baPracticeContent.find((p) => p.slug === slug); return x ? [{ href: `/ba-practice/${x.slug}`, label: x.title, context: 'BA Practice' }] : []; });
-  const cases = item.relatedCaseStudySlugs.flatMap((slug) => { const x = caseStudyContent.find((p) => p.slug === slug); return x ? [{ href: `/case-studies/${x.slug}`, label: x.title, context: 'Case Study' }] : []; });
-  const journeys = item.relatedJourneySlugs.flatMap((slug) => { const x = bankingJourneyContent.find((p) => p.slug === slug); return x ? [{ href: `/banking-journeys/${x.slug}`, label: x.title, context: 'Banking Journey' }] : []; });
-  const toc = [{ id: 'overview', label: 'Overview' }, { id: 'landscape', label: 'Actors and systems' }, { id: 'process', label: 'Typical process' }, { id: 'rules', label: 'Business rules' }, { id: 'risk', label: 'Risks and controls' }, { id: 'ba-view', label: 'BA view' }, { id: 'related', label: 'Related knowledge' }];
-  const crumbs = [{ '@type': 'ListItem', position: 1, name: 'Home', item: '/' }, { '@type': 'ListItem', position: 2, name: 'Banking Journeys', item: '/banking-journeys' }, { '@type': 'ListItem', position: 3, name: item.title }];
-  return <><Navbar /><main><JsonLd data={{ '@context': 'https://schema.org', '@graph': [{ '@type': 'WebPage', name: item.title, description: item.summary }, { '@type': 'BreadcrumbList', itemListElement: crumbs }] }} /><ContentHero eyebrow={item.category} title={item.title} summary={item.summary} parentLabel="Banking Journeys" parentHref="/banking-journeys" meta={[`${item.capabilities.length} capabilities`, `${item.processSteps.length} process steps`]} /><section className="px-4 py-12 sm:px-6 lg:px-8"><Container><KnowledgeActions type="BANKING_JOURNEY" slug={item.slug} /><ArticleLayout toc={toc}>
-    <ContentSection id="overview" title="Journey overview"><p>{item.businessOverview}</p><div className="mt-6 grid gap-5 sm:grid-cols-2"><div><h3 className="font-semibold text-textPrimary">Customer goals</h3><List items={item.customerGoals} /></div><div><h3 className="font-semibold text-textPrimary">Business goals</h3><List items={item.businessGoals} /></div></div></ContentSection>
-    <ContentSection id="landscape" title="Actors, channels, systems and capabilities"><div className="grid gap-6 sm:grid-cols-2"><Group title="Key actors" items={item.keyActors} /><Group title="Channels" items={item.channels.length ? item.channels : ['Assisted and digital channels as supported']} /><Group title="Systems" items={item.systems} /><Group title="Core capabilities" items={item.capabilities} /></div></ContentSection>
-    <ContentSection id="process" title="Typical end-to-end process"><ProcessFlow steps={item.processSteps} /></ContentSection>
-    <ContentSection id="rules" title="Important business rules"><Callout label="Illustrative examples">These rules demonstrate analysis structure. Actual rules vary by institution, product, jurisdiction, channel, and risk policy.</Callout><div className="mt-4 space-y-3">{item.businessRules.map((rule) => <div key={rule.title} className="rounded-xl border border-slate-200 bg-white p-4"><h3 className="font-semibold text-textPrimary">{rule.title}</h3><p className="mt-1">{rule.description}</p></div>)}</div></ContentSection>
-    <ContentSection id="risk" title="Risks, controls and exceptions"><div className="space-y-3">{item.risksAndControls.map((entry) => <dl key={entry.risk} className="rounded-xl border border-slate-200 bg-white p-4"><dt className="font-semibold text-textPrimary">Risk: {entry.risk}</dt><dd className="mt-2"><strong>Common control:</strong> {entry.control}</dd></dl>)}</div><h3 className="mt-6 font-semibold text-textPrimary">Common exceptions</h3><List items={item.commonExceptions} /></ContentSection>
-    <ContentSection id="ba-view" title="Business Analyst view"><div className="grid gap-6 sm:grid-cols-2"><Group title="Sample BA questions" items={item.baQuestions} /><Group title="Typical BA deliverables" items={item.baOutputs} /></div></ContentSection>
-    <div id="related" className="space-y-8"><RelatedContent title="Related BA practices" links={practices} /><RelatedContent title="Related case studies" links={cases} /><RelatedContent title="Related journeys" links={journeys} /></div>
-    <PreviousNext previous={prev ? { href: `/banking-journeys/${prev.slug}`, label: prev.title, context: '' } : undefined} next={next ? { href: `/banking-journeys/${next.slug}`, label: next.title, context: '' } : undefined} backHref="/banking-journeys" backLabel="All journeys" />
-  </ArticleLayout></Container></section></main><Footer /></>;
-}
-function Group({ title, items }: { title: string; items: string[] }) { return <div><h3 className="mb-2 font-semibold text-textPrimary">{title}</h3><List items={items} /></div>; }
+import { notFound } from 'next/navigation'; import { Footer } from '@/components/layout/Footer'; import { Navbar } from '@/components/layout/Navbar'; import { DatabaseArticle } from '@/components/content/DatabaseContent'; import { ContentRepository } from '@/lib/repository';
+export const dynamic = 'force-dynamic'; export const revalidate = 0;
+export default async function JourneyDetail({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const content = await ContentRepository.getContentBySlug('BANKING_JOURNEY', slug); if (!content) notFound(); return <><Navbar /><main><DatabaseArticle content={content} /></main><Footer /></>; }

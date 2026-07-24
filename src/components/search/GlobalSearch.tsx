@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
-import type { SearchContentType, SearchRecord } from '@/data/content';
+type SearchContentType = 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level';
+type SearchRecord = { type: SearchContentType; title: string; summary: string; keywords: string[]; context: string; url: string };
 
 export function GlobalSearch({ records, initialQuery }: { records: SearchRecord[]; initialQuery: string }) {
   const [query, setQuery] = useState(initialQuery);

@@ -44,12 +44,20 @@ const selected = commands[commandName];
 if (!selected) {
   throw new Error('Unknown safe database command.');
 }
+const extraArgs = process.argv.slice(3);
+if (extraArgs.length) {
+  const safeMigrationName = commandName === 'migrate-dev'
+    && extraArgs.length === 2
+    && extraArgs[0] === '--name'
+    && /^[a-z0-9_]+$/.test(extraArgs[1]);
+  if (!safeMigrationName) throw new Error('Unsupported database command arguments.');
+}
 
 loadEnvironmentFiles();
 const environment = parseServerEnvironment(process.env, { requireAuthSecret: false });
 assertDatabaseOperationAllowed(selected.operation, environment);
 
-const result = spawnSync(selected.command, selected.args, {
+const result = spawnSync(selected.command, [...selected.args, ...extraArgs], {
   stdio: 'inherit',
   env: process.env,
 });

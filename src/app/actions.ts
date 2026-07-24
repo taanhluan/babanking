@@ -9,6 +9,10 @@ import { canEditRevision, canReviewRevision } from '@/lib/permissions';
 import { canTransition } from '@/lib/workflow';
 import { requirePremiumAccess } from '@/lib/membership';
 import { careerPreferenceSchema, contentDraftSchema, loginSchema, progressSchema, reservedSlugs } from '@/lib/validation';
+import {
+  assertContentActionAccess,
+  assertScopeActionAccess,
+} from '@/server/access-control/require-knowledge-access';
 
 export async function loginAction(formData: FormData) {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData)); if (!parsed.success) redirect('/login?error=invalid');
@@ -30,23 +34,64 @@ export async function setLocaleAction(formData: FormData) {
 export async function toggleBookmarkAction(formData: FormData) {
   const user = await requirePremiumAccess(), contentItemId = String(formData.get('contentItemId') || '');
   const existing = await db.bookmark.findUnique({ where: { userId_contentItemId: { userId: user.id, contentItemId } } });
-  if (existing) await db.bookmark.delete({ where: { id: existing.id } }); else await db.bookmark.create({ data: { userId: user.id, contentItemId } });
+  if (existing) await db.bookmark.delete({ where: { id: existing.id } }); else {
+    await assertContentActionAccess(user.id, contentItemId, 'VIEW');
+    await db.bookmark.create({ data: { userId: user.id, contentItemId } });
+  }
   revalidatePath('/workspace/bookmarks');
 }
 export async function updateProgressAction(formData: FormData) {
   const user = await requirePremiumAccess(), parsed = progressSchema.parse(Object.fromEntries(formData));
+  await assertContentActionAccess(user.id, parsed.contentItemId, 'VIEW');
   await db.readingActivity.upsert({ where: { userId_contentItemId: { userId: user.id, contentItemId: parsed.contentItemId } }, update: { progress: parsed.progress, completed: parsed.progress === 100, lastViewedAt: new Date() }, create: { userId: user.id, contentItemId: parsed.contentItemId, progress: parsed.progress, completed: parsed.progress === 100 } });
   revalidatePath('/workspace/history');
 }
 export async function saveCareerPreferenceAction(formData: FormData) {
   const user = await requirePremiumAccess(), parsed = careerPreferenceSchema.parse(Object.fromEntries(formData));
+  const levels = await db.contentItem.findMany({ where: { type: 'CAREER_LEVEL', slug: { in: [parsed.currentLevelSlug, parsed.targetLevelSlug] } }, select: { id: true } });
+  if (levels.length !== 2) throw new Error('Career level is not available.');
+  await Promise.all(levels.map((level) => assertContentActionAccess(user.id, level.id, 'VIEW')));
   await db.userCareerPreference.upsert({ where: { userId: user.id }, update: parsed, create: { userId: user.id, ...parsed } }); revalidatePath('/workspace/roadmap');
+}
+
+export async function manageKnowledgeScopeGrantAction(formData: FormData) {
+  const actor = await requireRole('ADMIN');
+  const userId = String(formData.get('userId') || ''), knowledgeScopeId = String(formData.get('knowledgeScopeId') || '');
+  const effect = String(formData.get('effect')) === 'DENY' ? 'DENY' : 'ALLOW';
+  const permission = String(formData.get('permission')) as 'VIEW' | 'CREATE' | 'EDIT' | 'REVIEW' | 'PUBLISH' | 'MANAGE';
+  const reason = String(formData.get('reason') || '').trim();
+  const expiresValue = String(formData.get('expiresAt') || ''); const expiresAt = expiresValue ? new Date(expiresValue) : null;
+  if (!userId || !knowledgeScopeId || !['VIEW','CREATE','EDIT','REVIEW','PUBLISH','MANAGE'].includes(permission) || (expiresAt && Number.isNaN(expiresAt.valueOf()))) throw new Error('Invalid knowledge grant.');
+  const existing = await db.userScopeGrant.findFirst({ where: { userId, knowledgeScopeId, permission, effect, status: 'ACTIVE' } });
+  const before = existing ? { status: existing.status, expiresAt: existing.expiresAt } : null;
+  const grant = existing ? await db.userScopeGrant.update({ where: { id: existing.id }, data: { expiresAt, reason: reason || existing.reason } }) : await db.userScopeGrant.create({ data: { userId, knowledgeScopeId, permission, effect, expiresAt, reason: reason || 'Admin assignment', grantedById: actor.id } });
+  await db.auditLog.create({ data: { actorId: actor.id, action: existing ? 'KNOWLEDGE_SCOPE_GRANT_UPDATED' : 'KNOWLEDGE_SCOPE_GRANTED', entityType: 'UserScopeGrant', entityId: grant.id, metadataJson: JSON.stringify({ targetUserId: userId, scopeId: knowledgeScopeId, permission, effect, before, after: { status: grant.status, expiresAt: grant.expiresAt } }) } });
+  revalidatePath('/admin/access-control'); revalidatePath(`/admin/access-control/users/${userId}`);
+}
+
+export async function revokeKnowledgeScopeGrantAction(formData: FormData) {
+  const actor = await requireRole('ADMIN'); const grantId = String(formData.get('grantId') || '');
+  const grant = await db.userScopeGrant.findUnique({ where: { id: grantId } }); if (!grant) throw new Error('Grant not found.');
+  await db.userScopeGrant.update({ where: { id: grantId }, data: { status: 'REVOKED', revokedAt: new Date(), revokedById: actor.id } });
+  await db.auditLog.create({ data: { actorId: actor.id, action: 'KNOWLEDGE_SCOPE_REVOKED', entityType: 'UserScopeGrant', entityId: grantId, metadataJson: JSON.stringify({ targetUserId: grant.userId, scopeId: grant.knowledgeScopeId, permission: grant.permission, effect: grant.effect }) } });
+  revalidatePath('/admin/access-control'); revalidatePath(`/admin/access-control/users/${grant.userId}`);
+}
+
+export async function assignKnowledgePackageAction(formData: FormData) {
+  const actor = await requireRole('ADMIN'); const userId = String(formData.get('userId') || ''); const packageId = String(formData.get('packageId') || ''); const reason = String(formData.get('reason') || '').trim() || 'Admin package assignment';
+  if (!userId || !packageId) throw new Error('User and package are required.');
+  const existing = await db.userKnowledgePackageAssignment.findFirst({ where: { userId, packageId, status: 'ACTIVE' } });
+  const assignment = existing ?? await db.userKnowledgePackageAssignment.create({ data: { userId, packageId, assignedById: actor.id, reason } });
+  await db.auditLog.create({ data: { actorId: actor.id, action: existing ? 'KNOWLEDGE_PACKAGE_ALREADY_ASSIGNED' : 'KNOWLEDGE_PACKAGE_ASSIGNED', entityType: 'UserKnowledgePackageAssignment', entityId: assignment.id, metadataJson: JSON.stringify({ targetUserId: userId, packageId, reason }) } });
+  revalidatePath('/admin/access-control'); revalidatePath(`/admin/access-control/users/${userId}`);
 }
 export async function createDraftAction(formData: FormData) {
   const user = await requireRole('CONTRIBUTOR'), parsed = contentDraftSchema.safeParse(Object.fromEntries(formData)); if (!parsed.success) redirect('/contributor/content/new?error=validation');
+  const scopeId = String(formData.get('knowledgeScopeId') || '');
+  await assertScopeActionAccess(user.id, scopeId, 'CREATE');
   if (reservedSlugs.has(parsed.data.slug)) redirect('/contributor/content/new?error=slug');
   const existing = await db.contentItem.findUnique({ where: { type_slug: { type: parsed.data.type, slug: parsed.data.slug } } }); if (existing) redirect('/contributor/content/new?error=slug');
-  const item = await db.contentItem.create({ data: { type: parsed.data.type, slug: parsed.data.slug, ownerId: user.id } });
+  const item = await db.contentItem.create({ data: { type: parsed.data.type, slug: parsed.data.slug, ownerId: user.id, knowledgeScopes: { create: { knowledgeScopeId: scopeId, relationshipType: 'PRIMARY', isRequired: true } } } });
   const content = { ...JSON.parse(parsed.data.contentJson), title: parsed.data.title, slug: parsed.data.slug, summary: parsed.data.summary };
   const revision = await db.contentRevision.create({ data: { contentItemId: item.id, version: 1, contentJson: JSON.stringify(content), authorId: user.id } });
   await db.auditLog.create({ data: { actorId: user.id, action: 'DRAFT_CREATED', entityType: 'ContentRevision', entityId: revision.id } });
@@ -55,18 +100,21 @@ export async function createDraftAction(formData: FormData) {
 export async function saveDraftAction(formData: FormData) {
   const user = await requireRole('CONTRIBUTOR'), revisionId = String(formData.get('revisionId')), contentJson = String(formData.get('contentJson') || '');
   const revision = await db.contentRevision.findUnique({ where: { id: revisionId } }); if (!revision || !canEditRevision(user.role, user.id, revision.authorId, revision.status)) throw new Error('Not authorized to edit this revision.');
+  await assertContentActionAccess(user.id, revision.contentItemId, 'EDIT');
   JSON.parse(contentJson); await db.contentRevision.update({ where: { id: revision.id }, data: { contentJson } });
   await db.auditLog.create({ data: { actorId: user.id, action: 'DRAFT_UPDATED', entityType: 'ContentRevision', entityId: revision.id } }); revalidatePath(`/contributor/content/${revision.contentItemId}/edit`);
 }
 export async function submitRevisionAction(formData: FormData) {
   const user = await requireRole('CONTRIBUTOR'), revisionId = String(formData.get('revisionId'));
   const revision = await db.contentRevision.findUnique({ where: { id: revisionId } }); if (!revision || revision.authorId !== user.id || !canTransition(revision.status, 'SUBMIT')) throw new Error('Revision cannot be submitted.');
+  await assertContentActionAccess(user.id, revision.contentItemId, 'EDIT');
   await db.contentRevision.update({ where: { id: revision.id }, data: { status: 'IN_REVIEW', submittedAt: new Date(), reviewNote: null } });
   await db.auditLog.create({ data: { actorId: user.id, action: 'REVISION_SUBMITTED', entityType: 'ContentRevision', entityId: revision.id } }); redirect('/contributor');
 }
 export async function reviewRevisionAction(formData: FormData) {
   const user = await requireRole('REVIEWER'), revisionId = String(formData.get('revisionId')), action = String(formData.get('action')), note = String(formData.get('reviewNote') || '').trim();
   const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, include: { contentItem: true } }); if (!revision || !canReviewRevision(user.role, user.id, revision.authorId) || revision.status !== 'IN_REVIEW') throw new Error('Revision cannot be reviewed.');
+  await assertContentActionAccess(user.id, revision.contentItemId, action === 'publish' ? 'PUBLISH' : 'REVIEW');
   if ((action === 'changes' || action === 'reject') && note.length < 10) throw new Error('A review note is required.');
   if (action === 'publish') await db.$transaction(async (tx) => {
     const now = new Date(); await tx.contentRevision.update({ where: { id: revision.id }, data: { status: 'PUBLISHED', reviewerId: user.id, reviewedAt: now, publishedAt: now, reviewNote: note || null } });

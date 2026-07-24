@@ -11,11 +11,11 @@ import { getAlternateLocale } from '@/i18n/config';
 import { getLocalizedPath } from '@/i18n/routing';
 
 type Labels = { overview:string;unlock:string;methodology:string;membership:string;faq:string;login:string;request:string;journeys:string;practice:string;cases:string;roadmap:string;search:string;workspace:string;status:string;renewal:string;admin:string;adminConsole:string;account:string;logout:string };
-export function NavbarClient({ mode, role, locale, labels }: { mode:'visitor'|'limited'|'member'; role?:Role; locale:SupportedLocale; labels:Labels }) {
+export function NavbarClient({ mode, role, locale, labels, permittedTypes }: { mode:'visitor'|'limited'|'member'; role?:Role; locale:SupportedLocale; labels:Labels; permittedTypes: string[] }) {
   const [open,setOpen]=useState(false); const pathname=usePathname(); const query=useSearchParams();
   useEffect(()=>{if(!open)return;const close=(e:KeyboardEvent)=>e.key==='Escape'&&setOpen(false);window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[open]);
   const publicLinks=[[labels.overview,'/#overview'],[labels.unlock,'/#membership-preview'],[labels.methodology,'/#methodology'],[labels.membership,'/#membership'],[labels.faq,'/#faq']] as const;
-  const premiumLinks=[[labels.journeys,'/banking-journeys'],[labels.practice,'/ba-practice'],[labels.cases,'/case-studies'],[labels.roadmap,'/career-roadmap'],[labels.search,'/search'],[labels.workspace,'/workspace']] as const;
+  const premiumLinks=[[labels.journeys,'/banking-journeys','BANKING_JOURNEY'],[labels.practice,'/ba-practice','BA_PRACTICE'],[labels.cases,'/case-studies','CASE_STUDY'],[labels.roadmap,'/career-roadmap','CAREER_LEVEL']].filter(([, , type])=>permittedTypes.includes(type)).map(([label,href])=>[label,href] as const);
   const links=mode==='member'?premiumLinks:mode==='limited'?[[labels.status,'/account/membership'],[labels.renewal,'/account/renewal']] as const:publicLinks;
   const localize=(href:string)=>href.startsWith('/#')?`/${locale}${href.slice(1)}`:getLocalizedPath(href,locale);
   const queryString=query.toString(); const alternateBase=getLocalizedPath(pathname,getAlternateLocale(locale)); const alternate=queryString?`${alternateBase}?${queryString}`:alternateBase;

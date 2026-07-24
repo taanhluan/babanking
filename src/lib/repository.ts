@@ -2,72 +2,109 @@ import 'server-only';
 import type { ContentType } from '@prisma/client';
 import { db } from '@/lib/db';
 import { requirePremiumAccess } from './membership';
-import { bankingJourneyContent, baPracticeContent, caseStudyContent, careerLevelContent, searchIndex } from '@/data/content';
-import { getServerEnvironment } from '@/server/env';
-const staticByType = { BANKING_JOURNEY: bankingJourneyContent, BA_PRACTICE: baPracticeContent, CASE_STUDY: caseStudyContent, CAREER_LEVEL: careerLevelContent } as const;
-export async function getPublishedByType(type: ContentType) {
-  await requirePremiumAccess();
-  const allowStaticFallback = getServerEnvironment().ENABLE_STATIC_CONTENT_FALLBACK;
+import { getAccessibleContentIds } from '@/server/access-control/knowledge-access-repository';
+import { requireContentSlugAccess } from '@/server/access-control/require-knowledge-access';
+
+export type PublishedContent = {
+  id: string;
+  type: ContentType;
+  slug: string;
+  title: string;
+  summary: string;
+  body: Record<string, unknown>;
+};
+
+export type ContentPreview = Pick<PublishedContent, 'id' | 'type' | 'slug' | 'title' | 'summary'>;
+
+const routes: Record<ContentType, string> = {
+  BANKING_JOURNEY: 'banking-journeys',
+  BA_PRACTICE: 'ba-practice',
+  CASE_STUDY: 'case-studies',
+  CAREER_LEVEL: 'career-roadmap',
+};
+
+const labels: Record<ContentType, 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level'> = {
+  BANKING_JOURNEY: 'Banking Journey',
+  BA_PRACTICE: 'BA Practice',
+  CASE_STUDY: 'Case Study',
+  CAREER_LEVEL: 'Career Level',
+};
+
+function parseBody(value: string): Record<string, unknown> | null {
   try {
-    const items = await db.contentItem.findMany({ where: { type, isArchived: false, publishedRevisionId: { not: null } }, include: { publishedRevision: true }, orderBy: { slug: 'asc' } });
-    if (!items.length) return allowStaticFallback ? [...staticByType[type]] : [];
-    return items.flatMap((item) => { try { return item.publishedRevision ? [JSON.parse(item.publishedRevision.contentJson) as Record<string, unknown>] : []; } catch { return []; } });
-  } catch (error) {
-    if (allowStaticFallback) return [...staticByType[type]];
-    throw new Error('Published content is temporarily unavailable.', { cause: error });
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
   }
 }
-export async function getPublishedBySlug(type: ContentType, slug: string) {
-  const records = await getPublishedByType(type); return records.find((record) => record.slug === slug);
+
+function previewFrom(item: { id: string; type: ContentType; slug: string; previewJson: string | null }): ContentPreview | null {
+  const body = item.previewJson ? parseBody(item.previewJson) : null;
+  const title = typeof body?.title === 'string' ? body.title : null;
+  const summary = typeof body?.summary === 'string' ? body.summary : null;
+  return title && summary ? { id: item.id, type: item.type, slug: item.slug, title, summary } : null;
 }
-export async function getPublishedSearchIndex() {
-  await requirePremiumAccess('/search');
-  const allowStaticFallback = getServerEnvironment().ENABLE_STATIC_CONTENT_FALLBACK;
-  try {
+
+/** Server-only Neon content repository. Access is resolved before contentJson is queried. */
+export const ContentRepository = {
+  async listByCategory(type: ContentType): Promise<ContentPreview[]> {
+    const user = await requirePremiumAccess(`/${routes[type]}`);
+    const accessibleIds = await getAccessibleContentIds(user.id, { type, permission: 'VIEW' });
+    if (!accessibleIds.length) return [];
     const items = await db.contentItem.findMany({
-      where: { isArchived: false, publishedRevisionId: { not: null } },
-      include: { publishedRevision: true },
+      where: { id: { in: accessibleIds }, type, isArchived: false, publishedRevisionId: { not: null } },
+      select: { id: true, type: true, slug: true, previewJson: true },
       orderBy: { slug: 'asc' },
     });
-    if (!items.length) return allowStaticFallback ? searchIndex : [];
     return items.flatMap((item) => {
-      if (!item.publishedRevision) return [];
-      try {
-        const content = JSON.parse(item.publishedRevision.contentJson) as {
-          title?: string;
-          summary?: string;
-          keywords?: string[];
-          topics?: string[];
-          category?: string;
-          domain?: string;
-        };
-        if (!content.title || !content.summary) return [];
-        const route = {
-          BANKING_JOURNEY: 'banking-journeys',
-          BA_PRACTICE: 'ba-practice',
-          CASE_STUDY: 'case-studies',
-          CAREER_LEVEL: 'career-roadmap',
-        }[item.type];
-        const label = {
-          BANKING_JOURNEY: 'Banking Journey',
-          BA_PRACTICE: 'BA Practice',
-          CASE_STUDY: 'Case Study',
-          CAREER_LEVEL: 'Career Level',
-        }[item.type] as 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level';
-        return [{
-          type: label,
-          title: content.title,
-          summary: content.summary,
-          keywords: content.keywords ?? content.topics ?? [],
-          context: content.category ?? content.domain ?? label,
-          url: `/${route}/${item.slug}`,
-        }];
-      } catch {
-        return [];
-      }
+      const preview = previewFrom(item);
+      return preview ? [preview] : [];
     });
-  } catch (error) {
-    if (allowStaticFallback) return searchIndex;
-    throw new Error('Search content is temporarily unavailable.', { cause: error });
-  }
-}
+  },
+
+  async getContentBySlug(type: ContentType, slug: string): Promise<PublishedContent | undefined> {
+    const { content } = await requireContentSlugAccess(type, slug);
+    const item = await db.contentItem.findUnique({
+      where: { id: content.id },
+      select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { contentJson: true } } },
+    });
+    const body = item?.publishedRevision && parseBody(item.publishedRevision.contentJson);
+    const preview = item && previewFrom(item);
+    return item && body && preview ? { ...preview, body } : undefined;
+  },
+
+  async getPreview(type: ContentType, slug: string): Promise<ContentPreview | undefined> {
+    const user = await requirePremiumAccess(`/${routes[type]}`);
+    const accessibleIds = await getAccessibleContentIds(user.id, { type, permission: 'VIEW' });
+    const item = await db.contentItem.findFirst({
+      where: { id: { in: accessibleIds }, type, slug, isArchived: false, publishedRevisionId: { not: null } },
+      select: { id: true, type: true, slug: true, previewJson: true },
+    });
+    return item ? previewFrom(item) ?? undefined : undefined;
+  },
+
+  async search() {
+    const user = await requirePremiumAccess('/search');
+    const accessibleIds = await getAccessibleContentIds(user.id, { permission: 'VIEW' });
+    if (!accessibleIds.length) return [];
+    const items = await db.contentItem.findMany({
+      where: { id: { in: accessibleIds }, isArchived: false, publishedRevisionId: { not: null } },
+      select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { contentJson: true } } },
+      orderBy: { slug: 'asc' },
+    });
+    return items.flatMap((item) => {
+      const preview = previewFrom(item);
+      if (!preview) return [];
+      const body = item.publishedRevision && parseBody(item.publishedRevision.contentJson);
+      const keywords = Array.isArray(body?.keywords) ? body.keywords.filter((item): item is string => typeof item === 'string') : [];
+      return [{ type: labels[item.type], title: preview.title, summary: preview.summary, keywords, context: labels[item.type], url: `/${routes[item.type]}/${item.slug}` }];
+    });
+  },
+};
+
+export const getPublishedByType = ContentRepository.listByCategory;
+export const getPublishedBySlug = ContentRepository.getContentBySlug;
+export const getPublishedSearchIndex = ContentRepository.search;
