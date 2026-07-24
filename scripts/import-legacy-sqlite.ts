@@ -2,7 +2,15 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import {
+  assertDatabaseOperationAllowed,
+  parseServerEnvironment,
+} from '../src/server/environment-core';
+import { loadEnvironmentFiles } from './load-environment-files';
 
+loadEnvironmentFiles();
+const environment = parseServerEnvironment(process.env, { requireAuthSecret: false });
+assertDatabaseOperationAllowed('import-sqlite-development', environment);
 const prisma = new PrismaClient();
 const source = resolve(process.argv[2] || 'prisma/dev.db');
 

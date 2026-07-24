@@ -39,6 +39,7 @@ export default async function AdminPage() {
     [isVietnamese ? 'Quản lý nội dung' : 'Manage Content', '/admin/content'],
     [isVietnamese ? 'Quản lý bản dịch' : 'Manage Translations', '/admin/content/translations'],
     [isVietnamese ? 'Nhật ký kiểm toán' : 'View Audit Log', '/admin/audit'],
+    [isVietnamese ? 'Môi trường hệ thống' : 'System Environment', '/admin/system/environment'],
   ] as const;
 
   return (
