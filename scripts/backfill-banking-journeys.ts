@@ -398,7 +398,7 @@ async function main() {
       || moduleCount !== record.modules.length
       || sectionCount !== expectedSectionCount
       || blockCount !== expectedBlockCount
-      || item.knowledgeScopes.length !== 1
+      || !item.knowledgeScopes.some((mapping) => mapping.knowledgeScopeId === scope.id)
       || !item.translations.some((translation) => translation.locale === 'en' && translation.status === 'PUBLISHED')
       || !item.translations.some((translation) => translation.locale === 'vi' && translation.status === 'NOT_STARTED')
     ) {
