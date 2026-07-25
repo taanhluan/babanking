@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { requirePremiumAccess } from './membership';
 import { getAccessibleContentIds } from '@/server/access-control/knowledge-access-repository';
 import { requireContentSlugAccess } from '@/server/access-control/require-knowledge-access';
+import { revisionHierarchySelect } from '@/server/cms/revision-hierarchy';
 
 export type PublishedContent = {
   id: string;
@@ -12,6 +13,27 @@ export type PublishedContent = {
   title: string;
   summary: string;
   body: Record<string, unknown>;
+  modules?: JourneyModule[];
+};
+
+export type JourneyModule = {
+  id: string;
+  stableKey: string;
+  title: string;
+  displayOrder: number;
+  sections: Array<{
+    id: string;
+    stableKey: string;
+    title: string;
+    displayOrder: number;
+    blocks: Array<{
+      id: string;
+      blockType: string;
+      schemaVersion: number;
+      payload: Record<string, unknown>;
+      displayOrder: number;
+    }>;
+  }>;
 };
 
 export type ContentPreview = Pick<PublishedContent, 'id' | 'type' | 'slug' | 'title' | 'summary'>;
@@ -41,8 +63,8 @@ function parseBody(value: string): Record<string, unknown> | null {
   }
 }
 
-function previewFrom(item: { id: string; type: ContentType; slug: string; previewJson: string | null }): ContentPreview | null {
-  const body = item.previewJson ? parseBody(item.previewJson) : null;
+function previewFrom(item: { id: string; type: ContentType; slug: string; previewJson: string | null; publishedRevision?: { contentJson: string } | null }): ContentPreview | null {
+  const body = item.previewJson ? parseBody(item.previewJson) : item.publishedRevision ? parseBody(item.publishedRevision.contentJson) : null;
   const title = typeof body?.title === 'string' ? body.title : null;
   const summary = typeof body?.summary === 'string' ? body.summary : null;
   return title && summary ? { id: item.id, type: item.type, slug: item.slug, title, summary } : null;
@@ -56,7 +78,7 @@ export const ContentRepository = {
     if (!accessibleIds.length) return [];
     const items = await db.contentItem.findMany({
       where: { id: { in: accessibleIds }, type, isArchived: false, publishedRevisionId: { not: null } },
-      select: { id: true, type: true, slug: true, previewJson: true },
+      select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { contentJson: true } } },
       orderBy: { slug: 'asc' },
     });
     return items.flatMap((item) => {
@@ -69,11 +91,34 @@ export const ContentRepository = {
     const { content } = await requireContentSlugAccess(type, slug);
     const item = await db.contentItem.findUnique({
       where: { id: content.id },
-      select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { contentJson: true } } },
+      select: {
+        id: true,
+        type: true,
+        slug: true,
+        previewJson: true,
+        publishedRevision: { select: { contentJson: true, revisionModules: revisionHierarchySelect } },
+      },
     });
     const body = item?.publishedRevision && parseBody(item.publishedRevision.contentJson);
     const preview = item && previewFrom(item);
-    return item && body && preview ? { ...preview, body } : undefined;
+    if (!item || !body || !preview) return undefined;
+    const sourceModules = item.publishedRevision?.revisionModules ?? [];
+    const modules = sourceModules.map((module) => ({
+      ...module,
+      sections: module.sections.map((section) => ({
+        ...section,
+        blocks: section.blocks.map((block) => ({
+          id: block.id,
+          blockType: block.blockType,
+          schemaVersion: block.schemaVersion,
+          displayOrder: block.displayOrder,
+          payload: block.payload && typeof block.payload === 'object' && !Array.isArray(block.payload)
+            ? block.payload as Record<string, unknown>
+            : {},
+        })),
+      })),
+    }));
+    return { ...preview, body, ...(modules.length ? { modules } : {}) };
   },
 
   async getPreview(type: ContentType, slug: string): Promise<ContentPreview | undefined> {
@@ -81,7 +126,7 @@ export const ContentRepository = {
     const accessibleIds = await getAccessibleContentIds(user.id, { type, permission: 'VIEW' });
     const item = await db.contentItem.findFirst({
       where: { id: { in: accessibleIds }, type, slug, isArchived: false, publishedRevisionId: { not: null } },
-      select: { id: true, type: true, slug: true, previewJson: true },
+      select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { contentJson: true } } },
     });
     return item ? previewFrom(item) ?? undefined : undefined;
   },

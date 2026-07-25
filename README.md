@@ -162,6 +162,8 @@ Verify **Vercel Project → Settings → Environments → Production → Branch 
 - `npm run db:migrate:dev` — only development application to development database; runs `prisma migrate dev`.
 - `npm run db:migrate:deploy` — only matching Preview/Preview or Production/Production; runs `prisma migrate deploy`.
 - `npm run db:seed:dev` — development only.
+- `BACKFILL_ADMIN_EMAIL="admin@example.com" npm run db:backfill:journeys:dry-run:dev` — validates the ten legacy Banking Journeys without writing data.
+- `BACKFILL_ADMIN_EMAIL="admin@example.com" npm run db:backfill:journeys:dev` — idempotently imports the ten legacy Banking Journeys into published CMS revisions on Development only.
 - `npm run db:import:sqlite:dev` — development only.
 - `npm run db:studio` — development only.
 

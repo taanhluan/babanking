@@ -57,6 +57,8 @@ export type DatabaseOperation =
   | 'migrate-deploy'
   | 'seed-development'
   | 'import-sqlite-development'
+  | 'backfill-development'
+  | 'cleanup-development'
   | 'studio'
   | 'destructive';
 
@@ -136,7 +138,8 @@ export function assertDatabaseOperationAllowed(
   assertDatabaseEnvironmentSafe(environment);
   if (operation === 'runtime' || operation === 'migrate-status') return;
   if (operation === 'migrate-dev' || operation === 'seed-development'
-    || operation === 'import-sqlite-development' || operation === 'studio') {
+    || operation === 'import-sqlite-development' || operation === 'backfill-development'
+    || operation === 'cleanup-development' || operation === 'studio') {
     if (
       environment.APP_ENV !== 'development'
       || environment.DATABASE_ENVIRONMENT !== 'development'

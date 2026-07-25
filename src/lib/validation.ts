@@ -8,6 +8,22 @@ export const contentDraftSchema = z.object({
   title: z.string().trim().min(5).max(160), slug: slugSchema, summary: z.string().trim().min(30).max(500),
   contentJson: z.string().min(2).refine((value) => { try { const data: unknown = JSON.parse(value); return typeof data === 'object' && data !== null; } catch { return false; } }, 'Content must be valid JSON.'),
 });
+export const journeyMetadataSchema = z.object({
+  title: z.string().trim().min(5).max(160),
+  slug: slugSchema,
+  summary: z.string().trim().min(30).max(500),
+  description: z.string().trim().max(5000).optional().or(z.literal('')),
+  category: z.string().trim().max(120).optional().or(z.literal('')),
+  journeyType: z.string().trim().max(120).optional().or(z.literal('')),
+  tagsJson: z.string().refine((value) => { try { return Array.isArray(JSON.parse(value)); } catch { return false; } }, 'Tags must be a JSON array.'),
+  displayOrder: z.coerce.number().int().min(0).max(100000),
+  seoTitle: z.string().trim().max(160).optional().or(z.literal('')),
+  seoDescription: z.string().trim().max(320).optional().or(z.literal('')),
+  heroImageMetadataJson: z.string().refine((value) => { try { const parsed = JSON.parse(value); return parsed === null || (typeof parsed === 'object' && !Array.isArray(parsed)); } catch { return false; } }, 'Hero image metadata must be a JSON object.'),
+});
+export const journeyModuleSchema = z.object({ contentItemId: z.string().cuid(), title: z.string().trim().min(2).max(160), description: z.string().trim().max(1000).optional().or(z.literal('')), displayOrder: z.coerce.number().int().min(0).max(100000) });
+export const journeySectionSchema = z.object({ moduleId: z.string().cuid(), title: z.string().trim().min(2).max(160), displayOrder: z.coerce.number().int().min(0).max(100000) });
+export const journeyBlockSchema = z.object({ sectionId: z.string().cuid(), blockType: z.enum(['RICH_TEXT', 'TABLE', 'IMAGE', 'DIAGRAM', 'API_EXAMPLE', 'BUSINESS_RULE', 'CHECKLIST', 'CALLOUT', 'REFERENCE', 'DOWNLOAD']), schemaVersion: z.coerce.number().int().min(1).max(100), payloadJson: z.string().refine((value) => { try { const parsed = JSON.parse(value); return parsed !== null && typeof parsed === 'object'; } catch { return false; } }, 'Block payload must be a JSON object.'), displayOrder: z.coerce.number().int().min(0).max(100000) });
 export const careerPreferenceSchema = z.object({ currentLevelSlug: slugSchema, targetLevelSlug: slugSchema });
 export const progressSchema = z.object({ contentItemId: z.string().cuid(), progress: z.coerce.number().int().min(0).max(100) });
 export const accessRequestSchema = z.object({

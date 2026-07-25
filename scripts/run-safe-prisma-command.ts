@@ -33,6 +33,16 @@ const commands: Record<string, { operation: DatabaseOperation; command: string; 
     command: 'npx',
     args: ['tsx', 'scripts/import-legacy-sqlite.ts'],
   },
+  'cleanup-development': {
+    operation: 'cleanup-development',
+    command: 'npx',
+    args: ['tsx', 'scripts/cleanup-development-data.ts'],
+  },
+  'backfill-banking-journeys': {
+    operation: 'backfill-development',
+    command: 'npx',
+    args: ['tsx', 'scripts/backfill-banking-journeys.ts'],
+  },
   studio: {
     operation: 'studio',
     command: 'npx',

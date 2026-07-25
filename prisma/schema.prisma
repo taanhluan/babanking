@@ -174,6 +174,7 @@ model User {
   contentGrants        UserContentGrant[]               @relation("ContentGrantUser")
   contentGrantsGiven   UserContentGrant[]               @relation("ContentGrantCreator")
   contentGrantsRevoked UserContentGrant[]               @relation("ContentGrantRevoker")
+  uploadedJourneyAssets JourneyAsset[]                   @relation("JourneyAssetUploader")
   packageAssignments   UserKnowledgePackageAssignment[] @relation("PackageAssignmentUser")
   packagesAssigned     UserKnowledgePackageAssignment[] @relation("PackageAssignmentCreator")
   packagesRevoked      UserKnowledgePackageAssignment[] @relation("PackageAssignmentRevoker")
@@ -338,6 +339,14 @@ model ContentItem {
   isArchived          Boolean                 @default(false)
   accessMode          ContentAccessMode       @default(ANY_SCOPE)
   previewJson         String?
+  description         String?
+  category            String?
+  journeyType         String?
+  tagsJson            String?
+  displayOrder        Int                     @default(0)
+  seoTitle            String?
+  seoDescription      String?
+  heroImageMetadataJson String?
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
   owner               User?                   @relation("ContentOwner", fields: [ownerId], references: [id])
@@ -348,11 +357,87 @@ model ContentItem {
   translations        ContentTranslation[]
   knowledgeScopes     ContentKnowledgeScope[]
   userContentGrants   UserContentGrant[]
+  journeyModules      JourneyModule[]                  @relation("JourneyModules")
+  journeyAssets       JourneyAsset[]                   @relation("JourneyAssets")
 
   @@unique([type, slug])
   @@index([type, isArchived])
   @@index([ownerId])
   @@index([accessMode])
+  @@index([type, displayOrder])
+}
+
+/// Additive Phase 1 CMS structure. ContentItem remains the stable identity.
+model JourneyModule {
+  id            String          @id @default(cuid())
+  contentItemId String
+  stableKey     String
+  title         String
+  description   String?
+  displayOrder  Int             @default(0)
+  isArchived    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  contentItem   ContentItem     @relation("JourneyModules", fields: [contentItemId], references: [id], onDelete: Cascade)
+  sections      JourneySection[]
+
+  @@unique([contentItemId, stableKey])
+  @@index([contentItemId, displayOrder])
+}
+
+model JourneySection {
+  id           String         @id @default(cuid())
+  moduleId     String
+  stableKey    String
+  title        String
+  displayOrder Int            @default(0)
+  isArchived   Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  module       JourneyModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  blocks       JourneyBlock[]
+
+  @@unique([moduleId, stableKey])
+  @@index([moduleId, displayOrder])
+}
+
+model JourneyBlock {
+  id            String         @id @default(cuid())
+  sectionId     String
+  blockType     String
+  schemaVersion Int            @default(1)
+  displayOrder  Int            @default(0)
+  payloadJson   String
+  assetId       String?
+  isArchived    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  section       JourneySection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  asset         JourneyAsset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([sectionId, displayOrder])
+  @@index([blockType])
+}
+
+model JourneyAsset {
+  id            String         @id @default(cuid())
+  contentItemId String
+  filename      String
+  mimeType      String
+  sizeBytes     Int
+  storageKey    String         @unique
+  checksum      String?
+  status        String         @default("ACTIVE")
+  uploadedById  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  contentItem   ContentItem    @relation("JourneyAssets", fields: [contentItemId], references: [id], onDelete: Cascade)
+  uploadedBy    User?          @relation("JourneyAssetUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  blocks        JourneyBlock[]
+  revisionBlocks RevisionBlock[] @relation("RevisionBlockAsset")
+
+  @@index([contentItemId, status])
+  @@index([mimeType])
 }
 
 model ContentTranslation {
@@ -423,10 +508,62 @@ model ContentRevision {
   publishedFor  ContentItem?   @relation("PublishedRevision")
   author        User?          @relation("RevisionAuthor", fields: [authorId], references: [id])
   reviewer      User?          @relation("RevisionReviewer", fields: [reviewerId], references: [id])
+  revisionModules RevisionModule[]
 
   @@unique([contentItemId, version])
   @@index([status, submittedAt])
   @@index([authorId, status])
+}
+
+model RevisionModule {
+  id               String          @id @default(cuid())
+  contentRevisionId String
+  stableKey        String
+  title            String
+  description      String?
+  displayOrder     Int             @default(0)
+  isArchived       Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  contentRevision  ContentRevision @relation(fields: [contentRevisionId], references: [id], onDelete: Cascade)
+  sections         RevisionSection[]
+
+  @@unique([contentRevisionId, stableKey])
+  @@index([contentRevisionId, displayOrder])
+}
+
+model RevisionSection {
+  id               String         @id @default(cuid())
+  revisionModuleId String
+  stableKey        String
+  title            String
+  displayOrder     Int            @default(0)
+  isArchived       Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  module           RevisionModule @relation(fields: [revisionModuleId], references: [id], onDelete: Cascade)
+  blocks           RevisionBlock[]
+
+  @@unique([revisionModuleId, stableKey])
+  @@index([revisionModuleId, displayOrder])
+}
+
+model RevisionBlock {
+  id                String          @id @default(cuid())
+  revisionSectionId String
+  blockType         String
+  schemaVersion     Int             @default(1)
+  payload           Json
+  displayOrder      Int             @default(0)
+  isArchived        Boolean         @default(false)
+  assetId           String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  section           RevisionSection @relation(fields: [revisionSectionId], references: [id], onDelete: Cascade)
+  asset             JourneyAsset?   @relation("RevisionBlockAsset", fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([revisionSectionId, displayOrder])
+  @@index([blockType])
 }
 
 model Bookmark {
