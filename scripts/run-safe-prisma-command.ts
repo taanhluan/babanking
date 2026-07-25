@@ -43,6 +43,11 @@ const commands: Record<string, { operation: DatabaseOperation; command: string; 
     command: 'npx',
     args: ['tsx', 'scripts/backfill-banking-journeys.ts'],
   },
+  'backfill-banking-journeys-preview': {
+    operation: 'backfill-preview',
+    command: 'npx',
+    args: ['tsx', 'scripts/backfill-banking-journeys.ts'],
+  },
   studio: {
     operation: 'studio',
     command: 'npx',

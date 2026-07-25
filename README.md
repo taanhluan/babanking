@@ -164,6 +164,7 @@ Verify **Vercel Project → Settings → Environments → Production → Branch 
 - `npm run db:seed:dev` — development only.
 - `BACKFILL_ADMIN_EMAIL="admin@example.com" npm run db:backfill:journeys:dry-run:dev` — validates the ten legacy Banking Journeys without writing data.
 - `BACKFILL_ADMIN_EMAIL="admin@example.com" npm run db:backfill:journeys:dev` — idempotently imports the ten legacy Banking Journeys into published CMS revisions on Development only.
+- `BACKFILL_ADMIN_EMAIL="admin@example.com" npm run db:backfill:journeys:preview` — controlled Preview-only backfill using matching Preview environment variables.
 - `npm run db:import:sqlite:dev` — development only.
 - `npm run db:studio` — development only.
 

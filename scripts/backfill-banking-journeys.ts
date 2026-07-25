@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { bankingJourneyContent } from '../src/data/content';
 import {
@@ -10,7 +11,10 @@ import { mapLegacyJourney } from './legacy-journey-mapping';
 loadEnvironmentFiles();
 
 const environment = parseServerEnvironment(process.env, { requireAuthSecret: false });
-assertDatabaseOperationAllowed('backfill-development', environment);
+assertDatabaseOperationAllowed(
+  environment.APP_ENV === 'preview' ? 'backfill-preview' : 'backfill-development',
+  environment,
+);
 
 const adminEmail = process.env.BACKFILL_ADMIN_EMAIL?.trim().toLowerCase();
 const dryRun = process.env.BACKFILL_DRY_RUN === 'true';
@@ -26,6 +30,40 @@ function migrationChecksum(contentJson: string) {
   } catch {
     return null;
   }
+}
+
+function contentChecksum(contentJson: string) {
+  try {
+    return createHash('sha256').update(JSON.stringify(JSON.parse(contentJson))).digest('hex');
+  } catch {
+    return null;
+  }
+}
+
+function revisionModules(record: (typeof records)[number]) {
+  return {
+    create: record.modules.map((module, moduleIndex) => ({
+      stableKey: module.stableKey,
+      title: module.title,
+      description: module.description,
+      displayOrder: moduleIndex,
+      sections: {
+        create: module.sections.map((section, sectionIndex) => ({
+          stableKey: section.stableKey,
+          title: section.title,
+          displayOrder: sectionIndex,
+          blocks: {
+            create: section.blocks.map((block, blockIndex) => ({
+              blockType: block.blockType,
+              schemaVersion: 1,
+              payload: block.payload,
+              displayOrder: blockIndex,
+            })),
+          },
+        })),
+      },
+    })),
+  };
 }
 
 async function main() {
@@ -44,14 +82,24 @@ async function main() {
   const existing = await prisma.contentItem.findMany({
     where: { type: 'BANKING_JOURNEY', slug: { in: records.map((record) => record.slug) } },
     select: {
+      id: true,
       slug: true,
-      publishedRevision: { select: { contentJson: true } },
+      publishedRevision: {
+        select: {
+          contentJson: true,
+          revisionModules: { select: { id: true } },
+        },
+      },
     },
   });
   const existingBySlug = new Map(existing.map((item) => [item.slug, item]));
   for (const record of records) {
     const item = existingBySlug.get(record.slug);
-    if (item && migrationChecksum(item.publishedRevision?.contentJson ?? '') !== record.checksum) {
+    const publishedContentJson = item?.publishedRevision?.contentJson ?? '';
+    const alreadyMigrated = migrationChecksum(publishedContentJson) === record.checksum;
+    const legacyMatch = item?.publishedRevision?.revisionModules.length === 0
+      && contentChecksum(publishedContentJson) === record.checksum;
+    if (item && !alreadyMigrated && !legacyMatch) {
       throw new Error(`Backfill blocked: ${record.slug} already contains non-matching CMS content.`);
     }
   }
@@ -86,12 +134,116 @@ async function main() {
   let imported = 0;
   let skipped = 0;
   for (const [journeyIndex, record] of records.entries()) {
-    if (existingBySlug.has(record.slug)) {
+    const existingItem = existingBySlug.get(record.slug);
+    if (existingItem && migrationChecksum(existingItem.publishedRevision?.contentJson ?? '') === record.checksum) {
       skipped += 1;
       continue;
     }
 
     await prisma.$transaction(async (transaction) => {
+      if (existingItem) {
+        await transaction.contentItem.update({
+          where: { id: existingItem.id },
+          data: {
+            ownerId: admin.id,
+            previewJson: JSON.stringify({ title: record.title, summary: record.summary }),
+            description: record.summary,
+            category: record.category,
+            journeyType: 'DOMAIN_JOURNEY',
+            tagsJson: JSON.stringify(record.tags),
+            displayOrder: journeyIndex,
+            seoTitle: record.title,
+            seoDescription: record.summary,
+            knowledgeScopes: {
+              upsert: {
+                where: {
+                  contentItemId_knowledgeScopeId: {
+                    contentItemId: existingItem.id,
+                    knowledgeScopeId: scope.id,
+                  },
+                },
+                update: { relationshipType: 'PRIMARY', isRequired: true },
+                create: {
+                  knowledgeScopeId: scope.id,
+                  relationshipType: 'PRIMARY',
+                  isRequired: true,
+                },
+              },
+            },
+          },
+        });
+        const latestRevision = await transaction.contentRevision.findFirst({
+          where: { contentItemId: existingItem.id },
+          orderBy: { version: 'desc' },
+          select: { version: true },
+        });
+        const revision = await transaction.contentRevision.create({
+          data: {
+            contentItemId: existingItem.id,
+            version: (latestRevision?.version ?? 0) + 1,
+            status: 'PUBLISHED',
+            schemaVersion: 1,
+            contentJson: JSON.stringify(record.metadata),
+            authorId: admin.id,
+            reviewerId: admin.id,
+            submittedAt: new Date(),
+            reviewedAt: new Date(),
+            publishedAt: new Date(),
+            reviewNote: 'Controlled migration from the legacy Banking Journey source.',
+            revisionModules: revisionModules(record),
+          },
+        });
+        await transaction.contentItem.update({
+          where: { id: existingItem.id },
+          data: { publishedRevisionId: revision.id },
+        });
+
+        const english = await transaction.contentTranslation.findUnique({
+          where: { contentItemId_locale: { contentItemId: existingItem.id, locale: 'en' } },
+          select: { id: true },
+        });
+        if (english) {
+          const latestTranslationRevision = await transaction.translationRevision.findFirst({
+            where: { contentTranslationId: english.id },
+            orderBy: { version: 'desc' },
+            select: { version: true },
+          });
+          const translationRevision = await transaction.translationRevision.create({
+            data: {
+              contentTranslationId: english.id,
+              version: (latestTranslationRevision?.version ?? 0) + 1,
+              status: 'PUBLISHED',
+              schemaVersion: 1,
+              contentJson: JSON.stringify(record.metadata),
+              authorId: admin.id,
+              reviewerId: admin.id,
+              submittedAt: new Date(),
+              reviewedAt: new Date(),
+              publishedAt: new Date(),
+            },
+          });
+          await transaction.contentTranslation.update({
+            where: { id: english.id },
+            data: {
+              title: record.title,
+              summary: record.summary,
+              status: 'PUBLISHED',
+              publishedRevisionId: translationRevision.id,
+            },
+          });
+        }
+        await transaction.auditLog.create({
+          data: {
+            actorId: admin.id,
+            action: 'LEGACY_JOURNEY_BACKFILLED',
+            entityType: 'ContentItem',
+            entityId: existingItem.id,
+            metadataJson: JSON.stringify({ slug: record.slug, checksum: record.checksum }),
+          },
+        });
+        return;
+      }
+
       const item = await transaction.contentItem.create({
         data: {
           type: 'BANKING_JOURNEY',
@@ -129,29 +281,7 @@ async function main() {
           reviewedAt: new Date(),
           publishedAt: new Date(),
           reviewNote: 'Controlled migration from the legacy Banking Journey source.',
-          revisionModules: {
-            create: record.modules.map((module, moduleIndex) => ({
-              stableKey: module.stableKey,
-              title: module.title,
-              description: module.description,
-              displayOrder: moduleIndex,
-              sections: {
-                create: module.sections.map((section, sectionIndex) => ({
-                  stableKey: section.stableKey,
-                  title: section.title,
-                  displayOrder: sectionIndex,
-                  blocks: {
-                    create: section.blocks.map((block, blockIndex) => ({
-                      blockType: block.blockType,
-                      schemaVersion: 1,
-                      payload: block.payload,
-                      displayOrder: blockIndex,
-                    })),
-                  },
-                })),
-              },
-            })),
-          },
+          revisionModules: revisionModules(record),
         },
       });
 

@@ -58,6 +58,7 @@ export type DatabaseOperation =
   | 'seed-development'
   | 'import-sqlite-development'
   | 'backfill-development'
+  | 'backfill-preview'
   | 'cleanup-development'
   | 'studio'
   | 'destructive';
@@ -151,6 +152,15 @@ export function assertDatabaseOperationAllowed(
   if (operation === 'migrate-deploy') {
     if (!['preview', 'production'].includes(environment.APP_ENV)) {
       throw new Error('migrate-deploy is allowed only for matching preview or production environments.');
+    }
+    return;
+  }
+  if (operation === 'backfill-preview') {
+    if (
+      environment.APP_ENV !== 'preview'
+      || environment.DATABASE_ENVIRONMENT !== 'preview'
+    ) {
+      throw new Error('backfill-preview is allowed only with a preview application and preview database.');
     }
     return;
   }
