@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getAdminOperations } from './admin-navigation';
-import { isJourneyCmsEnvironmentAllowed } from '@/server/cms/journey-cms-environment-core';
+import { isJourneyCmsRouteAvailable } from '@/server/cms/journey-cms-environment-core';
 
 const basePaths = [
   '/admin/memberships',
@@ -16,10 +16,10 @@ describe('Admin navigation', () => {
   it.each([
     ['development', 'development', true],
     ['preview', 'preview', false],
-    ['production', 'production', false],
+    ['production', 'production', true],
     ['development', 'production', false],
-  ] as const)('shows Journey CMS only for matching Development labels', (app, database, visible) => {
-    const operations = getAdminOperations(false, isJourneyCmsEnvironmentAllowed({
+  ] as const)('shows Journey CMS only in matching approved environments', (app, database, visible) => {
+    const operations = getAdminOperations(false, isJourneyCmsRouteAvailable({
       APP_ENV: app,
       DATABASE_ENVIRONMENT: database,
     }));

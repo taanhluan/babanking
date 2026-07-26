@@ -2,11 +2,11 @@ import 'server-only';
 import type { KnowledgePermission } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getAccessibleContentIds } from '@/server/access-control/knowledge-access-repository';
-import { assertJourneyCmsDevelopmentEnvironment } from './journey-cms-environment';
+import { assertJourneyCmsReadEnvironment } from './journey-cms-environment';
 
 export const JourneyCmsRepository = {
   async listAuthorized(userId: string) {
-    assertJourneyCmsDevelopmentEnvironment();
+    assertJourneyCmsReadEnvironment();
     const ids = await getAccessibleContentIds(userId, {
       type: 'BANKING_JOURNEY',
       permission: 'VIEW',
@@ -43,7 +43,7 @@ export const JourneyCmsRepository = {
   },
 
   async getWorkspace(contentItemId: string) {
-    assertJourneyCmsDevelopmentEnvironment();
+    assertJourneyCmsReadEnvironment();
     return db.contentItem.findUnique({
       where: { id: contentItemId, type: 'BANKING_JOURNEY' },
       select: {
@@ -91,7 +91,7 @@ export const JourneyCmsRepository = {
   },
 
   async getEditableRevision(contentItemId: string) {
-    assertJourneyCmsDevelopmentEnvironment();
+    assertJourneyCmsReadEnvironment();
     return db.contentRevision.findFirst({
       where: {
         contentItemId,
@@ -117,7 +117,7 @@ export const JourneyCmsRepository = {
   },
 
   async getRevision(contentItemId: string, revisionId: string) {
-    assertJourneyCmsDevelopmentEnvironment();
+    assertJourneyCmsReadEnvironment();
     return db.contentRevision.findFirst({
       where: { id: revisionId, contentItemId },
       select: {

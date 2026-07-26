@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { WorkspaceTitle } from '@/components/workspace/WorkspaceShell';
-import { assertJourneyCmsDevelopmentEnvironment } from '@/server/cms/journey-cms-environment';
+import { requireJourneyCmsRouteAvailability } from '@/server/cms/journey-cms-environment';
 
 export default function AdminContributorPage() {
-  assertJourneyCmsDevelopmentEnvironment();
+  requireJourneyCmsRouteAvailability();
   return <>
     <WorkspaceTitle
       eyebrow="Admin · Contributor"
       title="Contributor Management"
-      description="Manage Development-only contributor tools without changing the existing Contributor workspace."
+      description="Manage controlled contributor tools without changing the existing Contributor workspace."
     />
     <Link
       href="/admin/contributor/journeys"

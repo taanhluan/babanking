@@ -6,7 +6,7 @@ import { getCurrentLocale } from '@/i18n/server';
 import { getLocalizedPath } from '@/i18n/routing';
 import { formatDateTime } from '@/i18n/format';
 import { getServerEnvironment } from '@/server/env';
-import { isJourneyCmsEnvironmentAllowed } from '@/server/cms/journey-cms-environment-core';
+import { isJourneyCmsRouteAvailable } from '@/server/cms/journey-cms-environment-core';
 import { getAdminOperations } from './admin-navigation';
 
 export default async function AdminPage() {
@@ -38,7 +38,7 @@ export default async function AdminPage() {
 
   const operations = getAdminOperations(
     isVietnamese,
-    isJourneyCmsEnvironmentAllowed(getServerEnvironment()),
+    isJourneyCmsRouteAvailable(getServerEnvironment()),
   );
 
   return (

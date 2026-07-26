@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Prisma, Role } from '@prisma/client';
 import { db } from '@/lib/db';
-import { assertJourneyCmsDevelopmentEnvironment } from './journey-cms-environment';
+import { assertJourneyCmsWriteEnvironment } from './journey-cms-environment';
 import {
   assertJourneyStableSlug,
   canonicalizeJourneyDraft,
@@ -26,7 +26,7 @@ function auditMetadata(value: Record<string, unknown>) {
 }
 
 export async function createJourneyDraftFromPublished(contentItemId: string, actor: Actor) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   assertRolePermission(actor.role, 'EDIT');
   return db.$transaction(async (transaction) => {
     const item = await transaction.contentItem.findUnique({
@@ -85,7 +85,7 @@ export async function saveJourneyDraft(
   contentJson: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   return db.$transaction(async (transaction) => {
     const revision = await transaction.contentRevision.findFirst({
       where: { id: revisionId, contentItemId },
@@ -128,7 +128,7 @@ export async function submitJourneyRevision(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   return db.$transaction(async (transaction) => {
     const revision = await transaction.contentRevision.findFirst({
       where: { id: revisionId, contentItemId },
@@ -161,7 +161,7 @@ export async function reviewJourneyRevision(
   note: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   if (note.trim().length < 10) throw new Error('A review note is required.');
   return db.$transaction(async (transaction) => {
     const revision = await transaction.contentRevision.findFirst({
@@ -199,7 +199,7 @@ export async function publishJourneyRevisionTransaction(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   const revision = await transaction.contentRevision.findFirst({
     where: { id: revisionId, contentItemId },
     select: { id: true, status: true, authorId: true, contentJson: true },
@@ -253,7 +253,7 @@ export async function publishJourneyRevision(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   return db.$transaction((transaction) =>
     publishJourneyRevisionTransaction(transaction, contentItemId, revisionId, actor));
 }
@@ -264,7 +264,7 @@ export async function rollbackJourneyRevisionTransaction(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   assertRolePermission(actor.role, 'MANAGE');
   const target = await transaction.contentRevision.findFirst({
     where: { id: revisionId, contentItemId, status: 'PUBLISHED' },
@@ -308,7 +308,7 @@ export async function rollbackJourneyRevision(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   return db.$transaction((transaction) =>
     rollbackJourneyRevisionTransaction(transaction, contentItemId, revisionId, actor));
 }
@@ -318,7 +318,7 @@ export async function setJourneyArchived(
   archived: boolean,
   actor: Actor,
 ) {
-  assertJourneyCmsDevelopmentEnvironment();
+  assertJourneyCmsWriteEnvironment();
   assertRolePermission(actor.role, 'MANAGE');
   return db.$transaction(async (transaction) => {
     const item = await transaction.contentItem.findUnique({

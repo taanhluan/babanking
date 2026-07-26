@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { StatusLabel, WorkspaceTitle } from '@/components/workspace/WorkspaceShell';
-import { assertJourneyCmsDevelopmentEnvironment } from '@/server/cms/journey-cms-environment';
+import { requireJourneyCmsRouteAvailability } from '@/server/cms/journey-cms-environment';
 import { JourneyCmsRepository } from '@/server/cms/journey-cms-repository';
 
 function preview(value: string | null) {
@@ -17,14 +17,14 @@ function preview(value: string | null) {
 }
 
 export default async function JourneyCmsListPage() {
-  assertJourneyCmsDevelopmentEnvironment();
+  requireJourneyCmsRouteAvailability();
   const user = await requireRole('ADMIN');
   const journeys = await JourneyCmsRepository.listAuthorized(user.id);
   return <>
     <WorkspaceTitle
       eyebrow="Admin · Contributor · Journey Content"
       title="Journey CMS"
-      description="Development-only Journey editing with versioned drafts, independent review, publication history and rollback."
+      description="Controlled Journey editing with versioned drafts, independent review, publication history and rollback."
     />
     <div className="space-y-3">
       {journeys.map((journey) => {
