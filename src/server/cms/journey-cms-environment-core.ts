@@ -5,13 +5,27 @@ type JourneyCmsEnvironment = {
   DATABASE_ENVIRONMENT: ApplicationEnvironment;
 };
 
-export function isJourneyCmsEnvironmentAllowed(environment: JourneyCmsEnvironment) {
-  return environment.APP_ENV === 'development'
-    && environment.DATABASE_ENVIRONMENT === 'development';
+function hasMatchingCmsEnvironment(environment: JourneyCmsEnvironment) {
+  return environment.APP_ENV === environment.DATABASE_ENVIRONMENT;
 }
 
-export function assertJourneyCmsEnvironmentAllowed(environment: JourneyCmsEnvironment) {
-  if (!isJourneyCmsEnvironmentAllowed(environment)) {
-    throw new Error('Journey CMS is available only in the Development environment.');
+export function isJourneyCmsRouteAvailable(environment: JourneyCmsEnvironment) {
+  return hasMatchingCmsEnvironment(environment)
+    && ['development', 'production'].includes(environment.APP_ENV);
+}
+
+export function isJourneyCmsWriteAllowed(environment: JourneyCmsEnvironment) {
+  return isJourneyCmsRouteAvailable(environment);
+}
+
+export function assertJourneyCmsRouteAvailable(environment: JourneyCmsEnvironment) {
+  if (!isJourneyCmsRouteAvailable(environment)) {
+    throw new Error('Journey CMS route is unavailable in this environment.');
+  }
+}
+
+export function assertJourneyCmsWriteAllowed(environment: JourneyCmsEnvironment) {
+  if (!isJourneyCmsWriteAllowed(environment)) {
+    throw new Error('Journey CMS writes are unavailable in this environment.');
   }
 }

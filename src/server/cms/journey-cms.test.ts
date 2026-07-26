@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { assertJourneyCmsEnvironmentAllowed } from './journey-cms-environment-core';
+import {
+  assertJourneyCmsRouteAvailable,
+  assertJourneyCmsWriteAllowed,
+  isJourneyCmsRouteAvailable,
+} from './journey-cms-environment-core';
 import {
   assertJourneyStableSlug,
   canonicalizeJourneyDraft,
@@ -43,23 +47,56 @@ const contentJson = JSON.stringify({
 });
 
 describe('Journey CMS environment protection', () => {
-  it('allows only matching Development environments', () => {
-    expect(() => assertJourneyCmsEnvironmentAllowed({
+  it('allows matching Development and Production routes and writes', () => {
+    expect(() => assertJourneyCmsRouteAvailable({
       APP_ENV: 'development',
       DATABASE_ENVIRONMENT: 'development',
     })).not.toThrow();
-    expect(() => assertJourneyCmsEnvironmentAllowed({
-      APP_ENV: 'preview',
-      DATABASE_ENVIRONMENT: 'preview',
-    })).toThrow(/Development/);
-    expect(() => assertJourneyCmsEnvironmentAllowed({
+    expect(() => assertJourneyCmsWriteAllowed({
       APP_ENV: 'production',
       DATABASE_ENVIRONMENT: 'production',
-    })).toThrow(/Development/);
-    expect(() => assertJourneyCmsEnvironmentAllowed({
+    })).not.toThrow();
+  });
+
+  it('rejects Preview and mismatched environments', () => {
+    expect(() => assertJourneyCmsRouteAvailable({
+      APP_ENV: 'preview',
+      DATABASE_ENVIRONMENT: 'preview',
+    })).toThrow(/unavailable/);
+    expect(() => assertJourneyCmsWriteAllowed({
+      APP_ENV: 'preview',
+      DATABASE_ENVIRONMENT: 'preview',
+    })).toThrow(/writes/);
+    expect(() => assertJourneyCmsRouteAvailable({
       APP_ENV: 'development',
       DATABASE_ENVIRONMENT: 'production',
-    })).toThrow(/Development/);
+    })).toThrow(/unavailable/);
+    expect(isJourneyCmsRouteAvailable({
+      APP_ENV: 'preview',
+      DATABASE_ENVIRONMENT: 'preview',
+    })).toBe(false);
+  });
+
+  it('checks route availability before authorization and repository access', () => {
+    const authorization = readFileSync(
+      join(process.cwd(), 'src/server/cms/journey-cms-authorization.ts'),
+      'utf8',
+    );
+    const authorizationBody = authorization.slice(
+      authorization.indexOf('export async function requireJourneyCmsAccess'),
+    );
+    expect(authorizationBody.indexOf('requireJourneyCmsRouteAvailability()'))
+      .toBeLessThan(authorizationBody.indexOf("requireRole('CONTRIBUTOR')"));
+    expect(authorizationBody.indexOf("requireRole('CONTRIBUTOR')"))
+      .toBeLessThan(authorizationBody.indexOf('evaluateContentSlugAccessForUser('));
+    const listPage = readFileSync(
+      join(process.cwd(), 'src/app/admin/contributor/journeys/page.tsx'),
+      'utf8',
+    );
+    expect(listPage.indexOf('requireJourneyCmsRouteAvailability()'))
+      .toBeLessThan(listPage.indexOf("requireRole('ADMIN')"));
+    expect(listPage.indexOf("requireRole('ADMIN')"))
+      .toBeLessThan(listPage.indexOf('JourneyCmsRepository.listAuthorized'));
   });
 });
 
