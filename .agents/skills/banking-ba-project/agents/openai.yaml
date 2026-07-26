@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banking BA Project"
+  short_description: "Safely develop the Banking BA Knowledge Hub"
+  default_prompt: "Use $banking-ba-project to continue this Banking BA project safely in Development."

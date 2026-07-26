@@ -7,6 +7,8 @@ import { requireRole, requireUser } from '@/lib/auth';
 import { activationExpiresAt, createActivationToken, hashActivationToken, isActivationTokenValid } from '@/lib/activation';
 import { accessRequestSchema, activationPasswordSchema, paymentSchema, planSchema } from '@/lib/validation';
 import { canTransitionAccessRequest, canTransitionMembership, canTransitionPayment } from '@/lib/membership-workflow';
+import { requireResolvedAccessRequestPlan } from '@/server/membership/access-request-plan';
+import { classifyPaymentVerification } from '@/server/membership/payment-verification';
 
 export type AccessRequestFormState = { ok: boolean; message?: string; errors?: Record<string, string[]> };
 export async function submitAccessRequestAction(_: AccessRequestFormState, formData: FormData): Promise<AccessRequestFormState> {
@@ -111,12 +113,86 @@ export async function changePaymentAction(formData: FormData) {
   if (!payment || !canTransitionPayment(payment.status, target)) throw new Error('Invalid or duplicate payment transition.');
   const now = new Date();
   await db.$transaction(async (tx) => {
-    await tx.paymentRecord.update({ where: { id }, data: { status: target, paidAt: target === 'PAID' ? now : payment.paidAt, verifiedAt: target === 'PAID' ? now : payment.verifiedAt, verifiedById: target === 'PAID' ? actor.id : payment.verifiedById } });
-    if (target === 'PAID' && payment.accessRequestId) {
-      const request = await tx.accessRequest.findUnique({ where: { id: payment.accessRequestId } });
-      if (request?.status === 'PAYMENT_PENDING') await tx.accessRequest.update({ where: { id: request.id }, data: { status: 'PAYMENT_CONFIRMED' } });
+    const currentPayment = await tx.paymentRecord.findUnique({
+      where: { id },
+      include: { plan: true, user: { select: { id: true } } },
+    });
+    if (!currentPayment || currentPayment.status !== payment.status
+      || !canTransitionPayment(currentPayment.status, target)) {
+      throw new Error('Invalid or duplicate payment transition.');
     }
-    await tx.auditLog.create({ data: { actorId: actor.id, action: target === 'PAID' ? 'PAYMENT_VERIFIED' : `PAYMENT_${target}`, entityType: 'PaymentRecord', entityId: id } });
+    await tx.paymentRecord.update({
+      where: { id },
+      data: {
+        status: target,
+        paidAt: target === 'PAID' ? now : currentPayment.paidAt,
+        verifiedAt: target === 'PAID' ? now : currentPayment.verifiedAt,
+        verifiedById: target === 'PAID' ? actor.id : currentPayment.verifiedById,
+      },
+    });
+    if (target === 'PAID') {
+      const subject = classifyPaymentVerification(currentPayment);
+      if (subject === 'USER') {
+        await tx.auditLog.create({
+          data: {
+            actorId: actor.id,
+            action: 'PAYMENT_VERIFIED',
+            entityType: 'PaymentRecord',
+            entityId: id,
+            metadataJson: JSON.stringify({
+              userId: currentPayment.userId,
+              planId: currentPayment.planId,
+            }),
+          },
+        });
+        return;
+      }
+      const request = await tx.accessRequest.findUnique({
+        where: { id: currentPayment.accessRequestId! },
+        include: {
+          requestedPlan: true,
+          payments: { include: { plan: true } },
+        },
+      });
+      if (!request) throw new Error('The linked access request was not found.');
+      const plan = requireResolvedAccessRequestPlan(request);
+      if (plan.id !== currentPayment.planId) throw new Error('The payment plan conflicts with the access request.');
+      if (!request.requestedPlanId) {
+        const synchronized = await tx.accessRequest.updateMany({
+          where: { id: request.id, requestedPlanId: null },
+          data: { requestedPlanId: plan.id },
+        });
+        if (synchronized.count !== 1) {
+          const latest = await tx.accessRequest.findUnique({ where: { id: request.id } });
+          if (latest?.requestedPlanId !== plan.id) {
+            throw new Error('The access request plan changed during payment verification.');
+          }
+        }
+      }
+      if (request.status === 'PAYMENT_PENDING') {
+        if (!canTransitionAccessRequest(request.status, 'PAYMENT_CONFIRMED')) {
+          throw new Error('Invalid access request transition.');
+        }
+        await tx.accessRequest.update({
+          where: { id: request.id },
+          data: { status: 'PAYMENT_CONFIRMED' },
+        });
+      }
+    }
+    await tx.auditLog.create({
+      data: {
+        actorId: actor.id,
+        action: target === 'PAID' ? 'PAYMENT_VERIFIED' : `PAYMENT_${target}`,
+        entityType: 'PaymentRecord',
+        entityId: id,
+        metadataJson: target === 'PAID'
+          ? JSON.stringify({
+            accessRequestId: currentPayment.accessRequestId,
+            planId: currentPayment.planId,
+          })
+          : null,
+      },
+    });
   });
   revalidatePath('/admin/memberships/payments'); revalidatePath('/admin/memberships/requests');
 }
@@ -124,22 +200,56 @@ export async function changePaymentAction(formData: FormData) {
 export async function convertAccessRequestAction(formData: FormData) {
   const actor = await requireRole('ADMIN');
   const requestId = String(formData.get('requestId'));
-  const request = await db.accessRequest.findUnique({ where: { id: requestId }, include: { requestedPlan: true, payments: true } });
-  if (!request || !['PAYMENT_CONFIRMED', 'APPROVED'].includes(request.status) || !request.requestedPlan) throw new Error('Request is not ready for conversion.');
-  if (!request.payments.some((payment) => payment.status === 'PAID' && payment.planId === request.requestedPlanId)) throw new Error('A verified paid payment is required.');
-  if (await db.user.findUnique({ where: { email: request.email } })) throw new Error('An account with this email already exists.');
   const rawToken = createActivationToken();
   const result = await db.$transaction(async (tx) => {
+    const request = await tx.accessRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        requestedPlan: true,
+        payments: { include: { plan: true } },
+      },
+    });
+    if (!request || request.status !== 'PAYMENT_CONFIRMED' || request.convertedUserId
+      || !canTransitionAccessRequest(request.status, 'CONVERTED')) {
+      throw new Error('Request is not ready for conversion.');
+    }
+    const plan = requireResolvedAccessRequestPlan(request);
+    if (await tx.user.findUnique({ where: { email: request.email } })) {
+      throw new Error('An account with this email already exists.');
+    }
+    const claimed = await tx.accessRequest.updateMany({
+      where: {
+        id: request.id,
+        status: 'PAYMENT_CONFIRMED',
+        convertedUserId: null,
+      },
+      data: { status: 'CONVERTED', requestedPlanId: plan.id },
+    });
+    if (claimed.count !== 1) throw new Error('Request was already converted.');
     const user = await tx.user.create({ data: { name: request.name, email: request.email, passwordHash: await hash(createActivationToken(), 12), accountStatus: 'INVITED', isActive: true, preferredLocale: request.preferredLocale } });
-    const membership = await tx.membership.create({ data: { userId: user.id, planId: request.requestedPlanId, status: 'ACTIVE', accessSource: 'PAID', startsAt: new Date(), expiresAt: new Date(Date.now() + request.requestedPlan!.durationDays * 86400000), createdById: actor.id } });
-    await tx.paymentRecord.updateMany({ where: { accessRequestId: request.id, status: 'PAID', planId: request.requestedPlanId }, data: { userId: user.id, membershipId: membership.id } });
-    await tx.accessRequest.update({ where: { id: request.id }, data: { status: 'CONVERTED', convertedUserId: user.id } });
+    const existingMembership = await tx.membership.findFirst({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    if (existingMembership) throw new Error('An incompatible membership already exists.');
+    const membership = await tx.membership.create({ data: { userId: user.id, planId: plan.id, status: 'ACTIVE', accessSource: 'PAID', startsAt: new Date(), expiresAt: new Date(Date.now() + plan.durationDays * 86400000), createdById: actor.id } });
+    await tx.paymentRecord.updateMany({
+      where: {
+        accessRequestId: request.id,
+        status: 'PAID',
+        verifiedAt: { not: null },
+        verifiedById: { not: null },
+        planId: plan.id,
+      },
+      data: { userId: user.id, membershipId: membership.id },
+    });
+    await tx.accessRequest.update({ where: { id: request.id }, data: { convertedUserId: user.id } });
     await tx.accountActivationToken.create({ data: { userId: user.id, tokenHash: hashActivationToken(rawToken), expiresAt: activationExpiresAt() } });
-    await tx.auditLog.create({ data: { actorId: actor.id, action: 'ACCOUNT_CREATED', entityType: 'User', entityId: user.id } });
-    await tx.auditLog.create({ data: { actorId: actor.id, action: 'MEMBERSHIP_ACTIVATED', entityType: 'Membership', entityId: membership.id } });
-    await tx.auditLog.create({ data: { actorId: actor.id, action: 'ACTIVATION_LINK_GENERATED', entityType: 'User', entityId: user.id } });
+    await tx.auditLog.create({ data: { actorId: actor.id, action: 'ACCOUNT_CREATED', entityType: 'User', entityId: user.id, metadataJson: JSON.stringify({ accessRequestId: request.id }) } });
+    await tx.auditLog.create({ data: { actorId: actor.id, action: 'MEMBERSHIP_ACTIVATED', entityType: 'Membership', entityId: membership.id, metadataJson: JSON.stringify({ accessRequestId: request.id, planId: plan.id }) } });
+    await tx.auditLog.create({ data: { actorId: actor.id, action: 'ACTIVATION_LINK_GENERATED', entityType: 'User', entityId: user.id, metadataJson: JSON.stringify({ accessRequestId: request.id }) } });
     return user;
-  });
+  }, { isolationLevel: 'Serializable' });
   const base = process.env.APP_BASE_URL || 'http://localhost:3000';
   redirect(`/admin/memberships/members?activation=${encodeURIComponent(`${base}/activate/${rawToken}`)}&user=${encodeURIComponent(result.email)}`);
 }

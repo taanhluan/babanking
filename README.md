@@ -5,6 +5,14 @@ banking business analysts. It combines curated banking journeys, BA practice,
 case studies, career guidance, editorial review, and paid-membership
 administration without exposing premium content to unauthorised visitors.
 
+## AI project workflow
+
+Codex and compatible repository agents should use the project skill at
+`.agents/skills/banking-ba-project/SKILL.md`. Invoke it as
+`$banking-ba-project`, then read `docs/AI_PROJECT_HANDOFF.md` before changing
+code or Development data. The skill defines environment safety, Journey CMS,
+membership, access-control, validation, and handoff procedures.
+
 ## Technology stack
 
 - Next.js App Router, React, TypeScript, and Tailwind CSS

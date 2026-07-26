@@ -78,3 +78,11 @@ Thumbs.db
 # Tool-installed local skills
 .agents/
 skills-lock.json
+
+# Version the repository-specific project skill only
+!.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/banking-ba-project/
+!.agents/skills/banking-ba-project/**

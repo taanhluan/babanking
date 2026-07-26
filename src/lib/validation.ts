@@ -4,7 +4,7 @@ export const slugSchema = z.string().min(3).max(100).regex(/^[a-z0-9]+(?:-[a-z0-
 export const reservedSlugs = new Set(['login', 'workspace', 'contributor', 'review', 'admin', 'search', 'api']);
 export const normalizeSlug = (value: string) => value.trim().toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 export const contentDraftSchema = z.object({
-  type: z.enum(['BANKING_JOURNEY', 'BA_PRACTICE', 'CASE_STUDY', 'CAREER_LEVEL']),
+  type: z.enum(['BA_PRACTICE', 'CASE_STUDY', 'CAREER_LEVEL']),
   title: z.string().trim().min(5).max(160), slug: slugSchema, summary: z.string().trim().min(30).max(500),
   contentJson: z.string().min(2).refine((value) => { try { const data: unknown = JSON.parse(value); return typeof data === 'object' && data !== null; } catch { return false; } }, 'Content must be valid JSON.'),
 });
