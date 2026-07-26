@@ -48,6 +48,19 @@ describe('content validation', () => {
   it('rejects invalid structured content', () => {
     expect(contentDraftSchema.safeParse({ type: 'BA_PRACTICE', title: 'Short', slug: 'valid-slug', summary: 'Too short', contentJson: 'not json' }).success).toBe(false);
   });
+
+  it('keeps legacy creation for non-Journey content and rejects Banking Journeys', () => {
+    const valid = {
+      title: 'Valid content title',
+      slug: 'valid-content-title',
+      summary: 'A sufficiently detailed summary for legacy content creation.',
+      contentJson: JSON.stringify({ title: 'Valid content title' }),
+    };
+    expect(contentDraftSchema.safeParse({ ...valid, type: 'BA_PRACTICE' }).success).toBe(true);
+    expect(contentDraftSchema.safeParse({ ...valid, type: 'CASE_STUDY' }).success).toBe(true);
+    expect(contentDraftSchema.safeParse({ ...valid, type: 'CAREER_LEVEL' }).success).toBe(true);
+    expect(contentDraftSchema.safeParse({ ...valid, type: 'BANKING_JOURNEY' }).success).toBe(false);
+  });
 });
 describe('paid access policy', () => {
   const now = new Date('2026-07-23T00:00:00Z');
@@ -58,6 +71,7 @@ describe('paid access policy', () => {
   });
   it('allows only defined business transitions', () => {
     expect(canTransitionAccessRequest('PAYMENT_PENDING', 'PAYMENT_CONFIRMED')).toBe(true);
+    expect(canTransitionAccessRequest('PAYMENT_CONFIRMED', 'CONVERTED')).toBe(true);
     expect(canTransitionPayment('PAID', 'PAID')).toBe(false);
     expect(canTransitionMembership('SUSPENDED', 'ACTIVE')).toBe(true);
     expect(canTransitionMembership('PENDING', 'ACTIVE')).toBe(true);

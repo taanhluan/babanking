@@ -5,6 +5,9 @@ import { WorkspaceTitle } from '@/components/workspace/WorkspaceShell';
 import { getCurrentLocale } from '@/i18n/server';
 import { getLocalizedPath } from '@/i18n/routing';
 import { formatDateTime } from '@/i18n/format';
+import { getServerEnvironment } from '@/server/env';
+import { isJourneyCmsEnvironmentAllowed } from '@/server/cms/journey-cms-environment-core';
+import { getAdminOperations } from './admin-navigation';
 
 export default async function AdminPage() {
   await requireRole('ADMIN');
@@ -33,15 +36,10 @@ export default async function AdminPage() {
     [isVietnamese ? 'Nội dung lưu trữ' : 'Archived content', archived],
   ] as const;
 
-  const operations = [
-    [isVietnamese ? 'Quản lý hội viên' : 'Membership Operations', '/admin/memberships'],
-    [isVietnamese ? 'Quản lý người dùng' : 'Manage Users', '/admin/users'],
-    [isVietnamese ? 'Kiểm soát quyền kiến thức' : 'Knowledge Access Control', '/admin/access-control'],
-    [isVietnamese ? 'Quản lý nội dung' : 'Manage Content', '/admin/content'],
-    [isVietnamese ? 'Quản lý bản dịch' : 'Manage Translations', '/admin/content/translations'],
-    [isVietnamese ? 'Nhật ký kiểm toán' : 'View Audit Log', '/admin/audit'],
-    [isVietnamese ? 'Môi trường hệ thống' : 'System Environment', '/admin/system/environment'],
-  ] as const;
+  const operations = getAdminOperations(
+    isVietnamese,
+    isJourneyCmsEnvironmentAllowed(getServerEnvironment()),
+  );
 
   return (
     <>

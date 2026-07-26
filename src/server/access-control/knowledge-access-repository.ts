@@ -230,6 +230,7 @@ export async function getAccessibleContentIds(
   userId: string,
   options: { type?: ContentType; permission?: KnowledgePermission } = {},
 ) {
+  const permission = options.permission ?? 'VIEW';
   const [user, grants, items] = await Promise.all([
     getAccessPrincipal(userId),
     getUserKnowledgeGrants(userId),
@@ -237,12 +238,11 @@ export async function getAccessibleContentIds(
       where: {
         type: options.type,
         isArchived: false,
-        publishedRevisionId: { not: null },
+        publishedRevisionId: permission === 'VIEW' ? { not: null } : undefined,
       },
       select: identitySelect,
     }),
   ]);
-  const permission = options.permission ?? 'VIEW';
   return items
     .filter((content) => evaluateContentAccess(
       contextFor(user, content, permission, grants),
