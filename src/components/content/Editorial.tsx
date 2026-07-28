@@ -7,7 +7,7 @@ export interface RelatedLink { href: string; label: string; context: string }
 
 export function ContentHero({ eyebrow, title, summary, parentLabel, parentHref, meta = [] }: { eyebrow: string; title: string; summary: string; parentLabel: string; parentHref: string; meta?: string[] }) {
   return <section className="bg-navy px-4 py-12 text-white sm:px-6 lg:px-8 lg:py-16"><Container>
-    <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 text-sm text-slate-400"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href={parentHref as Route}>{parentLabel}</Link><span aria-hidden="true">/</span><span aria-current="page">{title}</span></nav>
+    <nav aria-label="Breadcrumb" className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-slate-400"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href={parentHref as Route}>{parentLabel}</Link><span aria-hidden="true">/</span><span className="break-words" aria-current="page">{title}</span></nav>
     <p className="mt-8 text-sm font-semibold text-goldLight">{eyebrow}</p><h1 className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{title}</h1>
     <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">{summary}</p>
     {meta.length ? <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-300">{meta.map((item) => <li key={item}>{item}</li>)}</ul> : null}
