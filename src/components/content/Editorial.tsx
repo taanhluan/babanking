@@ -6,16 +6,16 @@ export interface TocItem { id: string; label: string }
 export interface RelatedLink { href: string; label: string; context: string }
 
 export function ContentHero({ eyebrow, title, summary, parentLabel, parentHref, meta = [] }: { eyebrow: string; title: string; summary: string; parentLabel: string; parentHref: string; meta?: string[] }) {
-  return <section className="bg-navy px-4 py-12 text-white sm:px-6 lg:px-8 lg:py-16"><Container>
-    <nav aria-label="Breadcrumb" className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-slate-400"><Link href="/">Home</Link><span aria-hidden="true">/</span><Link href={parentHref as Route}>{parentLabel}</Link><span aria-hidden="true">/</span><span className="break-words" aria-current="page">{title}</span></nav>
-    <p className="mt-8 text-sm font-semibold text-goldLight">{eyebrow}</p><h1 className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{title}</h1>
-    <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">{summary}</p>
+  return <section className="min-w-0 overflow-hidden bg-navy px-4 py-10 text-white sm:px-6 lg:px-8 lg:py-16"><Container>
+    <nav aria-label="Breadcrumb" className="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-sm text-slate-400"><Link href="/" className="shrink-0">Home</Link><span aria-hidden="true">/</span><Link href={parentHref as Route} className="break-words">{parentLabel}</Link><span aria-hidden="true">/</span><span aria-current="page" className="break-words">{title}</span></nav>
+    <p className="mt-6 text-sm font-semibold text-goldLight sm:mt-8">{eyebrow}</p><h1 className="mt-3 max-w-4xl break-words text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">{title}</h1>
+    <p className="mt-4 max-w-3xl break-words text-base leading-7 text-slate-300 sm:mt-5 sm:text-lg">{summary}</p>
     {meta.length ? <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-300">{meta.map((item) => <li key={item}>{item}</li>)}</ul> : null}
   </Container></section>;
 }
 
 export function ArticleLayout({ toc, children }: { toc: TocItem[]; children: React.ReactNode }) {
-  return <div className="grid gap-10 lg:grid-cols-[220px_minmax(0,820px)] lg:justify-center">
+  return <div className="grid min-w-0 gap-6 lg:grid-cols-[220px_minmax(0,820px)] lg:justify-center lg:gap-10">
     <aside className="lg:sticky lg:top-24 lg:self-start"><details open className="rounded-2xl border border-slate-200 bg-white p-4"><summary className="min-h-11 cursor-pointer font-semibold text-textPrimary">On this page</summary><nav aria-label="Table of contents"><ol className="mt-2 space-y-1">{toc.map((item) => <li key={item.id}><a href={`#${item.id}`} className="block rounded-lg px-2 py-2 text-sm text-textSecondary hover:bg-slate-50 hover:text-royalBlue">{item.label}</a></li>)}</ol></nav></details></aside>
     <article className="min-w-0 space-y-12">{children}</article>
   </div>;
