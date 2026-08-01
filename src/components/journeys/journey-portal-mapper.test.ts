@@ -37,4 +37,16 @@ describe('mapJourneyPortal', () => {
   it('handles empty sections and malformed optional values', () => {
     expect(() => mapJourneyPortal(content({ modules: [{ key: 'payment-lifecycle', title: 'Lifecycle', sections: [{ title: 'Empty' }] }] }))).not.toThrow();
   });
+  it('selects Payment Type mode only when Published content has recognized Payment Types', () => {
+    const result = mapJourneyPortal(content({ modules: [{ key: 'internal-transfer', title: 'Internal Transfer', sections: [] }] }));
+    expect(result.mode).toBe('PAYMENT_TYPE_PORTAL');
+    expect(result.contentReadiness).toEqual({ hasPaymentTypes: true, paymentTypeCount: 1, recognizedPaymentTypeKeys: ['internal-transfer'], legacyModuleCount: 0 });
+  });
+  it('selects Legacy Published Content mode without fabricating Payment Types', () => {
+    const result = mapJourneyPortal(content({ modules: [{ title: 'Business Overview', sections: [{ title: 'Overview', blocks: [] }] }] }));
+    expect(result.mode).toBe('LEGACY_PUBLISHED_CONTENT');
+    expect(result.contentReadiness.hasPaymentTypes).toBe(false);
+    expect(result.paymentTypeGroups.length).toBeGreaterThan(0);
+    expect(result.legacyModules[0].title).toBe('Business Overview');
+  });
 });

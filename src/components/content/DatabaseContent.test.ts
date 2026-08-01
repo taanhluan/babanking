@@ -13,7 +13,7 @@ describe('DatabaseArticle', () => {
       content: {
         id: 'journey',
         type: 'BANKING_JOURNEY',
-        slug: 'payments-and-transfers',
+        slug: 'customer-onboarding',
         title: 'Payments and Transfers',
         summary: 'Existing summary',
         body: {
@@ -34,7 +34,7 @@ describe('DatabaseArticle', () => {
       content: {
         id: 'journey',
         type: 'BANKING_JOURNEY',
-        slug: 'payments-and-transfers',
+        slug: 'customer-onboarding',
         title: 'Updated Payments Journey',
         summary: 'Updated summary',
         body: {

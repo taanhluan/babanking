@@ -4,7 +4,6 @@ import { ContentHero, ContentSection, List } from '@/components/content/Editoria
 import { KnowledgeActions } from '@/components/member/KnowledgeActions';
 import type { ContentPreview, PublishedContent } from '@/lib/repository';
 import { PaymentsJourneyPortal } from '@/components/journeys/JourneyPortal';
-import { shouldUseJourneyPortal } from '@/components/journeys/journey-portal-mapper';
 
 const routeFor = (type: PublishedContent['type']) => ({
   BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap',
@@ -148,9 +147,9 @@ function GenericModules({ modules }: { modules: GenericModule[] }) {
 }
 
 /** Renders only a body retrieved from Neon after server-side authorization. */
-export function DatabaseArticle({ content, paymentType, stage }: { content: PublishedContent; paymentType?: string; stage?: string }) {
-  if (shouldUseJourneyPortal(content)) {
-    return <PaymentsJourneyPortal content={content} paymentType={paymentType} stage={stage} />;
+export function DatabaseArticle({ content, paymentType, stage, module }: { content: PublishedContent; paymentType?: string; stage?: string; module?: string }) {
+  if (content.slug === 'payments-and-transfers' && content.type === 'BANKING_JOURNEY') {
+    return <PaymentsJourneyPortal content={content} paymentType={paymentType} stage={stage} module={module} />;
   }
   const modules = genericModules(content.body.modules);
   const entries = Object.entries(content.body).filter(([key]) => !['title', 'summary', 'slug', 'contentType', 'schemaVersion', 'metadata', 'modules', 'keywords', 'relatedJourneySlugs', 'relatedPracticeSlugs', 'relatedCaseStudySlugs', 'previousLevelSlug', 'nextLevelSlug'].includes(key));
