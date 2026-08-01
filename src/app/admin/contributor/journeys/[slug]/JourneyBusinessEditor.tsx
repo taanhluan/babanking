@@ -1,329 +1,129 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { saveJourneyDraftAction } from '../actions';
+import { journeyContentSchema } from '@/server/cms/journey-content-schema';
+import { ContentNavigator } from './ContentNavigator';
+import { RevisionToolbar } from './RevisionToolbar';
+import { SelectedContentWorkspace } from './SelectedContentWorkspace';
+import { buildEditorBreadcrumb, getSiblingNode, type EditorNode } from './journey-editor-navigation';
+import { classifyWorkspaceBlock, deriveModuleSummary, isLifecycleSection, moduleWorkspaceTabs, workspaceBlockTypeSummary } from './journey-module-workspace';
+import { addJourneyBlock, duplicateJourneyBlock, moveJourneyBlock, moveJourneySection, removeJourneyBlock, removeJourneySection, type JourneyEditorNodePath, type JourneyMutationResult } from './journey-editor-mutations';
 
 type JsonObject = Record<string, unknown>;
-type Block = {
-  id?: string;
-  blockType: string;
-  schemaVersion: number;
-  payload: JsonObject;
-};
-type Section = {
-  id?: string;
-  key?: string;
-  title: string;
-  order?: number;
-  blocks: Block[];
-};
-type Module = {
-  id?: string;
-  key?: string;
-  title: string;
-  order?: number;
-  sections: Section[];
-};
+type Block = { id?: string; blockType: string; schemaVersion: number; payload: JsonObject };
+type Section = { id?: string; key?: string; title: string; order?: number; blocks: Block[] };
+type Module = { id?: string; key?: string; title: string; summary?: string; order?: number; sections: Section[] };
+type Node = EditorNode & { depth: number };
+const blockTypes = ['RICH_TEXT', 'TABLE', 'DIAGRAM', 'IMAGE', 'API_REFERENCE', 'CODE', 'DOWNLOAD', 'CHECKLIST', 'REFERENCE', 'CALLOUT'];
+const editorModeLabels = ['Business Editor', 'Advanced JSON', 'Modules, sections and blocks'];
+const modulesFrom = (content: JsonObject): Module[] => Array.isArray(content.modules) ? content.modules as Module[] : [];
+const nodeId = (moduleIndex: number, sectionIndex?: number, blockIndex?: number) => sectionIndex === undefined ? `m-${moduleIndex}` : blockIndex === undefined ? `m-${moduleIndex}-s-${sectionIndex}` : `m-${moduleIndex}-s-${sectionIndex}-b-${blockIndex}`;
+function makeNodes(modules: Module[]): Node[] { return modules.flatMap((module, moduleIndex) => [{ id: nodeId(moduleIndex), type: 'module' as const, title: module.title, moduleIndex, depth: 0 }, ...module.sections.flatMap((section, sectionIndex) => [{ id: nodeId(moduleIndex, sectionIndex), type: 'section' as const, title: section.title, moduleIndex, sectionIndex, depth: 1 }, ...section.blocks.map((block, blockIndex) => ({ id: nodeId(moduleIndex, sectionIndex, blockIndex), type: 'block' as const, title: typeof block.payload?.title === 'string' ? block.payload.title : block.blockType, moduleIndex, sectionIndex, blockIndex, depth: 2 }))])]); }
+type StructuredItem = Record<string, unknown>;
+function itemArrayKind(items: unknown): 'EMPTY' | 'STRING_LIST' | 'OBJECT_LIST' { if (!Array.isArray(items) || items.length === 0) return 'EMPTY'; return items.every((item) => typeof item === 'string') ? 'STRING_LIST' : 'OBJECT_LIST'; }
 
-const blockTypes = [
-  'RICH_TEXT',
-  'TABLE',
-  'DIAGRAM',
-  'IMAGE',
-  'API_REFERENCE',
-  'CODE',
-  'DOWNLOAD',
-  'CHECKLIST',
-  'REFERENCE',
-  'CALLOUT',
-] as const;
-
-function modulesFrom(content: JsonObject): Module[] {
-  return Array.isArray(content.modules) ? content.modules as Module[] : [];
+function StructuredItemsEditor({ items, onChange }: { items: StructuredItem[]; onChange: (items: StructuredItem[]) => void }) {
+  const update = (index: number, field: string, value: string) => onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item));
+  const add = () => { const ids = new Set(items.map((item) => typeof item.id === 'string' ? item.id : '')); let suffix = 1; let id = 'new-state'; while (ids.has(id)) id = `new-state-${++suffix}`; onChange([...items, { id, name: 'New State', description: '' }]); };
+  return <div className="space-y-3">{items.map((item, index) => <div key={`${String(item.id ?? index)}-${index}`} className="rounded-lg border border-slate-200 p-3"><label className="block text-sm font-semibold">ID<input value={typeof item.id === 'string' ? item.id : ''} onChange={(event) => update(index, 'id', event.target.value)} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label><label className="mt-2 block text-sm font-semibold">Name<input value={typeof item.name === 'string' ? item.name : ''} onChange={(event) => update(index, 'name', event.target.value)} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label><label className="mt-2 block text-sm font-semibold">Description<textarea value={typeof item.description === 'string' ? item.description : ''} onChange={(event) => update(index, 'description', event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-slate-300 p-3 font-normal" /></label><button type="button" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} className="mt-2 text-sm text-red-700">Remove</button></div>)}<button type="button" onClick={add} className="min-h-10 rounded-lg border border-royalBlue px-3 text-sm font-semibold text-royalBlue">Add State</button></div>;
 }
 
-function replaceModules(content: JsonObject, modules: Module[]) {
-  return { ...content, modules };
-}
-
-function PayloadEditor({
-  payload,
-  onChange,
-}: {
-  payload: JsonObject;
-  onChange: (payload: JsonObject) => void;
-}) {
-  const [value, setValue] = useState(JSON.stringify(payload, null, 2));
+function PayloadEditor({ block, onChange }: { block: Block; onChange: (payload: JsonObject) => void }) {
+  const [value, setValue] = useState(JSON.stringify(block.payload, null, 2));
   const [error, setError] = useState('');
-  return <label className="block text-sm font-semibold">
-    Block payload
-    <textarea
-      value={value}
-      rows={6}
-      onChange={(event) => {
-        const next = event.target.value;
-        setValue(next);
-        try {
-          const parsed: unknown = JSON.parse(next);
-          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            throw new Error('Payload must be a JSON object.');
-          }
-          setError('');
-          onChange(parsed as JsonObject);
-        } catch {
-          setError('Payload must be a valid JSON object before saving.');
-        }
-      }}
-      className="mt-2 w-full rounded-xl border border-slate-300 p-3 font-mono text-xs font-normal"
-    />
-    {error ? <span className="mt-1 block text-xs text-red-700">{error}</span> : null}
-  </label>;
+  const update = (next: string) => { setValue(next); try { const parsed: unknown = JSON.parse(next); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(); setError(''); onChange(parsed as JsonObject); } catch { setError('Payload must be a valid JSON object.'); } };
+  const payload = block.payload;
+  const text = typeof payload.text === 'string' ? payload.text : typeof payload.content === 'string' ? payload.content : '';
+  const rawItems = Array.isArray(payload.items) ? payload.items : [];
+  const itemsKind = itemArrayKind(rawItems);
+  const items = itemsKind === 'STRING_LIST' ? rawItems.join('\n') : '';
+  const advanced = <><textarea value={value} onChange={(event) => update(event.target.value)} rows={8} className="mt-2 w-full overflow-auto rounded-lg border border-slate-300 p-3 font-mono text-xs font-normal" />{error ? <p className="text-xs text-red-700">{error}</p> : null}</>;
+  if (['RICH_TEXT', 'CALLOUT', 'CODE'].includes(block.blockType)) return <div className="space-y-3"><label className="block text-sm font-semibold">Title<input value={typeof payload.title === 'string' ? payload.title : ''} onChange={(event) => onChange({ ...payload, title: event.target.value })} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label><label className="block text-sm font-semibold">Content<textarea value={text} onChange={(event) => onChange({ ...payload, text: event.target.value })} rows={8} className="mt-1 w-full rounded-lg border border-slate-300 p-3 font-normal" /></label><details><summary className="cursor-pointer text-sm font-semibold text-royalBlue">Advanced JSON</summary>{advanced}</details></div>;
+  if (['CHECKLIST', 'REFERENCE'].includes(block.blockType)) return <div className="space-y-3"><label className="block text-sm font-semibold">Title<input value={typeof payload.title === 'string' ? payload.title : ''} onChange={(event) => onChange({ ...payload, title: event.target.value })} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label>{itemsKind === 'OBJECT_LIST' ? <StructuredItemsEditor items={rawItems as StructuredItem[]} onChange={(next) => onChange({ ...payload, items: next })} /> : <label className="block text-sm font-semibold">Items<textarea value={items} onChange={(event) => onChange({ ...payload, items: event.target.value.split('\n').filter(Boolean) })} rows={8} className="mt-1 w-full rounded-lg border border-slate-300 p-3 font-normal" /></label>}<details><summary className="cursor-pointer text-sm font-semibold text-royalBlue">Advanced JSON</summary>{advanced}</details></div>;
+  return <details open><summary className="cursor-pointer text-sm font-semibold text-royalBlue">Advanced JSON</summary>{advanced}</details>;
 }
 
-export function JourneyBusinessEditor({
-  slug,
-  revisionId,
-  initialContentJson,
-}: {
-  slug: string;
-  revisionId: string;
-  initialContentJson: string;
-}) {
-  const initialContent = JSON.parse(initialContentJson) as JsonObject;
-  const [content, setContent] = useState(initialContent);
-  const [advancedJson, setAdvancedJson] = useState(
-    JSON.stringify(initialContent, null, 2),
-  );
+function AdvancedJsonEditor({ content, onApply }: { content: JsonObject; onApply: (next: JsonObject) => void }) {
+  const [text, setText] = useState(() => JSON.stringify(content, null, 2));
+  const [error, setError] = useState('');
+  const apply = () => { if (!text.trim()) return setError('JSON content cannot be empty.'); try { onApply(journeyContentSchema.parse(JSON.parse(text)) as JsonObject); setError(''); } catch { setError('Invalid Journey JSON.'); } };
+  return <div className="space-y-3"><textarea value={text} onChange={(event) => { setText(event.target.value); setError(''); }} rows={24} className="w-full rounded-xl border border-slate-300 p-4 font-mono text-xs" /><button type="button" onClick={apply} className="min-h-10 rounded-lg bg-royalBlue px-4 text-sm font-semibold text-white">Apply JSON</button>{error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}</div>;
+}
+
+function ModuleWorkspace({ module, moduleIndex, totalModules, sections, content, onUpdate, onSelect, onPrevious, onNext }: { module: Module; moduleIndex: number; totalModules: number; sections: Section[]; content: JsonObject; onUpdate: (next: JsonObject) => void; onSelect: (id: string) => void; onPrevious: () => void; onNext: () => void }) {
+  const [tab, setTab] = useState('overview');
+  const summary = deriveModuleSummary(sections);
+  const tabs = [{ id: 'overview', label: 'Overview', visible: true }, ...moduleWorkspaceTabs(sections).map((item) => ({ id: item.id, label: item.label, visible: true })), { id: 'all', label: 'All Sections', visible: true }].filter((item) => item.visible);
+  const sectionRows = sections.map((section, index) => ({ section, index, id: `m-${moduleIndex}-s-${index}` }));
+  const matching = (category: string) => sectionRows.flatMap(({ section, index }) => section.blocks.map((block, blockIndex) => classifyWorkspaceBlock(block) === category ? { title: typeof block.payload.title === 'string' ? block.payload.title : block.blockType, path: `${module.title} › ${section.title}`, id: `m-${moduleIndex}-s-${index}-b-${blockIndex}`, blockType: block.blockType } : null).filter(Boolean));
+  const openSection = (id: string) => onSelect(id);
+  const renderSections = (rows: typeof sectionRows) => rows.length ? <div className="space-y-2">{rows.map(({ section, index, id }) => <button key={id} type="button" onClick={() => openSection(id)} className="block w-full rounded-lg border border-slate-200 p-3 text-left hover:border-royalBlue"><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">Section {index + 1} · {section.title}</span><span className="text-xs text-slate-500">{section.blocks.length} blocks</span></div><p className="mt-1 text-xs text-slate-500">{workspaceBlockTypeSummary(section.blocks)}</p></button>)}</div> : <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">This module has no sections yet.</p>;
+  const renderCategory = (category: string) => { const results = matching(category); return results.length ? <div className="space-y-2">{results.map((result) => <button key={result!.id} type="button" onClick={() => onSelect(result!.id)} className="block w-full rounded-lg border border-slate-200 p-3 text-left hover:border-royalBlue"><span className="font-semibold">{result!.title}</span><span className="mt-1 block text-xs text-slate-500">{result!.path} · {result!.blockType}</span></button>)}</div> : null; };
+  return <div className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-royalBlue">Selected module</p><h3 className="mt-1 text-2xl font-semibold text-navy">{module.title}</h3><p className="text-sm text-slate-500">{module.key ?? 'No module key'} · Module {moduleIndex + 1} of {totalModules}</p></div><div className="flex gap-2"><button type="button" disabled={moduleIndex === 0} onClick={onPrevious} className="rounded-lg border px-2 text-sm disabled:opacity-40">Previous</button><button type="button" disabled={moduleIndex === totalModules - 1} onClick={onNext} className="rounded-lg border px-2 text-sm disabled:opacity-40">Next</button></div></div><label className="block text-sm font-semibold">Module title<input value={module.title} onChange={(event) => onUpdate({ ...content, modules: Array.isArray(content.modules) ? (content.modules as Module[]).map((item, index) => index === moduleIndex ? { ...item, title: event.target.value } : item) : [] })} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{Object.entries({ Sections: summary.sections, Blocks: summary.blocks, 'Lifecycle stages': summary.lifecycle, 'Business Rules': summary.rules, APIs: summary.apis, Exceptions: summary.exceptions, Diagrams: summary.diagrams, 'Learning Assets': summary.learning }).filter(([, count]) => count > 0 || ['Sections', 'Blocks'].includes(String(count))).map(([label, count]) => <div key={label} className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-slate-500">{label}</p><p className="text-xl font-semibold">{count}</p></div>)}</div><div className="-mx-1 flex gap-1 overflow-x-auto border-b border-slate-200 px-1">{tabs.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`min-h-10 shrink-0 border-b-2 px-3 text-sm font-semibold ${tab === item.id ? 'border-royalBlue text-royalBlue' : 'border-transparent text-slate-500'}`}>{item.label}</button>)}</div>{tab === 'overview' || tab === 'all' ? renderSections(sectionRows) : tab === 'lifecycle' ? renderSections(sectionRows.filter(({ section }) => isLifecycleSection(section))) : renderCategory(tab === 'rules' ? 'rules' : tab === 'apis' ? 'apis' : tab === 'exceptions' ? 'exceptions' : tab === 'diagrams' ? 'diagrams' : 'learning')}</div>;
+}
+
+function safeBlockTitle(block: Block) {
+  const payload = block.payload;
+  for (const key of ['title', 'name', 'question', 'scenario']) if (typeof payload[key] === 'string' && payload[key]) return payload[key] as string;
+  return block.blockType.replaceAll('_', ' ');
+}
+
+function safeBlockSummary(block: Block) {
+  const payload = block.payload;
+  for (const key of ['content', 'summary', 'purpose', 'description', 'endpoint', 'service']) if (typeof payload[key] === 'string' && payload[key]) return (payload[key] as string).slice(0, 120);
+  return '';
+}
+
+function SectionWorkspace({ section, module, moduleIndex, sectionIndex, content, onUpdate, onSelect, onPrevious, onNext, onMutate }: { section: Section; module: Module; moduleIndex: number; sectionIndex: number; content: JsonObject; onUpdate: (next: JsonObject) => void; onSelect: (id: string) => void; onPrevious: () => void; onNext: () => void; onMutate: (result: JourneyMutationResult) => void }) {
+  const counts = new Map<string, number>();
+  section.blocks.forEach((block) => counts.set(block.blockType, (counts.get(block.blockType) ?? 0) + 1));
+  const summary = [...counts.entries()].map(([type, count]) => `${type.replaceAll('_', ' ')} (${count})`).join(' · ');
+  return <div className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-royalBlue">Selected section</p><h3 className="mt-1 text-2xl font-semibold text-navy">{section.title}</h3><p className="text-sm text-slate-500">{module.title} · Section {sectionIndex + 1} of {module.sections.length} · {section.blocks.length} blocks</p></div><div className="flex flex-wrap gap-2"><button type="button" disabled={sectionIndex === 0} onClick={onPrevious} className="rounded-lg border px-2 text-sm disabled:opacity-40">Previous</button><button type="button" disabled={sectionIndex === module.sections.length - 1} onClick={onNext} className="rounded-lg border px-2 text-sm disabled:opacity-40">Next</button><button type="button" onClick={() => onMutate(addJourneyBlock(content as never, moduleIndex, sectionIndex))} className="rounded-lg bg-royalBlue px-3 text-sm font-semibold text-white">Add Block</button><button type="button" disabled={sectionIndex === 0} onClick={() => onMutate(moveJourneySection(content as never, moduleIndex, sectionIndex, 'up'))} className="rounded-lg border px-2 text-sm disabled:opacity-40">Move Up</button><button type="button" disabled={sectionIndex === module.sections.length - 1} onClick={() => onMutate(moveJourneySection(content as never, moduleIndex, sectionIndex, 'down'))} className="rounded-lg border px-2 text-sm disabled:opacity-40">Move Down</button><button type="button" onClick={() => onMutate(removeJourneySection(content as never, moduleIndex, sectionIndex))} className="rounded-lg border border-red-200 px-2 text-sm text-red-700">Remove Section</button></div></div><label className="block text-sm font-semibold">Section title<input value={section.title} onChange={(event) => onUpdate({ ...content, modules: (content.modules as Module[]).map((item, index) => index === moduleIndex ? { ...item, sections: item.sections.map((entry, childIndex) => childIndex === sectionIndex ? { ...entry, title: event.target.value } : entry) } : item) })} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label><div className="rounded-lg border border-slate-200 p-3"><p className="text-sm font-semibold">{section.blocks.length} blocks</p>{summary ? <p className="mt-1 text-xs text-slate-500">{summary}</p> : null}</div><div><h4 className="mb-2 text-sm font-semibold">Content blocks</h4>{section.blocks.length ? <div className="space-y-2">{section.blocks.map((block, blockIndex) => { const id = `m-${moduleIndex}-s-${sectionIndex}-b-${blockIndex}`; const path = { moduleIndex, sectionIndex, blockIndex }; return <div key={id} className="rounded-lg border border-slate-200 p-3"><button type="button" onClick={() => onSelect(id)} className="block w-full text-left"><div className="flex flex-wrap justify-between gap-2"><span className="font-semibold">Block {blockIndex + 1} of {section.blocks.length} · {safeBlockTitle(block)}</span><span className="text-xs text-slate-500">{block.blockType}</span></div>{safeBlockSummary(block) ? <p className="mt-1 line-clamp-2 text-xs text-slate-500">{safeBlockSummary(block)}</p> : null}</button><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => onSelect(id)} className="text-xs font-semibold text-royalBlue">Edit</button><button type="button" onClick={() => onMutate(duplicateJourneyBlock(content as never, path))} className="text-xs">Duplicate</button><button type="button" disabled={blockIndex === 0} onClick={() => onMutate(moveJourneyBlock(content as never, path, 'up'))} className="text-xs disabled:opacity-40">Move Up</button><button type="button" disabled={blockIndex === section.blocks.length - 1} onClick={() => onMutate(moveJourneyBlock(content as never, path, 'down'))} className="text-xs disabled:opacity-40">Move Down</button><button type="button" onClick={() => onMutate(removeJourneyBlock(content as never, path))} className="text-xs text-red-700">Remove</button></div></div>; })}</div> : <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">This section has no content blocks yet.</p>}</div></div>;
+}
+
+function BlockWorkspaceActions({ block, blockIndex, blockCount, content, path, onMutate }: { block: Block; blockIndex: number; blockCount: number; content: JsonObject; path: JourneyEditorNodePath; onMutate: (result: JourneyMutationResult) => void }) {
+  return <div className="mb-4 flex flex-wrap gap-2"><button type="button" onClick={() => onMutate(duplicateJourneyBlock(content as never, path))} className="min-h-9 rounded-lg border px-3 text-sm">Duplicate</button><button type="button" disabled={blockIndex === 0} onClick={() => onMutate(moveJourneyBlock(content as never, path, 'up'))} className="min-h-9 rounded-lg border px-3 text-sm disabled:opacity-40">Move up</button><button type="button" disabled={blockIndex === blockCount - 1} onClick={() => onMutate(moveJourneyBlock(content as never, path, 'down'))} className="min-h-9 rounded-lg border px-3 text-sm disabled:opacity-40">Move down</button><button type="button" onClick={() => onMutate(removeJourneyBlock(content as never, path))} className="min-h-9 rounded-lg border border-red-200 px-3 text-sm text-red-700">Remove</button><span className="self-center text-xs text-slate-500">{block.blockType} · Block {blockIndex + 1} of {blockCount}</span></div>;
+}
+
+export function JourneyBusinessEditor({ slug, revisionId, initialContentJson }: { slug: string; revisionId: string; initialContentJson: string }) {
+  const [content, setContent] = useState(() => JSON.parse(initialContentJson) as JsonObject);
+  const [selected, setSelected] = useState('m-0');
+  const [query, setQuery] = useState('');
   const [mode, setMode] = useState<'business' | 'advanced'>('business');
-  const [advancedError, setAdvancedError] = useState('');
-
-  const applyContent = (next: JsonObject) => {
-    setContent(next);
-    setAdvancedJson(JSON.stringify(next, null, 2));
-    setAdvancedError('');
-  };
-  const title = typeof content.title === 'string' ? content.title : '';
-  const summary = typeof content.summary === 'string' ? content.summary : '';
   const modules = modulesFrom(content);
+  const nodes = useMemo(() => makeNodes(modules), [modules]);
+  const visible = nodes.filter((node) => !query || `${node.title} ${node.type}`.toLowerCase().includes(query.toLowerCase().trim()));
+  const selectedNode = nodes.find((node) => node.id === selected) ?? nodes[0];
+  const selectedModule = selectedNode ? modules[selectedNode.moduleIndex] : undefined;
+  const selectedSection = selectedModule && selectedNode?.sectionIndex !== undefined ? selectedModule.sections[selectedNode.sectionIndex] : undefined;
+  const selectedBlock = selectedSection && selectedNode?.blockIndex !== undefined ? selectedSection.blocks[selectedNode.blockIndex] : undefined;
+  const update = (next: JsonObject) => setContent(next);
+  const updateBlock = (payload: JsonObject, blockType?: string) => { if (!selectedNode || selectedNode.sectionIndex === undefined || selectedNode.blockIndex === undefined) return; update({ ...content, modules: modules.map((module, mi) => mi !== selectedNode.moduleIndex ? module : { ...module, sections: module.sections.map((section, si) => si !== selectedNode.sectionIndex ? section : { ...section, blocks: section.blocks.map((block, bi) => bi !== selectedNode.blockIndex ? block : { ...block, payload, ...(blockType ? { blockType } : {}) }) }) }) }); };
+  const moveSibling = (direction: -1 | 1) => { const next = getSiblingNode(nodes, selected, direction); if (next) setSelected(next.id); };
+  const breadcrumbs = buildEditorBreadcrumb(nodes, selected, typeof content.title === 'string' ? content.title : 'Journey');
+  const applyAdvanced = (next: JsonObject) => { setContent(next); setSelected(makeNodes(modulesFrom(next))[0]?.id ?? ''); setMode('business'); };
+  const applyJourneyMutation = (result: JourneyMutationResult) => { if (result.ok) { setContent(result.content as JsonObject); const path = result.selectedPath; setSelected(path.moduleIndex === undefined ? 'm-0' : path.blockIndex !== undefined ? `m-${path.moduleIndex}-s-${path.sectionIndex}-b-${path.blockIndex}` : path.sectionIndex !== undefined ? `m-${path.moduleIndex}-s-${path.sectionIndex}` : `m-${path.moduleIndex}`); } };
 
-  const updateModule = (moduleIndex: number, nextModule: Module) => {
-    const next = [...modules];
-    next[moduleIndex] = nextModule;
-    applyContent(replaceModules(content, next));
-  };
+  function renderSelectedWorkspace() {
+    void editorModeLabels;
+    if (!selectedNode) return <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No content selected.</p>;
+    if (selectedNode.type === 'module' && selectedModule) return <ModuleWorkspace module={selectedModule} moduleIndex={selectedNode.moduleIndex} totalModules={modules.length} sections={selectedModule.sections} content={content} onUpdate={update} onSelect={setSelected} onPrevious={() => { const previous = getSiblingNode(nodes, selected, -1); if (previous) setSelected(previous.id); }} onNext={() => { const next = getSiblingNode(nodes, selected, 1); if (next) setSelected(next.id); }} />;
+    if (selectedNode.type === 'section' && selectedSection && selectedModule) return <SectionWorkspace section={selectedSection} module={selectedModule} moduleIndex={selectedNode.moduleIndex} sectionIndex={selectedNode.sectionIndex ?? 0} content={content} onUpdate={update} onSelect={setSelected} onMutate={applyJourneyMutation} onPrevious={() => { const previous = getSiblingNode(nodes, selected, -1); if (previous) setSelected(previous.id); }} onNext={() => { const next = getSiblingNode(nodes, selected, 1); if (next) setSelected(next.id); }} />;
+    if (selectedNode.type === 'block' && selectedBlock && selectedSection) return <><BlockWorkspaceActions block={selectedBlock} blockIndex={selectedNode.blockIndex ?? 0} blockCount={selectedSection.blocks.length} content={content} path={{ moduleIndex: selectedNode.moduleIndex, sectionIndex: selectedNode.sectionIndex, blockIndex: selectedNode.blockIndex }} onMutate={applyJourneyMutation} /><PayloadEditor key={selectedBlock.id ?? selectedNode.id} block={selectedBlock} onChange={updateBlock} /></>;
+    switch (selectedNode.type) {
+      case 'module':
+        return selectedModule ? <><p className="mt-2 text-sm text-slate-500">{selectedModule.key ?? 'No module key'} · {selectedModule.sections.length} sections · {selectedModule.sections.reduce((count, section) => count + section.blocks.length, 0)} blocks</p><label className="mt-5 block text-sm font-semibold">Module title<input value={selectedModule.title} onChange={(event) => update({ ...content, modules: modules.map((module, index) => index === selectedNode.moduleIndex ? { ...module, title: event.target.value } : module) })} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label></> : null;
+      case 'section':
+        return selectedSection ? <label className="block text-sm font-semibold">Section title<input value={selectedSection.title} onChange={(event) => update({ ...content, modules: modules.map((module, index) => index === selectedNode.moduleIndex ? { ...module, sections: module.sections.map((section, sectionIndex) => sectionIndex === selectedNode.sectionIndex ? { ...section, title: event.target.value } : section) } : module) })} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal" /></label> : null;
+      case 'block':
+        return selectedBlock ? <><label className="block text-sm font-semibold">Block type<select value={selectedBlock.blockType} onChange={(event) => updateBlock(selectedBlock.payload, event.target.value)} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal">{blockTypes.map((type) => <option key={type}>{type}</option>)}</select></label><div className="mt-5"><PayloadEditor key={selectedBlock.id ?? selectedNode.id} block={selectedBlock} onChange={updateBlock} /></div></> : null;
+      default:
+        return <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No content selected.</p>;
+    }
+  }
 
-  return <form action={saveJourneyDraftAction} className="mt-5">
-    <input type="hidden" name="slug" value={slug} />
-    <input type="hidden" name="revisionId" value={revisionId} />
-    <input type="hidden" name="contentJson" value={JSON.stringify(content)} />
-
-    <div className="mb-5 flex gap-2 border-b border-slate-200">
-      <button
-        type="button"
-        onClick={() => setMode('business')}
-        className={`px-4 py-3 text-sm font-semibold ${mode === 'business' ? 'border-b-2 border-royalBlue text-royalBlue' : 'text-slate-600'}`}
-      >
-        Business Editor
-      </button>
-      <button
-        type="button"
-        onClick={() => setMode('advanced')}
-        className={`px-4 py-3 text-sm font-semibold ${mode === 'advanced' ? 'border-b-2 border-royalBlue text-royalBlue' : 'text-slate-600'}`}
-      >
-        Advanced JSON
-      </button>
-    </div>
-
-    {mode === 'business' ? <div className="space-y-5">
-      <label className="block font-semibold">
-        Title
-        <input
-          name="title"
-          required
-          minLength={5}
-          maxLength={160}
-          value={title}
-          onChange={(event) => applyContent({ ...content, title: event.target.value })}
-          className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal"
-        />
-      </label>
-      <label className="block font-semibold">
-        Summary
-        <textarea
-          name="summary"
-          required
-          minLength={30}
-          maxLength={500}
-          rows={4}
-          value={summary}
-          onChange={(event) => applyContent({ ...content, summary: event.target.value })}
-          className="mt-2 w-full rounded-xl border border-slate-300 p-3 font-normal"
-        />
-      </label>
-
-      <section>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold">Modules, sections and blocks</h3>
-            <p className="text-sm text-slate-500">Legacy fields remain preserved and can be inspected in Advanced JSON.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => applyContent(replaceModules(content, [
-              ...modules,
-              {
-                id: `module-${modules.length + 1}`,
-                title: `Module ${modules.length + 1}`,
-                order: modules.length + 1,
-                sections: [],
-              },
-            ]))}
-            className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold"
-          >
-            Add module
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-5">
-          {modules.length ? modules.map((module, moduleIndex) => <article key={module.id ?? moduleIndex} className="rounded-xl border border-slate-200 p-4">
-            <label className="block text-sm font-semibold">
-              Module title
-              <input
-                value={module.title}
-                onChange={(event) => updateModule(moduleIndex, { ...module, title: event.target.value })}
-                className="mt-2 min-h-10 w-full rounded-xl border border-slate-300 px-3 font-normal"
-              />
-            </label>
-            <div className="mt-4 space-y-4">
-              {module.sections.map((section, sectionIndex) => <section key={section.id ?? sectionIndex} className="rounded-xl bg-slate-50 p-4">
-                <label className="block text-sm font-semibold">
-                  Section title
-                  <input
-                    value={section.title}
-                    onChange={(event) => {
-                      const sections = [...module.sections];
-                      sections[sectionIndex] = { ...section, title: event.target.value };
-                      updateModule(moduleIndex, { ...module, sections });
-                    }}
-                    className="mt-2 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
-                  />
-                </label>
-                <div className="mt-4 space-y-4">
-                  {section.blocks.map((block, blockIndex) => <div key={block.id ?? blockIndex} className="rounded-xl border border-slate-200 bg-white p-4">
-                    <label className="block text-sm font-semibold">
-                      Block type
-                      <select
-                        value={block.blockType}
-                        onChange={(event) => {
-                          const blocks = [...section.blocks];
-                          blocks[blockIndex] = { ...block, blockType: event.target.value };
-                          const sections = [...module.sections];
-                          sections[sectionIndex] = { ...section, blocks };
-                          updateModule(moduleIndex, { ...module, sections });
-                        }}
-                        className="mt-2 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
-                      >
-                        {blockTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-                      </select>
-                    </label>
-                    <div className="mt-3">
-                      <PayloadEditor
-                        payload={block.payload}
-                        onChange={(payload) => {
-                          const blocks = [...section.blocks];
-                          blocks[blockIndex] = { ...block, payload };
-                          const sections = [...module.sections];
-                          sections[sectionIndex] = { ...section, blocks };
-                          updateModule(moduleIndex, { ...module, sections });
-                        }}
-                      />
-                    </div>
-                  </div>)}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sections = [...module.sections];
-                      sections[sectionIndex] = {
-                        ...section,
-                        blocks: [...section.blocks, {
-                          id: `block-${section.blocks.length + 1}`,
-                          blockType: 'RICH_TEXT',
-                          schemaVersion: 1,
-                          payload: { content: '' },
-                        }],
-                      };
-                      updateModule(moduleIndex, { ...module, sections });
-                    }}
-                    className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold"
-                  >
-                    Add block
-                  </button>
-                </div>
-              </section>)}
-              <button
-                type="button"
-                onClick={() => updateModule(moduleIndex, {
-                  ...module,
-                  sections: [...module.sections, {
-                    id: `section-${module.sections.length + 1}`,
-                    title: `Section ${module.sections.length + 1}`,
-                    order: module.sections.length + 1,
-                    blocks: [],
-                  }],
-                })}
-                className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold"
-              >
-                Add section
-              </button>
-            </div>
-          </article>) : <p className="rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-600">This Journey currently uses legacy fields. Add a module when beginning gradual migration, or use Advanced JSON to maintain existing legacy content.</p>}
-        </div>
-      </section>
-    </div> : <div>
-      <label className="block font-semibold">
-        Complete Journey content JSON
-        <textarea
-          value={advancedJson}
-          rows={28}
-          onChange={(event) => {
-            const next = event.target.value;
-            setAdvancedJson(next);
-            try {
-              const parsed: unknown = JSON.parse(next);
-              if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-                throw new Error('Journey content must be a JSON object.');
-              }
-              const object = parsed as JsonObject;
-              if (object.slug !== undefined && object.slug !== slug) {
-                throw new Error('Stable slug cannot be changed.');
-              }
-              if (typeof object.title !== 'string' || typeof object.summary !== 'string') {
-                throw new Error('Title and summary are required.');
-              }
-              setContent(object);
-              setAdvancedError('');
-            } catch (error) {
-              setAdvancedError(error instanceof Error ? error.message : 'Invalid JSON.');
-            }
-          }}
-          className="mt-2 w-full rounded-xl border border-slate-300 p-3 font-mono text-sm font-normal"
-        />
-      </label>
-      <p className="mt-2 text-xs text-slate-500">
-        Title and Summary share state with the Business Editor. Stable slug and system-owned fields are enforced again on the server.
-      </p>
-      {advancedError ? <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{advancedError}</p> : null}
-    </div>}
-
-    {mode === 'advanced' ? <>
-      <input type="hidden" name="title" value={title} />
-      <input type="hidden" name="summary" value={summary} />
-    </> : null}
-    <button
-      disabled={Boolean(advancedError)}
-      className="mt-5 min-h-11 rounded-xl border border-royalBlue px-4 font-semibold text-royalBlue disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      Validate and Save Draft
-    </button>
-  </form>;
+  const siblingControls = <div className="flex gap-2"><button type="button" disabled={!getSiblingNode(nodes, selected, -1)} onClick={() => moveSibling(-1)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-2 text-sm disabled:opacity-40"><ChevronLeft size={16} />Previous</button><button type="button" disabled={!getSiblingNode(nodes, selected, 1)} onClick={() => moveSibling(1)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-2 text-sm disabled:opacity-40">Next<ChevronRight size={16} /></button></div>;
+  return <form action={saveJourneyDraftAction} className="mt-5 min-w-0"><input type="hidden" name="slug" value={slug} /><input type="hidden" name="revisionId" value={revisionId} /><input type="hidden" name="title" value={typeof content.title === 'string' ? content.title : ''} /><input type="hidden" name="summary" value={typeof content.summary === 'string' ? content.summary : ''} /><input type="hidden" name="contentJson" value={JSON.stringify(content)} /><RevisionToolbar moduleCount={modules.length} mode={mode} onToggleAdvanced={() => setMode(mode === 'advanced' ? 'business' : 'advanced')}><button className="min-h-10 rounded-lg bg-royalBlue px-4 text-sm font-semibold text-white">Save Draft</button></RevisionToolbar>{mode === 'advanced' ? <AdvancedJsonEditor content={content} onApply={applyAdvanced} /> : <div className="grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]"><ContentNavigator nodes={visible} query={query} onQueryChange={setQuery} selected={selected} onSelect={setSelected} /><SelectedContentWorkspace breadcrumb={breadcrumbs.map((item, index) => <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1">{index ? <ChevronRight size={14} aria-hidden="true" /> : null}{item.current ? <span className="font-semibold text-slate-700">{item.label}</span> : <button type="button" onClick={() => item.id && item.id !== 'journey' && setSelected(item.id)} className="hover:text-royalBlue">{item.label}</button>}</span>)} context={<><p className="text-xs font-semibold uppercase tracking-wide text-royalBlue">Selected {selectedNode.type}</p><h2 className="mt-1 text-2xl font-semibold text-navy">{selectedNode.title}</h2></>} navigation={siblingControls}>{renderSelectedWorkspace()}</SelectedContentWorkspace></div>}</form>;
 }
