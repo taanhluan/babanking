@@ -1,0 +1,5 @@
+import { describe, expect, it } from 'vitest';
+import { filterPaymentKnowledgeTree, mapPaymentKnowledgeTree } from './payment-knowledge-tree-mapper';
+import { mapJourneyPortal } from './journey-portal-mapper';
+const model = mapJourneyPortal({ id: '1', type: 'BANKING_JOURNEY', slug: 'payments-and-transfers', title: 'Payments', summary: 'A sufficiently long payment journey summary for tests.', body: { modules: [{ key: 'payment-lifecycle', title: 'Payment Lifecycle', sections: [{ title: 'Authorization', blocks: [{ blockType: 'CHECKLIST', payload: { title: 'Maker Checker', items: ['Approve'] } }] }] }] } });
+describe('payment knowledge tree', () => { it('maps selected payment into isolated stage tree', () => { const result = mapPaymentKnowledgeTree(model, 'internal-transfer'); expect(result?.paymentType.slug).toBe('internal-transfer'); expect(result?.tree[0].type).toBe('stage'); }); it('falls back safely for invalid selection and searches descendants', () => { const result = mapPaymentKnowledgeTree(model, 'invalid'); expect(result?.paymentType.slug).toBe('internal-transfer'); expect(filterPaymentKnowledgeTree(result!.tree, 'maker')).toHaveLength(1); }); });
