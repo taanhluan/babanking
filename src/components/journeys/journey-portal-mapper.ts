@@ -5,6 +5,8 @@ export type PortalState = { id: string; title: string; summary?: string; blocks:
 export type PortalStage = { id: string; title: string; summary?: string; states: PortalState[] };
 export type PortalSection = { id: string; title: string; blocks: PortalBlock[] };
 export type JourneyPortalViewModel = {
+  mode: 'PAYMENT_TYPE_PORTAL' | 'LEGACY_PUBLISHED_CONTENT';
+  contentReadiness: { hasPaymentTypes: boolean; paymentTypeCount: number; recognizedPaymentTypeKeys: string[]; legacyModuleCount: number };
   overview: { title: string; summary: string };
   lifecycle: PortalStage[];
   journeyTypes: Array<{ title: string; items: string[] }>;
@@ -14,6 +16,7 @@ export type JourneyPortalViewModel = {
   usedCompatibilityFallback: boolean;
   source: { lifecycle: 'cms' | 'compatibility-fallback' };
   paymentTypeGroups: Array<{ id: string; title: string; paymentTypes: Array<{ id: string; slug: string; title: string; summary: string; stageCount: number; knowledgeNodeCount: number; lifecycle: PortalStage[] }> }>;
+  legacyModules: Array<{ id: string; title: string; sections: PortalSection[] }>;
 };
 
 export const LIFECYCLE_ALIASES = ['payment-lifecycle', 'end-to-end-business-process', 'end-to-end-process', 'transaction-lifecycle'];
@@ -66,7 +69,8 @@ export function mapJourneyPortal(content: PublishedContent): JourneyPortalViewMo
   const cmsTypes = cmsPaymentModules.map((module) => { const moduleStages = Array.isArray(module.sections) ? (module.sections as Record<string, unknown>[]).filter((section) => { const sectionKey = normalized(section.key || ''); const sectionTitle = normalized(section.title || ''); return !stageIgnore.has(sectionKey) && !stageIgnore.has(sectionTitle) && !sectionKey.startsWith('overview-'); }).map((section, index) => ({ id: id(section.key || section.title, `stage-${index + 1}`), title: String(section.title || `Stage ${index + 1}`), states: states(Array.isArray(section.blocks) ? section.blocks : [], `payment-${index + 1}`) })) : []; const title = String(module.title || module.key); return { id: id(module.key || title, 'payment-type'), slug: id(module.key || title, 'payment-type'), title, summary: text(module, ['summary', 'description']) || `${title} payment journey`, stageCount: moduleStages.length, knowledgeNodeCount: moduleStages.reduce((sum, stage) => sum + stage.states.length, 0), lifecycle: moduleStages }; });
   const fallbackTypes = compatibilityPaymentTypes().flatMap((group) => group.items.filter((item) => !cmsPaymentModules.some((module) => normalized(module.key || module.title) === normalized(item))).map((item) => ({ id: id(item, 'payment-type'), slug: id(item, 'payment-type'), title: item, summary: `${item} payment journey`, stageCount: correctedLifecycle.length || 7, knowledgeNodeCount: correctedLifecycle.reduce((sum, stage) => sum + stage.states.length, 0), lifecycle: compatibilityLifecycle(), group: group.title })));
   const paymentTypeGroups = (cmsTypes.length ? [{ id: 'cms-payment-types', title: 'CMS Payment Journeys', paymentTypes: cmsTypes }] : []).concat(fallbackTypes.length ? [{ id: 'compatibility-payment-types', title: 'Additional Payment Types', paymentTypes: fallbackTypes }] : []);
-  return { overview: { title: content.title, summary: content.summary }, lifecycle: fallback ? compatibilityLifecycle() : correctedLifecycle, journeyTypes: fallback ? compatibilityTypes() : [], knowledgeAssets: fallback ? ['API', 'Business Rules', 'Glossary', 'Interview Questions', 'Case Studies', 'Sequence Diagram', 'State Diagram', 'Test Cases'] : [], existingKnowledge, relatedJourneys: list(body.relatedJourneySlugs), usedCompatibilityFallback: fallback, source: { lifecycle: fallback ? 'compatibility-fallback' : 'cms' }, paymentTypeGroups };
+  const legacyModules = modules.filter((module) => module !== lifecycleModule && !paymentTypeAliases.includes(normalized(module.key)) && !paymentTypeAliases.includes(normalized(module.title))).map((module, moduleIndex) => ({ id: id(module.key || module.title, `legacy-module-${moduleIndex + 1}`), title: String(module.title || module.key || `Module ${moduleIndex + 1}`), sections: existingKnowledge.filter((section) => section.id.startsWith(`knowledge-${moduleIndex + 1}-`)) }));
+  return { mode: cmsTypes.length ? 'PAYMENT_TYPE_PORTAL' : 'LEGACY_PUBLISHED_CONTENT', contentReadiness: { hasPaymentTypes: cmsTypes.length > 0, paymentTypeCount: cmsTypes.length, recognizedPaymentTypeKeys: cmsTypes.map((payment) => payment.slug), legacyModuleCount: legacyModules.length }, overview: { title: content.title, summary: content.summary }, lifecycle: fallback ? compatibilityLifecycle() : correctedLifecycle, journeyTypes: fallback ? compatibilityTypes() : [], knowledgeAssets: fallback ? ['API', 'Business Rules', 'Glossary', 'Interview Questions', 'Case Studies', 'Sequence Diagram', 'State Diagram', 'Test Cases'] : [], existingKnowledge, legacyModules, relatedJourneys: list(body.relatedJourneySlugs), usedCompatibilityFallback: fallback, source: { lifecycle: fallback ? 'compatibility-fallback' : 'cms' }, paymentTypeGroups };
 }
 
 export function shouldUseJourneyPortal(content: PublishedContent) {
