@@ -277,7 +277,11 @@ function nodeTone(type?: string) {
 }
 
 export function isBusinessProcessDiagram(payload: Record<string, unknown>) {
-  return toString(payload.diagramType) === 'business-process';
+  return toString(payload.diagramType) === 'business-process'
+    && Array.isArray(payload.lanes)
+    && Array.isArray(payload.nodes)
+    && payload.nodes.length > 0
+    && Array.isArray(payload.edges);
 }
 
 export function BusinessProcessDiagram({ payload }: { payload: Record<string, unknown> }) {
@@ -323,6 +327,9 @@ export function BusinessProcessDiagram({ payload }: { payload: Record<string, un
   const laneLookup = new Map(laneDefinitions.map((lane) => [lane.id, lane]));
   const nodeLookup = new Map(nodes.map((node) => [node.id, node]));
   const validEdges = edges.filter((edge) => nodeLookup.has(edge.source) && nodeLookup.has(edge.target));
+  if (process.env.NODE_ENV === 'development' && validEdges.length !== edges.length) {
+    console.warn(`BusinessProcessDiagram ignored ${edges.length - validEdges.length} edge(s) with missing source or target nodes.`);
+  }
   const nodeOrder = new Map(nodes.map((node, index) => [node.id, index]));
 
   const incomingEdges = new Map<string, DiagramEdge[]>();

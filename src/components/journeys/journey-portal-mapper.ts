@@ -31,9 +31,37 @@ const text = (value: unknown, keys: string[]) => {
 };
 const id = (value: unknown, fallback: string) => String(value || fallback).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || fallback;
 const list = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+const record = (value: unknown) => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+const diagramKeys = ['diagramType', 'orientation', 'title', 'description', 'lanes', 'nodes', 'edges'] as const;
+
+function normalizedBlockPayload(raw: Record<string, unknown>) {
+  const nested = record(raw.payload);
+  const diagramData = Object.fromEntries(diagramKeys.flatMap((key) => {
+    const value = nested[key] ?? raw[key];
+    return value === undefined ? [] : [[key, value]];
+  }));
+  return diagramData.diagramType === 'business-process' ? diagramData : raw.payload;
+}
+
+function hasBusinessProcessData(value: unknown) {
+  const data = record(value);
+  return data.diagramType === 'business-process'
+    && Array.isArray(data.lanes)
+    && Array.isArray(data.nodes)
+    && data.nodes.length > 0
+    && Array.isArray(data.edges);
+}
 
 function block(raw: Record<string, unknown>, fallback: string): PortalBlock {
-  return { id: id(raw.id || raw.key, fallback), blockType: typeof raw.blockType === 'string' ? raw.blockType : 'RICH_TEXT', schemaVersion: typeof raw.schemaVersion === 'number' ? raw.schemaVersion : undefined, payload: raw.payload };
+  const payload = normalizedBlockPayload(raw);
+  const declaredType = typeof raw.blockType === 'string' ? raw.blockType : 'RICH_TEXT';
+  const recoverableDiagramWrapper = ['DIAGRAM', 'RICH_TEXT', 'TEXT'].includes(declaredType.toUpperCase());
+  return {
+    id: id(raw.id || raw.key, fallback),
+    blockType: recoverableDiagramWrapper && hasBusinessProcessData(payload) ? 'DIAGRAM' : declaredType,
+    schemaVersion: typeof raw.schemaVersion === 'number' ? raw.schemaVersion : undefined,
+    payload,
+  };
 }
 function uniqueId(value: string, used: Set<string>) { let candidate = value; let suffix = 2; while (used.has(candidate)) candidate = `${value}-${suffix++}`; used.add(candidate); return candidate; }
 const canonicalStages = Object.entries(LIFECYCLE_STAGE_ALIASES).map(([key, aliases]) => ({ key, title: key === 'complianceRisk' ? 'Compliance and Risk' : key.charAt(0).toUpperCase() + key.slice(1), aliases }));

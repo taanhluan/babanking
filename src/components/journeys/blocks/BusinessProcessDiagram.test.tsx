@@ -296,4 +296,38 @@ describe('JourneyBlockRenderer business process diagrams', () => {
     const nonDiagram = renderToStaticMarkup(<JourneyBlockRenderer block={{ id: 'toggle', blockType: 'FLOW', payload: { ...payload, diagramType: 'business-process' } }} />);
     expect(nonDiagram).not.toContain('data-diagram-canvas');
   });
+
+  it('repairs a legacy text wrapper when valid business-process data is present', () => {
+    const description = 'Diagram metadata must not be rendered inside the canvas.';
+    const block = {
+      id: 'legacy-wrapper', blockType: 'RICH_TEXT', payload: {
+        title: 'Internal Transfer – General Business Process Flow', description,
+        diagramType: 'business-process', orientation: 'horizontal',
+        lanes: [
+          { id: 'customer', name: 'Customer / Initiating User' },
+          { id: 'channel', name: 'Digital Banking Channel' },
+          { id: 'payment', name: 'Payment Service' },
+          { id: 'core', name: 'Core Banking / Account Service' },
+        ],
+        nodes: [
+          { id: 'start', type: 'start-event', label: 'Start transfer', laneId: 'customer' },
+          { id: 'decision', type: 'decision-gateway', label: 'Valid?', laneId: 'payment' },
+          { id: 'end', type: 'end-event', label: 'Ready for review', laneId: 'core' },
+        ],
+        edges: [
+          { id: 'start-decision', source: 'start', target: 'decision' },
+          { id: 'decision-end', source: 'decision', target: 'end', condition: 'Yes' },
+          { id: 'missing-target', source: 'decision', target: 'unknown', condition: 'No' },
+        ],
+      },
+    };
+    const markup = renderToStaticMarkup(<JourneyBlockRenderer block={block} />);
+
+    expect(markup).toContain('data-diagram-canvas');
+    expect(allElementValues(markup, 'data-lane-label')).toHaveLength(4);
+    expect(allElementValues(markup, 'data-node-id')).toHaveLength(3);
+    expect(allElementValues(markup, 'data-edge-id')).toEqual(['start-decision', 'decision-end']);
+    expect(markup).toContain('Yes');
+    expect(markup).not.toContain(description);
+  });
 });

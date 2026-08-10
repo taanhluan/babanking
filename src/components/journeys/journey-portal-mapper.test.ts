@@ -49,4 +49,21 @@ describe('mapJourneyPortal', () => {
     expect(result.paymentTypeGroups.length).toBeGreaterThan(0);
     expect(result.legacyModules[0].title).toBe('Business Overview');
   });
+  it('normalizes valid business-process data from legacy wrappers without rewriting JSON', () => {
+    const diagram = {
+      diagramType: 'business-process', orientation: 'horizontal',
+      lanes: [{ id: 'customer', name: 'Customer' }],
+      nodes: [{ id: 'start', type: 'start-event', label: 'Start', laneId: 'customer' }],
+      edges: [],
+    };
+    const result = mapJourneyPortal(content({ modules: [{ key: 'internal-transfer', title: 'Internal Transfer', sections: [{ title: 'Initiation', blocks: [
+      { id: 'nested', blockType: 'RICH_TEXT', payload: { title: 'Flow', description: 'Metadata only', ...diagram } },
+      { id: 'top-level', blockType: 'RICH_TEXT', payload: { title: 'Legacy Flow', description: 'Metadata only' }, ...diagram },
+    ] }] }] }));
+    const blocks = result.paymentTypeGroups[0].paymentTypes[0].lifecycle[0].states.flatMap((state) => state.blocks);
+
+    expect(blocks.map((entry) => entry.blockType)).toEqual(['DIAGRAM', 'DIAGRAM']);
+    expect(blocks.map((entry) => (entry.payload as Record<string, unknown>).diagramType)).toEqual(['business-process', 'business-process']);
+    expect((blocks[1].payload as Record<string, unknown>).nodes).toEqual(diagram.nodes);
+  });
 });
