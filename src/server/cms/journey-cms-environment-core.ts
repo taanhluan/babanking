@@ -16,10 +16,7 @@ export function isJourneyCmsRouteAvailable(environment: JourneyCmsEnvironment) {
 }
 
 export function isJourneyCmsWriteAllowed(environment: JourneyCmsEnvironment) {
-  if (!hasMatchingCmsEnvironment(environment)) return false;
-  if (environment.APP_ENV === 'development') return true;
-  return environment.APP_ENV === 'production'
-    && environment.ALLOW_PRODUCTION_DATABASE_OPERATIONS === true;
+  return isJourneyCmsRouteAvailable(environment);
 }
 
 export function assertJourneyCmsRouteAvailable(environment: JourneyCmsEnvironment) {

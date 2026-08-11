@@ -1,6 +1,7 @@
 import 'server-only';
 import type { Prisma, Role } from '@prisma/client';
 import { db } from '@/lib/db';
+import type { ApplicationEnvironment } from '@/server/environment-core';
 import { assertJourneyCmsWriteEnvironment } from './journey-cms-environment';
 import {
   assertJourneyStableSlug,
@@ -18,15 +19,15 @@ import {
 
 type Actor = { id: string; role: Role };
 
-function auditMetadata(value: Record<string, unknown>) {
+function auditMetadata(environment: ApplicationEnvironment, value: Record<string, unknown>) {
   return JSON.stringify({
-    environment: 'development',
+    environment,
     ...value,
   });
 }
 
 export async function createJourneyDraftFromPublished(contentItemId: string, actor: Actor) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   assertRolePermission(actor.role, 'EDIT');
   return db.$transaction(async (transaction) => {
     const item = await transaction.contentItem.findUnique({
@@ -66,7 +67,7 @@ export async function createJourneyDraftFromPublished(contentItemId: string, act
         action: 'JOURNEY_DRAFT_CREATED',
         entityType: 'ContentRevision',
         entityId: revision.id,
-        metadataJson: auditMetadata({
+        metadataJson: auditMetadata(environment.APP_ENV, {
           contentItemId,
           revisionId: revision.id,
           sourceRevisionId: item.publishedRevision.id,
@@ -85,7 +86,7 @@ export async function saveJourneyDraft(
   contentJson: string,
   actor: Actor,
 ) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   return db.$transaction(async (transaction) => {
     const revision = await transaction.contentRevision.findFirst({
       where: { id: revisionId, contentItemId },
@@ -116,7 +117,7 @@ export async function saveJourneyDraft(
         action: 'JOURNEY_DRAFT_UPDATED',
         entityType: 'ContentRevision',
         entityId: revision.id,
-        metadataJson: auditMetadata({ contentItemId, revisionId: revision.id }),
+        metadataJson: auditMetadata(environment.APP_ENV, { contentItemId, revisionId: revision.id }),
       },
     });
     return updated;
@@ -128,7 +129,7 @@ export async function submitJourneyRevision(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   return db.$transaction(async (transaction) => {
     const revision = await transaction.contentRevision.findFirst({
       where: { id: revisionId, contentItemId },
@@ -147,7 +148,7 @@ export async function submitJourneyRevision(
         action: 'JOURNEY_SUBMITTED_FOR_REVIEW',
         entityType: 'ContentRevision',
         entityId: revision.id,
-        metadataJson: auditMetadata({ contentItemId, revisionId: revision.id }),
+        metadataJson: auditMetadata(environment.APP_ENV, { contentItemId, revisionId: revision.id }),
       },
     });
     return updated;
@@ -161,7 +162,7 @@ export async function reviewJourneyRevision(
   note: string,
   actor: Actor,
 ) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   if (note.trim().length < 10) throw new Error('A review note is required.');
   return db.$transaction(async (transaction) => {
     const revision = await transaction.contentRevision.findFirst({
@@ -186,7 +187,7 @@ export async function reviewJourneyRevision(
         action: decision === 'changes' ? 'JOURNEY_CHANGES_REQUESTED' : 'JOURNEY_REJECTED',
         entityType: 'ContentRevision',
         entityId: revision.id,
-        metadataJson: auditMetadata({ contentItemId, revisionId: revision.id }),
+        metadataJson: auditMetadata(environment.APP_ENV, { contentItemId, revisionId: revision.id }),
       },
     });
     return updated;
@@ -199,7 +200,7 @@ export async function publishJourneyRevisionTransaction(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   const revision = await transaction.contentRevision.findFirst({
     where: { id: revisionId, contentItemId },
     select: { id: true, status: true, authorId: true, contentJson: true },
@@ -238,7 +239,7 @@ export async function publishJourneyRevisionTransaction(
       action: 'JOURNEY_PUBLISHED',
       entityType: 'ContentItem',
       entityId: contentItemId,
-      metadataJson: auditMetadata({
+      metadataJson: auditMetadata(environment.APP_ENV, {
         contentItemId,
         revisionId: revision.id,
         previousRevisionId: item.publishedRevisionId,
@@ -264,7 +265,7 @@ export async function rollbackJourneyRevisionTransaction(
   revisionId: string,
   actor: Actor,
 ) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   assertRolePermission(actor.role, 'MANAGE');
   const target = await transaction.contentRevision.findFirst({
     where: { id: revisionId, contentItemId, status: 'PUBLISHED' },
@@ -294,7 +295,7 @@ export async function rollbackJourneyRevisionTransaction(
       action: 'JOURNEY_ROLLED_BACK',
       entityType: 'ContentItem',
       entityId: contentItemId,
-      metadataJson: auditMetadata({
+      metadataJson: auditMetadata(environment.APP_ENV, {
         contentItemId,
         previousRevisionId: item.publishedRevisionId,
         newRevisionId: target.id,
@@ -318,7 +319,7 @@ export async function setJourneyArchived(
   archived: boolean,
   actor: Actor,
 ) {
-  assertJourneyCmsWriteEnvironment();
+  const environment = assertJourneyCmsWriteEnvironment();
   assertRolePermission(actor.role, 'MANAGE');
   return db.$transaction(async (transaction) => {
     const item = await transaction.contentItem.findUnique({
@@ -336,7 +337,7 @@ export async function setJourneyArchived(
         action: archived ? 'JOURNEY_ARCHIVED' : 'JOURNEY_RESTORED',
         entityType: 'ContentItem',
         entityId: item.id,
-        metadataJson: auditMetadata({ contentItemId, previousArchived: item.isArchived, archived }),
+        metadataJson: auditMetadata(environment.APP_ENV, { contentItemId, previousArchived: item.isArchived, archived }),
       },
     });
     return updated;

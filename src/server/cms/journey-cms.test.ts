@@ -18,15 +18,27 @@ import {
   assertRevisionPublishable,
   assertRevisionReviewable,
 } from './journey-cms-policy';
+import { getJourneyCmsActionErrorCode } from './journey-cms-action-errors';
+
+const mockDatabase = vi.hoisted(() => ({ $transaction: vi.fn() }));
+const mockServerEnvironment = vi.hoisted(() => ({
+  APP_ENV: 'development' as 'development' | 'production',
+  DATABASE_ENVIRONMENT: 'development' as 'development' | 'production',
+  ALLOW_PRODUCTION_DATABASE_OPERATIONS: false,
+}));
 
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/db', () => ({ db: {} }));
+vi.mock('@/lib/db', () => ({ db: mockDatabase }));
 vi.mock('@/server/env', () => ({
-  getServerEnvironment: () => ({
-    APP_ENV: 'development',
-    DATABASE_ENVIRONMENT: 'development',
-  }),
+  getServerEnvironment: () => mockServerEnvironment,
 }));
+
+beforeEach(() => {
+  mockServerEnvironment.APP_ENV = 'development';
+  mockServerEnvironment.DATABASE_ENVIRONMENT = 'development';
+  mockServerEnvironment.ALLOW_PRODUCTION_DATABASE_OPERATIONS = false;
+  vi.clearAllMocks();
+});
 
 const contentJson = JSON.stringify({
   title: 'Payments and Transfers',
@@ -47,7 +59,7 @@ const contentJson = JSON.stringify({
 });
 
 describe('Journey CMS environment protection', () => {
-  it('allows Development writes and requires the canonical Production override', () => {
+  it('allows normal Development and Production CMS writes independently of the technical override', () => {
     expect(() => assertJourneyCmsRouteAvailable({
       APP_ENV: 'development',
       DATABASE_ENVIRONMENT: 'development',
@@ -66,7 +78,7 @@ describe('Journey CMS environment protection', () => {
       APP_ENV: 'production',
       DATABASE_ENVIRONMENT: 'production',
       ALLOW_PRODUCTION_DATABASE_OPERATIONS: false,
-    })).toThrow(/writes/);
+    })).not.toThrow();
     expect(() => assertJourneyCmsWriteAllowed({
       APP_ENV: 'production',
       DATABASE_ENVIRONMENT: 'production',
@@ -99,17 +111,59 @@ describe('Journey CMS environment protection', () => {
     expect(() => assertJourneyCmsWriteAllowed({} as never)).toThrow(/writes/);
   });
 
-  it('prevents a denied environment from invoking a mutation', () => {
+  it('prevents an environment mismatch from invoking a mutation', () => {
     const mutation = vi.fn();
     expect(() => {
       assertJourneyCmsWriteAllowed({
-        APP_ENV: 'production',
+        APP_ENV: 'development',
         DATABASE_ENVIRONMENT: 'production',
         ALLOW_PRODUCTION_DATABASE_OPERATIONS: false,
       });
       mutation();
     }).toThrow(/writes/);
     expect(mutation).not.toHaveBeenCalled();
+  });
+
+  it('creates a new Production draft with override disabled and records the validated environment', async () => {
+    mockServerEnvironment.APP_ENV = 'production';
+    mockServerEnvironment.DATABASE_ENVIRONMENT = 'production';
+    const auditCreate = vi.fn();
+    const revisionCreate = vi.fn().mockResolvedValue({ id: 'revision-v5', version: 5, status: 'DRAFT' });
+    const transaction = {
+      contentItem: { findUnique: vi.fn().mockResolvedValue({ id: 'journey', slug: 'payments-and-transfers', publishedRevision: { id: 'revision-v4', contentJson }, revisions: [] }) },
+      contentRevision: { findFirst: vi.fn().mockResolvedValue({ version: 4 }), create: revisionCreate },
+      auditLog: { create: auditCreate },
+    };
+    mockDatabase.$transaction.mockImplementation(async (callback) => callback(transaction));
+    const { createJourneyDraftFromPublished } = await import('./journey-cms-service');
+    await createJourneyDraftFromPublished('journey', { id: 'admin', role: 'ADMIN' });
+    expect(revisionCreate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ version: 5, status: 'DRAFT' }) }));
+    const metadata = JSON.parse(auditCreate.mock.calls[0][0].data.metadataJson);
+    expect(metadata.environment).toBe('production');
+  });
+
+  it('saves an owned Production draft with override disabled through the existing workflow policy', async () => {
+    mockServerEnvironment.APP_ENV = 'production';
+    mockServerEnvironment.DATABASE_ENVIRONMENT = 'production';
+    const revisionUpdate = vi.fn().mockResolvedValue({ id: 'revision-v5', status: 'DRAFT' });
+    const transaction = {
+      contentRevision: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'revision-v5', status: 'DRAFT', authorId: 'admin', contentJson, contentItem: { slug: 'payments-and-transfers' } }),
+        update: revisionUpdate,
+      },
+      auditLog: { create: vi.fn() },
+    };
+    mockDatabase.$transaction.mockImplementation(async (callback) => callback(transaction));
+    const { saveJourneyDraft } = await import('./journey-cms-service');
+    await saveJourneyDraft(
+      'journey',
+      'revision-v5',
+      'Payments and Transfers',
+      'A sufficiently detailed Payment Journey summary for validation.',
+      contentJson,
+      { id: 'admin', role: 'ADMIN' },
+    );
+    expect(revisionUpdate).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'revision-v5' } }));
   });
 
   it('checks route availability before authorization and repository access', () => {
@@ -136,6 +190,12 @@ describe('Journey CMS environment protection', () => {
 });
 
 describe('Journey CMS validation and workflow policy', () => {
+  it('maps expected CMS policy failures to controlled codes without hiding technical errors', () => {
+    expect(getJourneyCmsActionErrorCode(new Error('Journey CMS permission denied.'))).toBe('permission');
+    expect(getJourneyCmsActionErrorCode(new Error('An active Journey revision already exists.'))).toBe('workflow');
+    expect(getJourneyCmsActionErrorCode(new Error('Journey publication pointer conflict.'))).toBe('conflict');
+    expect(getJourneyCmsActionErrorCode(new Error('database socket failed'))).toBeNull();
+  });
   it('supports legacy JSON while validating structured modules and blocks', () => {
     expect(parseJourneyContentJson(contentJson).title).toBe('Payments and Transfers');
     expect(journeyContentSchema.safeParse({
@@ -331,6 +391,7 @@ describe('Journey CMS publish and rollback transactions', () => {
     expect(auditCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ action: 'JOURNEY_PUBLISHED' }),
     }));
+    expect(JSON.parse(auditCreate.mock.calls[0][0].data.metadataJson).environment).toBe('development');
   });
 
   it('fails before writes for self-publish or invalid content', async () => {

@@ -17,10 +17,13 @@ import {
 
 export default async function JourneyCmsEditorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { slug } = await params;
+  const { error } = await searchParams;
   const { user, content } = await requireJourneyCmsAccess(slug, 'VIEW');
   const [journey, activeRevision] = await Promise.all([
     JourneyCmsRepository.getWorkspace(content.id),
@@ -45,6 +48,7 @@ export default async function JourneyCmsEditorPage({
       title={slug.replaceAll('-', ' ')}
       description="Published content is immutable. Edit a new Draft revision, then submit it for independent review."
     />
+    {error ? <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">The Journey CMS action could not be completed. Refresh the page and verify your permission and the current revision status.</p> : null}
     <div className="mb-5 flex flex-wrap items-center gap-3">
       <StatusLabel status={journey.isArchived ? 'ARCHIVED' : 'PUBLISHED'} />
       <span className="text-sm">Published revision v{journey.publishedRevision.version}</span>

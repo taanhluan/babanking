@@ -1,9 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireJourneyCmsAccess } from '@/server/cms/journey-cms-authorization';
 import { journeyBusinessDraftInputSchema } from '@/server/cms/journey-content-schema';
+import { getJourneyCmsActionErrorCode } from '@/server/cms/journey-cms-action-errors';
 import {
   createJourneyDraftFromPublished,
   publishJourneyRevision,
@@ -24,11 +26,21 @@ function refresh(slug: string) {
   revalidatePath(`/banking-journeys/${slug}`);
 }
 
+async function runJourneyCmsMutation(slug: string, mutation: () => Promise<unknown>) {
+  try {
+    await mutation();
+  } catch (error) {
+    const code = getJourneyCmsActionErrorCode(error);
+    if (!code) throw error;
+    redirect(`/admin/contributor/journeys/${slug}?error=${code}`);
+  }
+  refresh(slug);
+}
+
 export async function createJourneyDraftAction(formData: FormData) {
   const slug = slugInput.parse(formData.get('slug'));
   const { user, content } = await requireJourneyCmsAccess(slug, 'EDIT');
-  await createJourneyDraftFromPublished(content.id, user);
-  refresh(slug);
+  await runJourneyCmsMutation(slug, () => createJourneyDraftFromPublished(content.id, user));
 }
 
 export async function saveJourneyDraftAction(formData: FormData) {
@@ -40,23 +52,21 @@ export async function saveJourneyDraftAction(formData: FormData) {
     contentJson: formData.get('contentJson'),
   });
   const { user, content } = await requireJourneyCmsAccess(slug, 'EDIT');
-  await saveJourneyDraft(
+  await runJourneyCmsMutation(slug, () => saveJourneyDraft(
     content.id,
     revisionId,
     draft.title,
     draft.summary,
     draft.contentJson,
     user,
-  );
-  refresh(slug);
+  ));
 }
 
 export async function submitJourneyRevisionAction(formData: FormData) {
   const slug = slugInput.parse(formData.get('slug'));
   const revisionId = revisionInput.parse(formData.get('revisionId'));
   const { user, content } = await requireJourneyCmsAccess(slug, 'EDIT');
-  await submitJourneyRevision(content.id, revisionId, user);
-  refresh(slug);
+  await runJourneyCmsMutation(slug, () => submitJourneyRevision(content.id, revisionId, user));
 }
 
 export async function reviewJourneyRevisionAction(formData: FormData) {
@@ -65,30 +75,26 @@ export async function reviewJourneyRevisionAction(formData: FormData) {
   const decision = z.enum(['changes', 'reject']).parse(formData.get('decision'));
   const note = z.string().trim().min(10).max(1000).parse(formData.get('reviewNote'));
   const { user, content } = await requireJourneyCmsAccess(slug, 'REVIEW');
-  await reviewJourneyRevision(content.id, revisionId, decision, note, user);
-  refresh(slug);
+  await runJourneyCmsMutation(slug, () => reviewJourneyRevision(content.id, revisionId, decision, note, user));
 }
 
 export async function publishJourneyRevisionAction(formData: FormData) {
   const slug = slugInput.parse(formData.get('slug'));
   const revisionId = revisionInput.parse(formData.get('revisionId'));
   const { user, content } = await requireJourneyCmsAccess(slug, 'PUBLISH');
-  await publishJourneyRevision(content.id, revisionId, user);
-  refresh(slug);
+  await runJourneyCmsMutation(slug, () => publishJourneyRevision(content.id, revisionId, user));
 }
 
 export async function rollbackJourneyRevisionAction(formData: FormData) {
   const slug = slugInput.parse(formData.get('slug'));
   const revisionId = revisionInput.parse(formData.get('revisionId'));
   const { user, content } = await requireJourneyCmsAccess(slug, 'MANAGE');
-  await rollbackJourneyRevision(content.id, revisionId, user);
-  refresh(slug);
+  await runJourneyCmsMutation(slug, () => rollbackJourneyRevision(content.id, revisionId, user));
 }
 
 export async function setJourneyArchivedAction(formData: FormData) {
   const slug = slugInput.parse(formData.get('slug'));
   const archived = z.enum(['true', 'false']).parse(formData.get('archived')) === 'true';
   const { user, content } = await requireJourneyCmsAccess(slug, 'MANAGE');
-  await setJourneyArchived(content.id, archived, user);
-  refresh(slug);
+  await runJourneyCmsMutation(slug, () => setJourneyArchived(content.id, archived, user));
 }

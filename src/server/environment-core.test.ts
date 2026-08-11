@@ -90,6 +90,14 @@ describe('database safety guard', () => {
     }))).toThrow(/blocked/);
   });
 
+  it('allows destructive production operations only with the explicit technical override', () => {
+    expect(() => assertDatabaseOperationAllowed('destructive', environment({
+      APP_ENV: 'production',
+      DATABASE_ENVIRONMENT: 'production',
+      ALLOW_PRODUCTION_DATABASE_OPERATIONS: true,
+    }))).not.toThrow();
+  });
+
   it('allows development seed only in development', () => {
     expect(() => assertDatabaseOperationAllowed('seed-development', environment())).not.toThrow();
     expect(() => assertDatabaseOperationAllowed('seed-development', environment({
