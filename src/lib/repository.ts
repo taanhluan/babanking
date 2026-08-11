@@ -15,6 +15,7 @@ export type PublishedContent = {
 };
 
 export type ContentPreview = Pick<PublishedContent, 'id' | 'type' | 'slug' | 'title' | 'summary'>;
+export type MemberHomeData = { permittedTypes: ContentType[]; domains: { code: string; name: string; description: string }[]; recentlyUpdated: (ContentPreview & { updatedAt: Date })[] };
 
 const routes: Record<ContentType, string> = {
   BANKING_JOURNEY: 'banking-journeys',
@@ -50,6 +51,32 @@ function previewFrom(item: { id: string; type: ContentType; slug: string; previe
 
 /** Server-only Neon content repository. Access is resolved before contentJson is queried. */
 export const ContentRepository = {
+  async getMemberHomeData(userId: string, locale: 'en' | 'vi'): Promise<MemberHomeData> {
+    const accessibleIds = await getAccessibleContentIds(userId, { permission: 'VIEW' });
+    if (!accessibleIds.length) return { permittedTypes: [], domains: [], recentlyUpdated: [] };
+    const [items, domains] = await Promise.all([
+      db.contentItem.findMany({
+        where: { id: { in: accessibleIds }, isArchived: false, publishedRevisionId: { not: null } },
+        select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { publishedAt: true, updatedAt: true } } },
+      }),
+      db.knowledgeScope.findMany({
+        where: { isActive: true, contentMappings: { some: { contentItemId: { in: accessibleIds } } } },
+        orderBy: { displayOrder: 'asc' },
+        select: { code: true, nameEn: true, nameVi: true, descriptionEn: true, descriptionVi: true },
+      }),
+    ]);
+    const recentlyUpdated = locale === 'en' ? items.flatMap((item) => {
+      const preview = previewFrom(item);
+      const updatedAt = item.publishedRevision?.publishedAt ?? item.publishedRevision?.updatedAt;
+      return preview && updatedAt ? [{ ...preview, updatedAt }] : [];
+    }).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 6) : [];
+    return {
+      permittedTypes: [...new Set(items.map((item) => item.type))],
+      domains: domains.map((scope) => ({ code: scope.code, name: locale === 'vi' ? scope.nameVi : scope.nameEn, description: locale === 'vi' ? scope.descriptionVi : scope.descriptionEn })),
+      recentlyUpdated,
+    };
+  },
+
   async listByCategory(type: ContentType): Promise<ContentPreview[]> {
     const user = await requirePremiumAccess(`/${routes[type]}`);
     const accessibleIds = await getAccessibleContentIds(user.id, { type, permission: 'VIEW' });
