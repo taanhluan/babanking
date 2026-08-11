@@ -90,4 +90,29 @@ describe('DatabaseArticle', () => {
     expect(html).not.toContain('private/payment-reference.pdf');
     expect(html).not.toContain('private-token');
   });
+
+  it('selects the shared reader only for explicitly canonical non-Payments Journeys', () => {
+    const html = renderToStaticMarkup(createElement(DatabaseArticle, {
+      content: {
+        id: 'onboarding', type: 'BANKING_JOURNEY', slug: 'customer-onboarding', title: 'Customer Onboarding', summary: 'Canonical onboarding summary',
+        body: { title: 'Customer Onboarding', slug: 'customer-onboarding', summary: 'Canonical onboarding summary', metadata: { journeyReader: 'canonical' }, modules: [{ id: 'overview', title: 'Overview', sections: [{ id: 'business-overview', title: 'Business Overview', blocks: [{ id: 'overview', blockType: 'RICH_TEXT', schemaVersion: 1, payload: { text: 'Canonical overview marker' } }] }] }] },
+      },
+      stage: 'overview',
+    }));
+    expect(html).toContain('Journey Navigator');
+    expect(html).toContain('Canonical overview marker');
+    expect(html).not.toContain('paymentType');
+  });
+
+  it('keeps structured-looking legacy Journeys on DatabaseArticle fallback without the canonical marker', () => {
+    const html = renderToStaticMarkup(createElement(DatabaseArticle, {
+      content: {
+        id: 'legacy', type: 'BANKING_JOURNEY', slug: 'cards', title: 'Cards', summary: 'Legacy Cards summary',
+        body: { title: 'Cards', summary: 'Legacy Cards summary', modules: [{ title: 'Legacy knowledge', sections: [{ title: 'Details', blocks: [{ blockType: 'RICH_TEXT', schemaVersion: 1, payload: { text: 'Legacy marker' } }] }] }] },
+      },
+    }));
+    expect(html).toContain('Legacy knowledge');
+    expect(html).toContain('Legacy marker');
+    expect(html).not.toContain('Journey Navigator');
+  });
 });

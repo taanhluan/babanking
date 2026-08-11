@@ -42,6 +42,11 @@ describe('mapJourneyPortal', () => {
     expect(result.mode).toBe('PAYMENT_TYPE_PORTAL');
     expect(result.contentReadiness).toEqual({ hasPaymentTypes: true, paymentTypeCount: 1, recognizedPaymentTypeKeys: ['internal-transfer'], legacyModuleCount: 0 });
   });
+  it('keeps payment aliases and compatibility fallback owned by the Payments facade', () => {
+    const result = mapJourneyPortal(content({ modules: [{ key: 'internal-transfer', title: 'Internal Transfer', sections: [{ key: 'initiation', title: 'Initiation', blocks: [] }] }] }));
+    expect(result.paymentTypeGroups[0].paymentTypes[0]).toMatchObject({ id: 'internal-transfer', slug: 'internal-transfer', title: 'Internal Transfer' });
+    expect(result.paymentTypeGroups.flatMap((group) => group.paymentTypes).some((payment) => payment.slug === 'top-up')).toBe(true);
+  });
   it('selects Legacy Published Content mode without fabricating Payment Types', () => {
     const result = mapJourneyPortal(content({ modules: [{ title: 'Business Overview', sections: [{ title: 'Overview', blocks: [] }] }] }));
     expect(result.mode).toBe('LEGACY_PUBLISHED_CONTENT');

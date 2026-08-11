@@ -3,6 +3,7 @@ import type { ApplicationEnvironment } from '@/server/environment-core';
 type JourneyCmsEnvironment = {
   APP_ENV: ApplicationEnvironment;
   DATABASE_ENVIRONMENT: ApplicationEnvironment;
+  ALLOW_PRODUCTION_DATABASE_OPERATIONS?: boolean;
 };
 
 function hasMatchingCmsEnvironment(environment: JourneyCmsEnvironment) {
@@ -15,7 +16,10 @@ export function isJourneyCmsRouteAvailable(environment: JourneyCmsEnvironment) {
 }
 
 export function isJourneyCmsWriteAllowed(environment: JourneyCmsEnvironment) {
-  return isJourneyCmsRouteAvailable(environment);
+  if (!hasMatchingCmsEnvironment(environment)) return false;
+  if (environment.APP_ENV === 'development') return true;
+  return environment.APP_ENV === 'production'
+    && environment.ALLOW_PRODUCTION_DATABASE_OPERATIONS === true;
 }
 
 export function assertJourneyCmsRouteAvailable(environment: JourneyCmsEnvironment) {

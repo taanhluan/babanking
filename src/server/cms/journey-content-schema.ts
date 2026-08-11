@@ -139,8 +139,12 @@ export function canonicalizeJourneyDraft(input: {
     }
   }
   assertNoPrivilegedJourneyMetadata(submitted);
+  const submittedMetadata = submitted.metadata && typeof submitted.metadata === 'object' && !Array.isArray(submitted.metadata)
+    ? submitted.metadata as Record<string, unknown>
+    : {};
+  const baseContent = submittedMetadata.journeyReader === 'canonical' ? {} : authoritative;
   const finalContent = {
-    ...authoritative,
+    ...baseContent,
     ...submitted,
     title: input.title,
     slug: input.stableSlug,

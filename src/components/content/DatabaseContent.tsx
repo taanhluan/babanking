@@ -4,6 +4,9 @@ import { ContentHero, ContentSection, List } from '@/components/content/Editoria
 import { KnowledgeActions } from '@/components/member/KnowledgeActions';
 import type { ContentPreview, PublishedContent } from '@/lib/repository';
 import { PaymentsJourneyPortal } from '@/components/journeys/JourneyPortal';
+import { SharedJourneyReader } from '@/components/journeys/SharedJourneyReader';
+import { JourneyReadingProgress } from '@/components/journeys/JourneyReadingProgress';
+import { isCanonicalStructuredJourneyContent, mapStructuredJourneyToCanonical } from '@/components/journeys/structured-journey-mapper';
 
 const routeFor = (type: PublishedContent['type']) => ({
   BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap',
@@ -150,6 +153,10 @@ function GenericModules({ modules }: { modules: GenericModule[] }) {
 export function DatabaseArticle({ content, paymentType, stage, module }: { content: PublishedContent; paymentType?: string; stage?: string; module?: string }) {
   if (content.slug === 'payments-and-transfers' && content.type === 'BANKING_JOURNEY') {
     return <PaymentsJourneyPortal content={content} paymentType={paymentType} stage={stage} module={module} />;
+  }
+  if (content.type === 'BANKING_JOURNEY' && isCanonicalStructuredJourneyContent(content.body)) {
+    const journey = mapStructuredJourneyToCanonical(content.body);
+    return <><JourneyReadingProgress/><ContentHero eyebrow={labelFor(content.type)} title={content.title} summary={content.summary} parentLabel={labelFor(content.type)} parentHref={`/${routeFor(content.type)}`} /><section className="min-w-0 overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12"><div className="mx-auto min-w-0 max-w-7xl"><KnowledgeActions type={content.type} slug={content.slug} /><div className="mt-5"><SharedJourneyReader journey={journey} activeStageId={stage} navigation={{ basePath: `banking-journeys/${content.slug}` }} /></div></div></section></>;
   }
   const modules = genericModules(content.body.modules);
   const entries = Object.entries(content.body).filter(([key]) => !['title', 'summary', 'slug', 'contentType', 'schemaVersion', 'metadata', 'modules', 'keywords', 'relatedJourneySlugs', 'relatedPracticeSlugs', 'relatedCaseStudySlugs', 'previousLevelSlug', 'nextLevelSlug'].includes(key));

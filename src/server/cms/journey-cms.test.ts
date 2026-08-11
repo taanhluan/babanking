@@ -47,14 +47,30 @@ const contentJson = JSON.stringify({
 });
 
 describe('Journey CMS environment protection', () => {
-  it('allows matching Development and Production routes and writes', () => {
+  it('allows Development writes and requires the canonical Production override', () => {
     expect(() => assertJourneyCmsRouteAvailable({
       APP_ENV: 'development',
       DATABASE_ENVIRONMENT: 'development',
     })).not.toThrow();
     expect(() => assertJourneyCmsWriteAllowed({
+      APP_ENV: 'development',
+      DATABASE_ENVIRONMENT: 'development',
+      ALLOW_PRODUCTION_DATABASE_OPERATIONS: false,
+    })).not.toThrow();
+    expect(() => assertJourneyCmsWriteAllowed({
+      APP_ENV: 'development',
+      DATABASE_ENVIRONMENT: 'development',
+      ALLOW_PRODUCTION_DATABASE_OPERATIONS: true,
+    })).not.toThrow();
+    expect(() => assertJourneyCmsWriteAllowed({
       APP_ENV: 'production',
       DATABASE_ENVIRONMENT: 'production',
+      ALLOW_PRODUCTION_DATABASE_OPERATIONS: false,
+    })).toThrow(/writes/);
+    expect(() => assertJourneyCmsWriteAllowed({
+      APP_ENV: 'production',
+      DATABASE_ENVIRONMENT: 'production',
+      ALLOW_PRODUCTION_DATABASE_OPERATIONS: true,
     })).not.toThrow();
   });
 
@@ -71,10 +87,29 @@ describe('Journey CMS environment protection', () => {
       APP_ENV: 'development',
       DATABASE_ENVIRONMENT: 'production',
     })).toThrow(/unavailable/);
+    expect(() => assertJourneyCmsWriteAllowed({
+      APP_ENV: 'production',
+      DATABASE_ENVIRONMENT: 'development',
+      ALLOW_PRODUCTION_DATABASE_OPERATIONS: true,
+    })).toThrow(/writes/);
     expect(isJourneyCmsRouteAvailable({
       APP_ENV: 'preview',
       DATABASE_ENVIRONMENT: 'preview',
     })).toBe(false);
+    expect(() => assertJourneyCmsWriteAllowed({} as never)).toThrow(/writes/);
+  });
+
+  it('prevents a denied environment from invoking a mutation', () => {
+    const mutation = vi.fn();
+    expect(() => {
+      assertJourneyCmsWriteAllowed({
+        APP_ENV: 'production',
+        DATABASE_ENVIRONMENT: 'production',
+        ALLOW_PRODUCTION_DATABASE_OPERATIONS: false,
+      });
+      mutation();
+    }).toThrow(/writes/);
+    expect(mutation).not.toHaveBeenCalled();
   });
 
   it('checks route availability before authorization and repository access', () => {
@@ -123,6 +158,20 @@ describe('Journey CMS validation and workflow policy', () => {
     const content = parseJourneyContentJson(contentJson);
     expect(() => assertJourneyStableSlug(content, 'payments-and-transfers')).not.toThrow();
     expect(() => assertJourneyStableSlug(content, 'cards')).toThrow(/cannot be changed/);
+  });
+
+  it('replaces legacy body fields only for explicitly canonical structured submissions', () => {
+    const legacy = JSON.stringify({ ...JSON.parse(contentJson), businessOverview: 'Legacy duplicate' });
+    const submitted = JSON.stringify({ ...JSON.parse(contentJson), metadata: { journeyReader: 'canonical' } });
+    const result = canonicalizeJourneyDraft({
+      authoritativeJson: legacy,
+      submittedJson: submitted,
+      title: 'Payments and Transfers',
+      summary: 'A sufficiently detailed Payment Journey summary for validation.',
+      stableSlug: 'payments-and-transfers',
+    });
+    expect(result).not.toHaveProperty('businessOverview');
+    expect(result.metadata).toEqual({ journeyReader: 'canonical' });
   });
 
   it('canonicalizes editable fields while preserving unknown legacy content', () => {

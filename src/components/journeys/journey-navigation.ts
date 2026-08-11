@@ -7,6 +7,12 @@ export type JourneyStageLink = {
   sections: JourneySectionLink[];
 };
 
+export type JourneyNavigationConfig = {
+  basePath: string;
+  preservedQueryParams?: Readonly<Record<string, string>>;
+  stageQueryKey?: string;
+};
+
 export function deriveJourneyNavigation(
   stages: Array<{
     id: string;
@@ -23,11 +29,18 @@ export function deriveJourneyNavigation(
 }
 
 export function buildStageHref(
-  slug: string,
-  paymentType: string,
+  navigation: JourneyNavigationConfig,
   stageId: string,
   sectionId?: string,
 ) {
-  const query = new URLSearchParams({ paymentType, stage: stageId });
-  return `/${slug}?${query.toString()}${sectionId ? `#state-${sectionId}` : ''}`;
+  const path = `/${navigation.basePath.split(/[?#]/, 1)[0].replace(/^\/+/, '')}`;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(navigation.preservedQueryParams ?? {})) {
+    if (/^[A-Za-z][A-Za-z0-9_-]*$/.test(key) && typeof value === 'string') query.set(key, value);
+  }
+  const stageQueryKey = navigation.stageQueryKey && /^[A-Za-z][A-Za-z0-9_-]*$/.test(navigation.stageQueryKey)
+    ? navigation.stageQueryKey
+    : 'stage';
+  query.set(stageQueryKey, stageId);
+  return `${path}?${query.toString()}${sectionId ? `#state-${encodeURIComponent(sectionId)}` : ''}`;
 }

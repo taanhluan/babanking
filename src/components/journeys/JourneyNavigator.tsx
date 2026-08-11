@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Menu, Search, X } from 'lucide-react';
 import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
-import { buildStageHref, type JourneySectionLink, type JourneyStageLink } from './journey-navigation';
+import { buildStageHref, type JourneyNavigationConfig, type JourneySectionLink, type JourneyStageLink } from './journey-navigation';
 
 type NavigatorState = { mobileOpen: boolean; collapsed: boolean };
 type NavigatorAction = { type: 'OPEN' | 'CLOSE' | 'SELECT' | 'TOGGLE_COLLAPSE' };
@@ -13,23 +13,23 @@ export function journeyNavigatorReducer(state: NavigatorState, action: Navigator
   return { ...state, collapsed: !state.collapsed };
 }
 
-function StageList({ stages, slug, paymentType, selectedStage, query, onSelect }: { stages: JourneyStageLink[]; slug: string; paymentType: string; selectedStage: string; query: string; onSelect?: () => void }) {
+function StageList({ stages, navigation, selectedStage, query, onSelect }: { stages: JourneyStageLink[]; navigation: JourneyNavigationConfig; selectedStage: string; query: string; onSelect?: () => void }) {
   const normalized = query.trim().toLowerCase();
   const filtered = normalized ? stages.filter((stage) => `${stage.title} ${stage.sections.map((section) => section.title).join(' ')}`.toLowerCase().includes(normalized)) : stages;
   return <nav aria-label="Journey stages" className="space-y-1">
     {filtered.map((stage, index) => <div key={stage.id}>
-      <Link href={buildStageHref(slug, paymentType, stage.id)} onClick={onSelect} aria-current={selectedStage === stage.id ? 'step' : undefined} className={`block rounded-xl border px-3 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-royalBlue ${selectedStage === stage.id ? 'border-blue-300 bg-blue-50 text-royalBlue shadow-sm' : 'border-transparent text-navy hover:border-slate-200 hover:bg-white'}`}>
+      <Link href={buildStageHref(navigation, stage.id)} onClick={onSelect} aria-current={selectedStage === stage.id ? 'step' : undefined} className={`block rounded-xl border px-3 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-royalBlue ${selectedStage === stage.id ? 'border-blue-300 bg-blue-50 text-royalBlue shadow-sm' : 'border-transparent text-navy hover:border-slate-200 hover:bg-white'}`}>
         <span className="text-xs font-semibold text-slate-500">{index + 1}</span>
         <span className="ml-2 text-sm font-semibold">{stage.title}</span>
         <span className="mt-1 block pl-5 text-xs text-slate-500">{stage.sectionCount} sections</span>
       </Link>
-      {normalized && stage.sections.length ? <div className="ml-7 mt-1 space-y-1">{stage.sections.filter((section) => section.title.toLowerCase().includes(normalized)).map((section) => <Link key={section.id} href={buildStageHref(slug, paymentType, stage.id, section.id)} onClick={onSelect} className="block min-h-10 rounded-lg px-2 py-2 text-xs text-textSecondary hover:bg-white hover:text-royalBlue">{section.title}</Link>)}</div> : null}
+      {normalized && stage.sections.length ? <div className="ml-7 mt-1 space-y-1">{stage.sections.filter((section) => section.title.toLowerCase().includes(normalized)).map((section) => <Link key={section.id} href={buildStageHref(navigation, stage.id, section.id)} onClick={onSelect} className="block min-h-10 rounded-lg px-2 py-2 text-xs text-textSecondary hover:bg-white hover:text-royalBlue">{section.title}</Link>)}</div> : null}
     </div>)}
     {!filtered.length ? <p className="rounded-xl border border-dashed border-slate-300 p-3 text-sm text-textSecondary">No matching stage or section.</p> : null}
   </nav>;
 }
 
-export function JourneyReaderLayout({ stages, selectedStage, slug, paymentType, children }: { stages: JourneyStageLink[]; selectedStage: string; slug: string; paymentType: string; children: ReactNode }) {
+export function JourneyReaderLayout({ stages, selectedStage, navigation, children }: { stages: JourneyStageLink[]; selectedStage: string; navigation: JourneyNavigationConfig; children: ReactNode }) {
   const [state, dispatch] = useReducer(journeyNavigatorReducer, { mobileOpen: false, collapsed: false });
   const [query, setQuery] = useState('');
   const triggerButton = useRef<HTMLButtonElement>(null);
@@ -51,11 +51,11 @@ export function JourneyReaderLayout({ stages, selectedStage, slug, paymentType, 
     <div className={`grid min-w-0 gap-5 transition-[grid-template-columns] md:items-start ${state.collapsed ? 'md:grid-cols-[64px_minmax(0,1fr)]' : 'md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)]'}`}>
       <aside className="sticky top-24 hidden max-h-[calc(100vh-7rem)] min-w-0 overflow-y-auto rounded-2xl border border-slate-200 bg-bgLight p-2 md:block">
         <div className="flex items-center justify-between gap-2 px-1 py-1"><p className={state.collapsed ? 'sr-only' : 'text-xs font-semibold uppercase tracking-wide text-royalBlue'}>Journey Navigator</p><button type="button" onClick={() => dispatch({ type: 'TOGGLE_COLLAPSE' })} aria-label={state.collapsed ? 'Expand Journey Navigator' : 'Collapse Journey Navigator'} aria-expanded={!state.collapsed} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-royalBlue">{state.collapsed ? <ChevronRight/> : <ChevronLeft/>}</button></div>
-        {!state.collapsed ? <div className="mt-2 space-y-3">{search}<StageList stages={stages} slug={slug} paymentType={paymentType} selectedStage={selectedStage} query={query}/></div> : <div className="mt-2 grid gap-2">{stages.map((stage, index) => <Link key={stage.id} href={buildStageHref(slug, paymentType, stage.id)} aria-current={selectedStage === stage.id ? 'step' : undefined} aria-label={`${index + 1}. ${stage.title}`} className={`flex h-10 items-center justify-center rounded-xl text-sm font-semibold ${selectedStage === stage.id ? 'bg-royalBlue text-white' : 'bg-white text-navy'}`}>{index + 1}</Link>)}</div>}
+        {!state.collapsed ? <div className="mt-2 space-y-3">{search}<StageList stages={stages} navigation={navigation} selectedStage={selectedStage} query={query}/></div> : <div className="mt-2 grid gap-2">{stages.map((stage, index) => <Link key={stage.id} href={buildStageHref(navigation, stage.id)} aria-current={selectedStage === stage.id ? 'step' : undefined} aria-label={`${index + 1}. ${stage.title}`} className={`flex h-10 items-center justify-center rounded-xl text-sm font-semibold ${selectedStage === stage.id ? 'bg-royalBlue text-white' : 'bg-white text-navy'}`}>{index + 1}</Link>)}</div>}
       </aside>
       <div className="min-w-0 max-w-full">{children}</div>
     </div>
-    {state.mobileOpen ? <div className="fixed inset-0 z-[70] md:hidden"><button type="button" aria-label="Close Journey Navigator" onClick={() => dispatch({ type: 'CLOSE' })} className="absolute inset-0 bg-navy/60"/><section id="mobile-journey-navigator" role="dialog" aria-modal="true" aria-labelledby="mobile-journey-title" className="absolute inset-y-0 right-0 w-[min(90vw,360px)] overflow-y-auto bg-bgLight p-4 shadow-2xl"><div className="flex items-center justify-between"><h2 id="mobile-journey-title" className="font-semibold text-navy">Journey Navigator</h2><button ref={closeButton} type="button" onClick={() => dispatch({ type: 'CLOSE' })} aria-label="Close Journey Navigator" className="flex h-11 w-11 items-center justify-center rounded-xl border bg-white"><X/></button></div><div className="mt-4 space-y-4">{search}<StageList stages={stages} slug={slug} paymentType={paymentType} selectedStage={selectedStage} query={query} onSelect={() => dispatch({ type: 'SELECT' })}/></div></section></div> : null}
+    {state.mobileOpen ? <div className="fixed inset-0 z-[70] md:hidden"><button type="button" aria-label="Close Journey Navigator" onClick={() => dispatch({ type: 'CLOSE' })} className="absolute inset-0 bg-navy/60"/><section id="mobile-journey-navigator" role="dialog" aria-modal="true" aria-labelledby="mobile-journey-title" className="absolute inset-y-0 right-0 w-[min(90vw,360px)] overflow-y-auto bg-bgLight p-4 shadow-2xl"><div className="flex items-center justify-between"><h2 id="mobile-journey-title" className="font-semibold text-navy">Journey Navigator</h2><button ref={closeButton} type="button" onClick={() => dispatch({ type: 'CLOSE' })} aria-label="Close Journey Navigator" className="flex h-11 w-11 items-center justify-center rounded-xl border bg-white"><X/></button></div><div className="mt-4 space-y-4">{search}<StageList stages={stages} navigation={navigation} selectedStage={selectedStage} query={query} onSelect={() => dispatch({ type: 'SELECT' })}/></div></section></div> : null}
   </>;
 }
 

@@ -255,7 +255,7 @@ describe('JourneyBlockRenderer business process diagrams', () => {
   });
 
   it('keeps Journey stage grids and state articles shrinkable', () => {
-    const source = readFileSync(new URL('../JourneyPortal.tsx', import.meta.url), 'utf8');
+    const source = readFileSync(new URL('../SharedJourneyReader.tsx', import.meta.url), 'utf8');
 
     expect(source).toContain('className="min-w-0 max-w-full scroll-mt-24 rounded-2xl');
     expect(source).toContain('className="mt-5 grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-5"');
