@@ -1,0 +1,15 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+import { buildStageHref, deriveJourneyNavigation } from './journey-navigation';
+import { journeyNavigatorReducer, JourneyReaderLayout, SectionNavigator } from './JourneyNavigator';
+
+const stages=[{id:'initiation',title:'Initiation',states:[{id:'purpose',title:'Purpose'},{id:'business-process',title:'Business Process'}]},{id:'validation',title:'Validation',states:[]}];
+
+describe('Journey navigation behavior',()=>{
+  it('preserves paymentType and stage query parameters and supports section deep links',()=>{expect(buildStageHref('banking-journeys/payments-and-transfers','internal-transfer','validation')).toBe('/banking-journeys/payments-and-transfers?paymentType=internal-transfer&stage=validation');expect(buildStageHref('banking-journeys/payments-and-transfers','internal-transfer','initiation','business-process')).toBe('/banking-journeys/payments-and-transfers?paymentType=internal-transfer&stage=initiation#state-business-process')});
+  it('derives section anchors and counts from actual stage states including empty stages',()=>{expect(deriveJourneyNavigation(stages)).toEqual([{id:'initiation',title:'Initiation',sectionCount:2,sections:[{id:'purpose',title:'Purpose'},{id:'business-process',title:'Business Process'}]},{id:'validation',title:'Validation',sectionCount:0,sections:[]}])});
+  it('opens, closes, and closes after mobile stage selection',()=>{const initial={mobileOpen:false,collapsed:false};expect(journeyNavigatorReducer(initial,{type:'OPEN'}).mobileOpen).toBe(true);expect(journeyNavigatorReducer({...initial,mobileOpen:true},{type:'CLOSE'}).mobileOpen).toBe(false);expect(journeyNavigatorReducer({...initial,mobileOpen:true},{type:'SELECT'}).mobileOpen).toBe(false)});
+  it('renders the active desktop stage and keeps content single-rendered',()=>{const html=renderToStaticMarkup(<JourneyReaderLayout stages={deriveJourneyNavigation(stages)} selectedStage="initiation" slug="banking-journeys/payments-and-transfers" paymentType="internal-transfer"><div>UNIQUE_JOURNEY_CONTENT</div></JourneyReaderLayout>);expect(html).toContain('aria-current="step"');expect(html.match(/UNIQUE_JOURNEY_CONTENT/g)).toHaveLength(1);expect(html).toContain('Stage');expect(html).toContain('Journey Navigator')});
+  it('renders section navigation from real sections and handles zero sections',()=>{const sections=deriveJourneyNavigation(stages)[0].sections;const html=renderToStaticMarkup(<SectionNavigator sections={sections}/>);expect(html).toContain('href="#state-purpose"');expect(html).toContain('Business Process');expect(renderToStaticMarkup(<SectionNavigator sections={[]}/>)).toBe('')});
+});
