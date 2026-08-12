@@ -62,6 +62,50 @@ describe('canonical Journey normalization', () => {
     expect((block.payload as Record<string, unknown>).diagramType).toBe('business-process');
   });
 
+  it('preserves generic business-process metadata without semantic mutation', () => {
+    const payload = {
+      diagramType: 'business-process',
+      orientation: 'horizontal',
+      title: 'Generic business process',
+      description: 'A generic governed process.',
+      scope: {
+        journey: 'Generic Journey',
+        supportedChannels: ['Digital', 'Assisted'],
+        nested: { outcomes: ['Completed', 'Rejected'] },
+      },
+      lanes: [{ id: 'operations', name: 'Operations' }],
+      nodes: [{ id: 'start', type: 'start-event', laneId: 'operations' }],
+      edges: [],
+      businessRules: [
+        { id: 'RULE-1', rule: 'The request must be eligible.' },
+        { id: 'RULE-2', rule: 'Approval evidence must be retained.' },
+      ],
+      validationCategories: ['Eligibility', 'Approval'],
+      successOutcome: { state: 'COMPLETED', evidence: { required: true } },
+    };
+
+    const block = normalizeCanonicalBlock({
+      id: 'generic-process',
+      blockType: 'DIAGRAM',
+      payload,
+    }, 'fallback');
+
+    expect(block.blockType).toBe('DIAGRAM');
+    expect(block.payload).toEqual(payload);
+    expect((block.payload as Record<string, unknown>).scope).toEqual(payload.scope);
+    expect((block.payload as Record<string, unknown>).businessRules).toEqual(payload.businessRules);
+    expect((block.payload as Record<string, unknown>).validationCategories).toEqual(payload.validationCategories);
+    expect((block.payload as Record<string, unknown>).successOutcome).toEqual(payload.successOutcome);
+  });
+
+  it('does not alter non-DIAGRAM canonical block payloads', () => {
+    const payload = { title: 'Review note', text: 'Keep this content unchanged.', scope: { owner: 'Operations' } };
+    expect(normalizeCanonicalBlock({ id: 'note', blockType: 'CALLOUT', payload }, 'fallback')).toMatchObject({
+      blockType: 'CALLOUT',
+      payload,
+    });
+  });
+
   it('represents actual legacy Onboarding fields without payment metadata, a new renderer, or schema fields', () => {
     const onboarding = {
       businessOverview: 'Customer onboarding connects customer intent with operations and controls.',

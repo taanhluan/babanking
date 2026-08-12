@@ -37,7 +37,19 @@ export type CanonicalJourneySource = {
   stages: CanonicalStageSource[];
 };
 
-const diagramKeys = ['diagramType', 'orientation', 'title', 'description', 'lanes', 'nodes', 'edges'] as const;
+const diagramKeys = [
+  'diagramType',
+  'orientation',
+  'title',
+  'description',
+  'scope',
+  'lanes',
+  'nodes',
+  'edges',
+  'businessRules',
+  'validationCategories',
+  'successOutcome',
+] as const;
 
 export const asCanonicalRecord = (value: unknown) => value && typeof value === 'object' && !Array.isArray(value)
   ? value as Record<string, unknown>
