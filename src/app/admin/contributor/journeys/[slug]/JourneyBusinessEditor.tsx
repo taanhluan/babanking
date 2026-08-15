@@ -3,13 +3,13 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { saveJourneyDraftAction } from '../actions';
-import { journeyContentSchema } from '@/server/cms/journey-content-schema';
 import { ContentNavigator } from './ContentNavigator';
 import { RevisionToolbar } from './RevisionToolbar';
 import { SelectedContentWorkspace } from './SelectedContentWorkspace';
 import { buildEditorBreadcrumb, getSiblingNode, type EditorNode } from './journey-editor-navigation';
 import { classifyWorkspaceBlock, deriveModuleSummary, isLifecycleSection, moduleWorkspaceTabs, workspaceBlockTypeSummary } from './journey-module-workspace';
 import { addJourneyBlock, duplicateJourneyBlock, moveJourneyBlock, moveJourneySection, removeJourneyBlock, removeJourneySection, type JourneyEditorNodePath, type JourneyMutationResult } from './journey-editor-mutations';
+import { parseAdvancedJourneyText, resolveJourneyEditorSave } from './journey-editor-save';
 
 type JsonObject = Record<string, unknown>;
 type Block = { id?: string; blockType: string; schemaVersion: number; payload: JsonObject };
@@ -45,11 +45,8 @@ function PayloadEditor({ block, onChange }: { block: Block; onChange: (payload: 
   return <details open><summary className="cursor-pointer text-sm font-semibold text-royalBlue">Advanced JSON</summary>{advanced}</details>;
 }
 
-function AdvancedJsonEditor({ content, onApply }: { content: JsonObject; onApply: (next: JsonObject) => void }) {
-  const [text, setText] = useState(() => JSON.stringify(content, null, 2));
-  const [error, setError] = useState('');
-  const apply = () => { if (!text.trim()) return setError('JSON content cannot be empty.'); try { onApply(journeyContentSchema.parse(JSON.parse(text)) as JsonObject); setError(''); } catch { setError('Invalid Journey JSON.'); } };
-  return <div className="space-y-3"><textarea value={text} onChange={(event) => { setText(event.target.value); setError(''); }} rows={24} className="w-full rounded-xl border border-slate-300 p-4 font-mono text-xs" /><button type="button" onClick={apply} className="min-h-10 rounded-lg bg-royalBlue px-4 text-sm font-semibold text-white">Apply JSON</button>{error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}</div>;
+function AdvancedJsonEditor({ text, error, dirty, onTextChange, onApply }: { text: string; error: string; dirty: boolean; onTextChange: (next: string) => void; onApply: () => void }) {
+  return <div className="space-y-3"><textarea value={text} onChange={(event) => onTextChange(event.target.value)} rows={24} className="w-full rounded-xl border border-slate-300 p-4 font-mono text-xs" /><div className="flex flex-wrap items-center gap-3"><button type="button" onClick={onApply} className="min-h-10 rounded-lg border border-royalBlue px-4 text-sm font-semibold text-royalBlue">Apply to structured view</button>{dirty ? <span className="text-sm font-medium text-amber-700">Unsaved Advanced JSON changes</span> : null}</div><p className="text-xs text-slate-500">Save Draft validates and saves the current JSON above. Applying it first is optional.</p>{error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}</div>;
 }
 
 function ModuleWorkspace({ module, moduleIndex, totalModules, sections, content, onUpdate, onSelect, onPrevious, onNext }: { module: Module; moduleIndex: number; totalModules: number; sections: Section[]; content: JsonObject; onUpdate: (next: JsonObject) => void; onSelect: (id: string) => void; onPrevious: () => void; onNext: () => void }) {
@@ -92,6 +89,8 @@ export function JourneyBusinessEditor({ slug, revisionId, initialContentJson }: 
   const [selected, setSelected] = useState('m-0');
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<'business' | 'advanced'>('business');
+  const [advancedText, setAdvancedText] = useState(() => JSON.stringify(JSON.parse(initialContentJson), null, 2));
+  const [advancedError, setAdvancedError] = useState('');
   const modules = modulesFrom(content);
   const nodes = useMemo(() => makeNodes(modules), [modules]);
   const visible = nodes.filter((node) => !query || `${node.title} ${node.type}`.toLowerCase().includes(query.toLowerCase().trim()));
@@ -103,7 +102,11 @@ export function JourneyBusinessEditor({ slug, revisionId, initialContentJson }: 
   const updateBlock = (payload: JsonObject, blockType?: string) => { if (!selectedNode || selectedNode.sectionIndex === undefined || selectedNode.blockIndex === undefined) return; update({ ...content, modules: modules.map((module, mi) => mi !== selectedNode.moduleIndex ? module : { ...module, sections: module.sections.map((section, si) => si !== selectedNode.sectionIndex ? section : { ...section, blocks: section.blocks.map((block, bi) => bi !== selectedNode.blockIndex ? block : { ...block, payload, ...(blockType ? { blockType } : {}) }) }) }) }); };
   const moveSibling = (direction: -1 | 1) => { const next = getSiblingNode(nodes, selected, direction); if (next) setSelected(next.id); };
   const breadcrumbs = buildEditorBreadcrumb(nodes, selected, typeof content.title === 'string' ? content.title : 'Journey');
-  const applyAdvanced = (next: JsonObject) => { setContent(next); setSelected(makeNodes(modulesFrom(next))[0]?.id ?? ''); setMode('business'); };
+  const applyAdvanced = () => { const result = parseAdvancedJourneyText(advancedText); if (!result.ok) { setAdvancedError(result.error); return; } const next = result.content; setContent(next); setAdvancedText(JSON.stringify(next, null, 2)); setAdvancedError(''); setSelected(makeNodes(modulesFrom(next))[0]?.id ?? ''); setMode('business'); };
+  const toggleMode = () => { if (mode === 'business') { setAdvancedText(JSON.stringify(content, null, 2)); setAdvancedError(''); setMode('advanced'); return; } const result = parseAdvancedJourneyText(advancedText); if (!result.ok) { setAdvancedError(`${result.error} Fix it before leaving Advanced JSON mode.`); return; } setContent(result.content); setAdvancedText(JSON.stringify(result.content, null, 2)); setAdvancedError(''); setMode('business'); };
+  const saveResult = resolveJourneyEditorSave({ mode, content, advancedText });
+  const savePayload = saveResult.ok ? saveResult.payload : { contentJson: advancedText, title: '', summary: '' };
+  const submitDraft = (event: React.FormEvent<HTMLFormElement>) => { const result = resolveJourneyEditorSave({ mode, content, advancedText }); if (result.ok) { setAdvancedError(''); return; } event.preventDefault(); setAdvancedError(result.error); };
   const applyJourneyMutation = (result: JourneyMutationResult) => { if (result.ok) { setContent(result.content as JsonObject); const path = result.selectedPath; setSelected(path.moduleIndex === undefined ? 'm-0' : path.blockIndex !== undefined ? `m-${path.moduleIndex}-s-${path.sectionIndex}-b-${path.blockIndex}` : path.sectionIndex !== undefined ? `m-${path.moduleIndex}-s-${path.sectionIndex}` : `m-${path.moduleIndex}`); } };
 
   function renderSelectedWorkspace() {
@@ -125,5 +128,5 @@ export function JourneyBusinessEditor({ slug, revisionId, initialContentJson }: 
   }
 
   const siblingControls = <div className="flex gap-2"><button type="button" disabled={!getSiblingNode(nodes, selected, -1)} onClick={() => moveSibling(-1)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-2 text-sm disabled:opacity-40"><ChevronLeft size={16} />Previous</button><button type="button" disabled={!getSiblingNode(nodes, selected, 1)} onClick={() => moveSibling(1)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-2 text-sm disabled:opacity-40">Next<ChevronRight size={16} /></button></div>;
-  return <form action={saveJourneyDraftAction} className="mt-5 min-w-0"><input type="hidden" name="slug" value={slug} /><input type="hidden" name="revisionId" value={revisionId} /><input type="hidden" name="title" value={typeof content.title === 'string' ? content.title : ''} /><input type="hidden" name="summary" value={typeof content.summary === 'string' ? content.summary : ''} /><input type="hidden" name="contentJson" value={JSON.stringify(content)} /><RevisionToolbar moduleCount={modules.length} mode={mode} onToggleAdvanced={() => setMode(mode === 'advanced' ? 'business' : 'advanced')}><button className="min-h-10 rounded-lg bg-royalBlue px-4 text-sm font-semibold text-white">Save Draft</button></RevisionToolbar>{mode === 'advanced' ? <AdvancedJsonEditor content={content} onApply={applyAdvanced} /> : <div className="grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]"><ContentNavigator nodes={visible} query={query} onQueryChange={setQuery} selected={selected} onSelect={setSelected} /><SelectedContentWorkspace breadcrumb={breadcrumbs.map((item, index) => <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1">{index ? <ChevronRight size={14} aria-hidden="true" /> : null}{item.current ? <span className="font-semibold text-slate-700">{item.label}</span> : <button type="button" onClick={() => item.id && item.id !== 'journey' && setSelected(item.id)} className="hover:text-royalBlue">{item.label}</button>}</span>)} context={<><p className="text-xs font-semibold uppercase tracking-wide text-royalBlue">Selected {selectedNode.type}</p><h2 className="mt-1 text-2xl font-semibold text-navy">{selectedNode.title}</h2></>} navigation={siblingControls}>{renderSelectedWorkspace()}</SelectedContentWorkspace></div>}</form>;
+  return <form action={saveJourneyDraftAction} onSubmit={submitDraft} className="mt-5 min-w-0"><input type="hidden" name="slug" value={slug} /><input type="hidden" name="revisionId" value={revisionId} /><input type="hidden" name="title" value={savePayload.title} /><input type="hidden" name="summary" value={savePayload.summary} /><input type="hidden" name="contentJson" value={savePayload.contentJson} /><RevisionToolbar moduleCount={modules.length} mode={mode} onToggleAdvanced={toggleMode}><button className="min-h-10 rounded-lg bg-royalBlue px-4 text-sm font-semibold text-white">Save Draft</button></RevisionToolbar>{mode === 'advanced' ? <AdvancedJsonEditor text={advancedText} error={advancedError} dirty={advancedText !== JSON.stringify(content, null, 2)} onTextChange={(next) => { setAdvancedText(next); setAdvancedError(''); }} onApply={applyAdvanced} /> : <div className="grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]"><ContentNavigator nodes={visible} query={query} onQueryChange={setQuery} selected={selected} onSelect={setSelected} /><SelectedContentWorkspace breadcrumb={breadcrumbs.map((item, index) => <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1">{index ? <ChevronRight size={14} aria-hidden="true" /> : null}{item.current ? <span className="font-semibold text-slate-700">{item.label}</span> : <button type="button" onClick={() => item.id && item.id !== 'journey' && setSelected(item.id)} className="hover:text-royalBlue">{item.label}</button>}</span>)} context={<><p className="text-xs font-semibold uppercase tracking-wide text-royalBlue">Selected {selectedNode.type}</p><h2 className="mt-1 text-2xl font-semibold text-navy">{selectedNode.title}</h2></>} navigation={siblingControls}>{renderSelectedWorkspace()}</SelectedContentWorkspace></div>}</form>;
 }
