@@ -7,6 +7,7 @@ import { PaymentsJourneyPortal } from '@/components/journeys/JourneyPortal';
 import { SharedJourneyReader } from '@/components/journeys/SharedJourneyReader';
 import { JourneyReadingProgress } from '@/components/journeys/JourneyReadingProgress';
 import { isCanonicalStructuredJourneyContent, mapStructuredJourneyToCanonical } from '@/components/journeys/structured-journey-mapper';
+import { isStructuredPracticeHub, StructuredPracticeHub } from '@/components/content/StructuredPracticeHub';
 
 const routeFor = (type: PublishedContent['type']) => ({
   BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap',
@@ -158,6 +159,10 @@ export function DatabaseArticle({ content, paymentType, stage, module }: { conte
     const journey = mapStructuredJourneyToCanonical(content.body);
     return <><JourneyReadingProgress/><ContentHero eyebrow={labelFor(content.type)} title={content.title} summary={content.summary} parentLabel={labelFor(content.type)} parentHref={`/${routeFor(content.type)}`} /><section className="min-w-0 overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12"><div className="mx-auto min-w-0 max-w-7xl"><KnowledgeActions type={content.type} slug={content.slug} /><div className="mt-5"><SharedJourneyReader journey={journey} activeStageId={stage} navigation={{ basePath: `banking-journeys/${content.slug}` }} /></div></div></section></>;
   }
+  if (content.type === 'BA_PRACTICE' && isStructuredPracticeHub(content.body)) return <>
+    <ContentHero eyebrow={labelFor(content.type)} title={content.title} summary={content.summary} parentLabel={labelFor(content.type)} parentHref={`/${routeFor(content.type)}`} />
+    <section className="min-w-0 px-4 py-12 sm:px-6 lg:px-8"><div className="mx-auto min-w-0 max-w-7xl"><KnowledgeActions type={content.type} slug={content.slug} /><StructuredPracticeHub hub={content.body} /></div></section>
+  </>;
   const modules = genericModules(content.body.modules);
   const entries = Object.entries(content.body).filter(([key]) => !['title', 'summary', 'slug', 'contentType', 'schemaVersion', 'metadata', 'modules', 'keywords', 'relatedJourneySlugs', 'relatedPracticeSlugs', 'relatedCaseStudySlugs', 'previousLevelSlug', 'nextLevelSlug'].includes(key));
   return <>
