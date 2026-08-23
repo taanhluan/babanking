@@ -4,6 +4,24 @@
 > Current working environment: Development only
 > Purpose: Give the next engineer or AI agent enough verified context to continue safely without reconstructing the project history from chat.
 
+## BA Documentation Approved Foundation (2026-08-23)
+
+- `BA_DOCUMENT` is first-class Knowledge Content backed by existing
+  `ContentItem` and independently governed `ContentRevision` records.
+- Each BA Document has exactly one authoritative Primary Journey through
+  `ContentItem.primaryJourneyContentItemId`; the Journey remains the security
+  boundary and the existing Role/Knowledge Access matrices are reused.
+- Journeys own canonical Banking knowledge. BA Documents own project analysis,
+  requirements, acceptance criteria, data/process specifications, and UAT
+  specifications. Documents reference rather than duplicate Journey truth.
+- V1 is validated, schema-versioned JSON with stable artifact IDs and
+  same-document reference validation. Normalized traceability is deferred.
+- Development and Production are the governed product environments. Vercel
+  Preview remains an isolated deployment/provider validation context, not a
+  third product content environment; existing runtime safety labels remain.
+- Closed Journey identities, revisions, published pointers, JSON, URLs, access,
+  translations, and CMS behavior must remain unchanged.
+
 ## Project Skill
 
 The repository includes a dedicated Codex project skill:

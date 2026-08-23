@@ -5,6 +5,29 @@ banking business analysts. It combines curated banking journeys, BA practice,
 case studies, career guidance, editorial review, and paid-membership
 administration without exposing premium content to unauthorised visitors.
 
+## Product environments and deployment previews
+
+The product has two governed environments: **Development** and **Production**.
+A Vercel Preview is an isolated deployment/provider safety context used to
+validate a proposed release; it is not a third product environment. Existing
+`preview` runtime labels and the isolated preview database remain deliberate
+deployment safeguards and must not be treated as product content environments.
+
+## BA Documentation foundation
+
+BA Documentation is a first-class governed Knowledge Content capability using
+`ContentType.BA_DOCUMENT`, the existing `ContentItem` identity, and independent
+`ContentRevision` history. Every BA Document has exactly one authoritative
+Primary Journey through `ContentItem.primaryJourneyContentItemId`; that Journey
+remains its security boundary and the existing Role and Knowledge Access
+matrices remain authoritative.
+
+Journeys own canonical Banking knowledge. BA Documents own project analysis,
+requirements, and delivery artifacts and reference—rather than duplicate—
+canonical Journey truth. V1 is schema-versioned JSON with stable artifact IDs
+and validated same-document references. Normalized requirements and
+traceability are deferred until usage proves they are needed.
+
 ## AI project workflow
 
 Codex and compatible repository agents should use the project skill at
