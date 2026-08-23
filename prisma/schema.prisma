@@ -20,6 +20,7 @@ enum ContentType {
   BA_PRACTICE
   CASE_STUDY
   CAREER_LEVEL
+  BA_DOCUMENT
 }
 
 enum RevisionStatus {
@@ -329,30 +330,34 @@ model RenewalRequest {
 }
 
 model ContentItem {
-  id                  String                  @id @default(cuid())
-  type                ContentType
-  slug                String
-  stableKey           String?                 @unique
-  ownerId             String?
-  publishedRevisionId String?                 @unique
-  isArchived          Boolean                 @default(false)
-  accessMode          ContentAccessMode       @default(ANY_SCOPE)
-  previewJson         String?
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-  owner               User?                   @relation("ContentOwner", fields: [ownerId], references: [id])
-  revisions           ContentRevision[]       @relation("ContentRevisions")
-  publishedRevision   ContentRevision?        @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
-  bookmarks           Bookmark[]
-  activities          ReadingActivity[]
-  translations        ContentTranslation[]
-  knowledgeScopes     ContentKnowledgeScope[]
-  userContentGrants   UserContentGrant[]
+  id                          String                  @id @default(cuid())
+  type                        ContentType
+  slug                        String
+  stableKey                   String?                 @unique
+  ownerId                     String?
+  publishedRevisionId         String?                 @unique
+  isArchived                  Boolean                 @default(false)
+  accessMode                  ContentAccessMode       @default(ANY_SCOPE)
+  previewJson                 String?
+  primaryJourneyContentItemId String?
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+  owner                       User?                   @relation("ContentOwner", fields: [ownerId], references: [id])
+  revisions                   ContentRevision[]       @relation("ContentRevisions")
+  publishedRevision           ContentRevision?        @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
+  bookmarks                   Bookmark[]
+  activities                  ReadingActivity[]
+  translations                ContentTranslation[]
+  knowledgeScopes             ContentKnowledgeScope[]
+  userContentGrants           UserContentGrant[]
+  primaryJourney              ContentItem?            @relation("BaDocumentPrimaryJourney", fields: [primaryJourneyContentItemId], references: [id], onDelete: Restrict)
+  baDocuments                 ContentItem[]           @relation("BaDocumentPrimaryJourney")
 
   @@unique([type, slug])
   @@index([type, isArchived])
   @@index([ownerId])
   @@index([accessMode])
+  @@index([primaryJourneyContentItemId, type, isArchived])
 }
 
 model ContentTranslation {

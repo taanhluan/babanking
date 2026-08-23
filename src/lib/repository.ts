@@ -22,9 +22,10 @@ const routes: Record<ContentType, string> = {
   BA_PRACTICE: 'ba-practice',
   CASE_STUDY: 'case-studies',
   CAREER_LEVEL: 'career-roadmap',
+  BA_DOCUMENT: 'ba-documents',
 };
 
-const labels: Record<ContentType, 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level'> = {
+const labels: Record<Exclude<ContentType, 'BA_DOCUMENT'>, 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level'> = {
   BANKING_JOURNEY: 'Banking Journey',
   BA_PRACTICE: 'BA Practice',
   CASE_STUDY: 'Case Study',
@@ -56,7 +57,7 @@ export const ContentRepository = {
     if (!accessibleIds.length) return { permittedTypes: [], domains: [], recentlyUpdated: [] };
     const [items, domains] = await Promise.all([
       db.contentItem.findMany({
-        where: { id: { in: accessibleIds }, isArchived: false, publishedRevisionId: { not: null } },
+        where: { id: { in: accessibleIds }, type: { not: 'BA_DOCUMENT' }, isArchived: false, publishedRevisionId: { not: null } },
         select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { publishedAt: true, updatedAt: true } } },
       }),
       db.knowledgeScope.findMany({
@@ -87,6 +88,7 @@ export const ContentRepository = {
       orderBy: { slug: 'asc' },
     });
     return items.flatMap((item) => {
+      if (item.type === 'BA_DOCUMENT') return [];
       const preview = previewFrom(item);
       return preview ? [preview] : [];
     });
@@ -118,11 +120,12 @@ export const ContentRepository = {
     const accessibleIds = await getAccessibleContentIds(user.id, { permission: 'VIEW' });
     if (!accessibleIds.length) return [];
     const items = await db.contentItem.findMany({
-      where: { id: { in: accessibleIds }, isArchived: false, publishedRevisionId: { not: null } },
+      where: { id: { in: accessibleIds }, type: { not: 'BA_DOCUMENT' }, isArchived: false, publishedRevisionId: { not: null } },
       select: { id: true, type: true, slug: true, previewJson: true, publishedRevision: { select: { contentJson: true } } },
       orderBy: { slug: 'asc' },
     });
     return items.flatMap((item) => {
+      if (item.type === 'BA_DOCUMENT') return [];
       const preview = previewFrom(item);
       if (!preview) return [];
       const body = item.publishedRevision && parseBody(item.publishedRevision.contentJson);

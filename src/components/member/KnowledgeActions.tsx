@@ -4,7 +4,7 @@ import { toggleBookmarkAction, updateProgressAction } from '@/app/actions';
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-const path: Record<ContentType, string> = { BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap' };
+const path: Record<ContentType, string> = { BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap', BA_DOCUMENT: 'ba-documents' };
 
 export async function KnowledgeActions({ type, slug }: { type: ContentType; slug: string }) {
   const user = await getCurrentUser();

@@ -1,0 +1,15 @@
+import { parseBaDocumentContent, type BaDocumentContentV1 } from './ba-document-domain';
+
+export const baDocumentTemplateNames = ['BRD_STANDARD', 'REQUIREMENT_SPECIFICATION_STANDARD', 'PROCESS_SPECIFICATION_STANDARD', 'DATA_SPECIFICATION_STANDARD', 'UAT_SPECIFICATION_STANDARD'] as const;
+const sections = (moduleIndex: number, titles: string[]) => titles.map((title, index) => ({ id: `module-${moduleIndex + 1}-section-${index + 1}`, title, order: index, blocks: [] }));
+const emptyArtifacts = () => ({ requirements: [], businessRules: [], validations: [], processes: [], dataElements: [], dataMappings: [], acceptanceCriteria: [], uatScenarios: [], decisions: [] });
+function template(documentType: BaDocumentContentV1['documentType'], moduleTitles: Array<[string, string[]]>): BaDocumentContentV1 {
+  return parseBaDocumentContent({ schemaVersion: 1, documentType, metadata: { documentCode: 'DOCUMENT-CODE', title: 'Untitled BA Document', summary: 'Complete this governed BA document with project-specific analysis and delivery requirements.', primaryJourneySlug: 'primary-journey' }, modules: moduleTitles.map(([title, children], index) => ({ id: `module-${index + 1}`, title, order: index, sections: sections(index, children) })), artifacts: emptyArtifacts() });
+}
+export const baDocumentTemplates = {
+  BRD_STANDARD: template('BRD', [['Overview', ['Purpose', 'Background', 'Business Context', 'Objectives']], ['Scope', ['In Scope', 'Out of Scope', 'Assumptions', 'Dependencies', 'Constraints']], ['Stakeholders', ['Business Stakeholders', 'Actors', 'Roles & Responsibilities']], ['Current State', ['Current Process', 'Pain Points', 'Risks & Controls']], ['Target State', ['Target Operating Model', 'Target Journey Impact', 'Target Processes']], ['Requirements', ['Business Requirements', 'Functional Requirements', 'Non-Functional Requirements']], ['Business Rules & Validations', []], ['Process Specifications', []], ['Data Requirements & Mapping', []], ['Exceptions & Rework', []], ['Acceptance Criteria', []], ['UAT Specification', []], ['Cross-Journey Impact', []], ['Decisions & Open Questions', []], ['BA Deliverables & Handoff', []]]),
+  REQUIREMENT_SPECIFICATION_STANDARD: template('REQUIREMENT_SPECIFICATION', [['Overview', ['Purpose', 'Scope']], ['Requirements', ['Business', 'Functional', 'Non-Functional']], ['Rules & Validations', []], ['Acceptance Criteria', []], ['Traceability', []]]),
+  PROCESS_SPECIFICATION_STANDARD: template('PROCESS_SPECIFICATION', [['Overview', ['Purpose', 'Scope']], ['Actors & Preconditions', []], ['Business Processes', []], ['Decisions, Exceptions & Rework', []], ['Outcomes & Traceability', []]]),
+  DATA_SPECIFICATION_STANDARD: template('DATA_SPECIFICATION', [['Overview', ['Purpose', 'Scope']], ['Data Dictionary', []], ['Data Mapping', []], ['Data Validation', []], ['Traceability', []]]),
+  UAT_SPECIFICATION_STANDARD: template('UAT_SPECIFICATION', [['Overview', ['Purpose', 'Scope']], ['Entry Criteria & Test Data', []], ['UAT Scenarios', []], ['Expected Results & Traceability', []]]),
+} as const;
