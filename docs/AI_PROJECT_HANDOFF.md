@@ -22,6 +22,20 @@
 - Closed Journey identities, revisions, published pointers, JSON, URLs, access,
   translations, and CMS behavior must remain unchanged.
 
+### Phase 2 server foundation
+
+- Shared governed-content policy primitives now centralize Role Matrix checks,
+  editorial independence, workflow transitions, SHA-256 content integrity, and
+  persistence read-back checks. Existing Journey CMS exports remain stable.
+- BA Document authorization resolves only the document ID and database
+  `primaryJourneyContentItemId`, authorizes that Primary Journey through the
+  existing Knowledge Access Matrix, and only then permits protected repository
+  reads. JSON Journey references and related slugs never grant access.
+- The BA Document service foundation supports governed creation, draft cloning,
+  conditional save, submit, review, publish, rollback, and archive operations
+  using `ContentItem`, `ContentRevision`, and `AuditLog`. There is no BA UI or
+  route wiring yet, and no permanent BA Document records were created.
+
 ## Project Skill
 
 The repository includes a dedicated Codex project skill:
