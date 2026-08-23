@@ -2,7 +2,7 @@ export const vi = {
   localeName: 'Tiếng Việt', localeLabel: 'VNI', alternateLabel: 'ENG',
   nav: {
     overview: 'Tổng quan nền tảng', unlock: 'Quyền lợi thành viên', methodology: 'Phương pháp', membership: 'Gói thành viên', faq: 'Câu hỏi thường gặp',
-    login: 'Đăng nhập', request: 'Yêu cầu truy cập', journeys: 'Hành trình ngân hàng', practice: 'Phương pháp BA',
+    login: 'Đăng nhập', request: 'Yêu cầu truy cập', journeys: 'Hành trình ngân hàng', documents: 'Tài liệu BA', practice: 'Phương pháp BA',
     cases: 'Case Study', roadmap: 'Lộ trình nghề nghiệp', search: 'Tìm kiếm', workspace: 'Không gian làm việc',
     status: 'Trạng thái thành viên', renewal: 'Gia hạn', admin: 'Quản trị', adminConsole: 'Trang quản trị', account: 'Tài khoản', logout: 'Đăng xuất',
   },

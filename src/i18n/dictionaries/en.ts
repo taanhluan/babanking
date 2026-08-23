@@ -2,7 +2,7 @@ export const en = {
   localeName: 'English', localeLabel: 'ENG', alternateLabel: 'VNI',
   nav: {
     overview: 'Platform Overview', unlock: 'What Members Unlock', methodology: 'Methodology', membership: 'Membership', faq: 'FAQ',
-    login: 'Member Login', request: 'Request Access', journeys: 'Banking Journeys', practice: 'BA Practice',
+    login: 'Member Login', request: 'Request Access', journeys: 'Banking Journeys', documents: 'BA Documents', practice: 'BA Practice',
     cases: 'Case Studies', roadmap: 'Career Roadmap', search: 'Search', workspace: 'Workspace',
     status: 'Membership Status', renewal: 'Renewal', admin: 'Admin', adminConsole: 'Admin Console', account: 'Account', logout: 'Logout',
   },
