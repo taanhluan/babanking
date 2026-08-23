@@ -37,7 +37,7 @@ export const BaDocumentRepository = {
         id: true, slug: true, previewJson: true, isArchived: true, primaryJourneyContentItemId: true,
         publishedRevisionId: true,
         publishedRevision: { select: { id: true, version: true, status: true, schemaVersion: true, contentJson: true, publishedAt: true } },
-        revisions: { orderBy: { version: 'desc' as const }, select: { id: true, version: true, status: true, authorId: true, reviewerId: true, reviewNote: true, createdAt: true, updatedAt: true, submittedAt: true, reviewedAt: true, publishedAt: true } },
+        revisions: { orderBy: { version: 'desc' as const }, select: { id: true, version: true, status: true, authorId: true, reviewerId: true, reviewer: { select: { name: true } }, reviewNote: true, createdAt: true, updatedAt: true, submittedAt: true, reviewedAt: true, publishedAt: true } },
       },
     });
   },

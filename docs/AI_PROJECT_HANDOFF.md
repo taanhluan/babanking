@@ -52,6 +52,19 @@
   pilot content, Production data, global search, export, or Phase 4 capability
   was added.
 
+### Phase 3 remediation — Advanced JSON and review feedback
+
+- `CHANGES_REQUESTED` and rejected BA Document revisions now show persisted,
+  read-only review feedback with reviewer and review date near the editor.
+- Advanced JSON has a separate, no-write validation control and grouped,
+  UI-safe issues for JSON syntax, schema, artifact IDs, references, and required
+  business fields. Common non-canonical block shapes are explained but never
+  transformed or saved automatically.
+- Invalid Save requests return structured validation before authorization,
+  service invocation, database mutation, or audit creation. The canonical
+  `BaDocumentContentV1` contract and persistence hash/read-back gates remain
+  unchanged.
+
 ## Project Skill
 
 The repository includes a dedicated Codex project skill:

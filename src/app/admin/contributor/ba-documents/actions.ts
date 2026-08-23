@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { requireBaDocumentAccessBySlug } from '@/server/ba-document/ba-document-authorization';
 import { db } from '@/lib/db';
 import { evaluateContentAccessForUser } from '@/server/access-control/knowledge-access-repository';
-import { parseBaDocumentContent } from '@/server/ba-document/ba-document-domain';
+import { validateBaDocumentJson, type BaDocumentValidationResult } from '@/server/ba-document/ba-document-validation';
 import { baDocumentTemplates } from '@/server/ba-document/ba-document-templates';
 import { createBaDocument, publishBaDocumentRevision, reviewBaDocumentRevision, saveBaDocumentDraft, submitBaDocumentRevision } from '@/server/ba-document/ba-document-service';
 
@@ -32,11 +32,15 @@ export async function saveBaDocumentAction(formData: FormData) {
   const documentSlug = slug.parse(formData.get('slug'));
   const id = revisionId.parse(formData.get('revisionId'));
   const json = z.string().min(2).parse(formData.get('contentJson'));
-  parseBaDocumentContent(JSON.parse(json));
+  const validation=validateBaDocumentJson(json);
+  if(validation.status!=='VALID')return {ok:false as const,validation};
   const { user, document } = await requireBaDocumentAccessBySlug(documentSlug, 'EDIT');
   await saveBaDocumentDraft(document.id, id, json, user);
   revalidatePath(`/admin/contributor/ba-documents/${documentSlug}`);
+  return {ok:true as const};
 }
+
+export type SaveBaDocumentActionResult = {ok:true}|{ok:false;validation:BaDocumentValidationResult};
 
 export async function submitBaDocumentAction(formData: FormData) {
   const documentSlug=slug.parse(formData.get('slug')), id=revisionId.parse(formData.get('revisionId'));

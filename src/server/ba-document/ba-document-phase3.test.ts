@@ -28,7 +28,7 @@ describe('Phase 3 BA Document security architecture',()=>{
   it('keeps Primary Journey immutable in the editor and serves only current textarea JSON',()=>{
     const editor=readFileSync(join(process.cwd(),'src/app/admin/contributor/ba-documents/BaDocumentEditor.tsx'),'utf8');
     expect(editor).not.toContain('primaryJourneyContentItemId');
-    expect(editor).toContain("field.value=next");
+    expect(editor).toContain('validateBaDocumentJson(current)');
     expect(editor).toContain('name="contentJson" value={json}');
   });
 });
