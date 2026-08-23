@@ -35,7 +35,7 @@ export async function createBaDocument(input: { slug: string; primaryJourneyCont
     const primary = await tx.contentItem.findUnique({ where: { id: input.primaryJourneyContentItemId }, select: { type: true, slug: true } });
     validateBaDocumentPrimaryJourney({ contentType: 'BA_DOCUMENT', primaryJourneyContentItemId: input.primaryJourneyContentItemId, parentType: primary?.type });
     if (content.metadata.primaryJourneySlug !== primary?.slug) throw new Error('BA Document Primary Journey slug does not match its database relation.');
-    const item = await tx.contentItem.create({ data: { type: 'BA_DOCUMENT', slug: input.slug, primaryJourneyContentItemId: input.primaryJourneyContentItemId, previewJson: preview(input.contentJson) } });
+    const item = await tx.contentItem.create({ data: { type: 'BA_DOCUMENT', slug: input.slug, ownerId: actor.id, primaryJourneyContentItemId: input.primaryJourneyContentItemId, previewJson: preview(input.contentJson) } });
     const revision = await tx.contentRevision.create({ data: { contentItemId: item.id, version: 1, status: 'DRAFT', schemaVersion: content.schemaVersion, contentJson: input.contentJson, authorId: actor.id } });
     await audit(tx, actor.id, 'BA_DOCUMENT_CREATED', 'ContentItem', item.id, { contentItemId: item.id, revisionId: revision.id, primaryJourneyContentItemId: input.primaryJourneyContentItemId });
     return { item, revision };

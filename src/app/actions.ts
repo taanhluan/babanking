@@ -113,6 +113,15 @@ export async function submitRevisionAction(formData: FormData) {
 }
 export async function reviewRevisionAction(formData: FormData) {
   const user = await requireRole('REVIEWER'), revisionId = String(formData.get('revisionId')), action = String(formData.get('action')), note = String(formData.get('reviewNote') || '').trim();
+  const securityIdentity = await db.contentRevision.findUnique({ where: { id: revisionId }, select: { contentItem: { select: { type: true } } } });
+  if (securityIdentity?.contentItem.type === 'BA_DOCUMENT') {
+    const { requireBaDocumentRevisionAccess } = await import('@/server/ba-document/ba-document-authorization');
+    const { publishBaDocumentRevision, reviewBaDocumentRevision } = await import('@/server/ba-document/ba-document-service');
+    const { document } = await requireBaDocumentRevisionAccess(revisionId, action === 'publish' ? 'PUBLISH' : 'REVIEW');
+    if (action === 'publish') await publishBaDocumentRevision(document.id, revisionId, user);
+    else await reviewBaDocumentRevision(document.id, revisionId, action === 'changes' ? 'changes' : 'reject', note, user);
+    revalidatePath('/review'); revalidatePath('/ba-documents'); redirect('/review');
+  }
   const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, include: { contentItem: true } }); if (!revision || !canReviewRevision(user.role, user.id, revision.authorId) || revision.status !== 'IN_REVIEW') throw new Error('Revision cannot be reviewed.');
   await assertContentActionAccess(user.id, revision.contentItemId, action === 'publish' ? 'PUBLISH' : 'REVIEW');
   if ((action === 'changes' || action === 'reject') && note.length < 10) throw new Error('A review note is required.');

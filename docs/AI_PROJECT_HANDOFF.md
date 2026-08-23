@@ -36,6 +36,22 @@
   using `ContentItem`, `ContentRevision`, and `AuditLog`. There is no BA UI or
   route wiring yet, and no permanent BA Document records were created.
 
+### Phase 3 library, reader, and initial CMS
+
+- Members have a server-filtered `/ba-documents` library and protected
+  `/ba-documents/[slug]` reader. Listings are restricted in SQL to published,
+  non-archived documents whose database Primary Journey is accessible.
+- The BA Document reader reuses responsive Journey navigation and block
+  rendering, and adds artifact catalogues, canonical Journey reference cards,
+  and a clearly scoped same-document RTM.
+- Admin → Contributor now includes BA Document creation, authorized Primary
+  Journey selection, five templates, metadata/structured JSON authoring, draft
+  preview, persistence-verified save, submit, history, review, and publish.
+- The unified review queue recognizes BA Documents and dispatches their review
+  and publication through the governed BA Document service. No schema change,
+  pilot content, Production data, global search, export, or Phase 4 capability
+  was added.
+
 ## Project Skill
 
 The repository includes a dedicated Codex project skill:
