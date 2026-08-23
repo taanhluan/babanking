@@ -1,12 +1,8 @@
 import type { KnowledgePermission, RevisionStatus, Role } from '@prisma/client';
-import { canEditRevision, canReviewRevision } from '@/lib/permissions';
-import { canTransition } from '@/lib/workflow';
-import { roleAllowsPermission } from '@/server/access-control/role-permissions';
+import { assertGovernedDraftEditable, assertGovernedDraftSubmittable, assertGovernedRevisionPublishable, assertGovernedRevisionReviewable, assertGovernedRolePermission } from './governed-content-lifecycle';
 
 export function assertRolePermission(role: Role, permission: KnowledgePermission) {
-  if (!roleAllowsPermission(role, permission)) {
-    throw new Error('Journey CMS permission denied.');
-  }
+  assertGovernedRolePermission(role, permission, 'Journey CMS');
 }
 
 export function assertDraftEditable(input: {
@@ -15,10 +11,7 @@ export function assertDraftEditable(input: {
   authorId: string | null;
   status: RevisionStatus;
 }) {
-  assertRolePermission(input.role, 'EDIT');
-  if (!canEditRevision(input.role, input.actorId, input.authorId, input.status)) {
-    throw new Error('Journey draft is not editable by the current user.');
-  }
+  assertGovernedDraftEditable(input, 'Journey');
 }
 
 export function assertDraftSubmittable(input: {
@@ -27,10 +20,7 @@ export function assertDraftSubmittable(input: {
   authorId: string | null;
   status: RevisionStatus;
 }) {
-  assertRolePermission(input.role, 'EDIT');
-  if (input.authorId !== input.actorId || !canTransition(input.status, 'SUBMIT')) {
-    throw new Error('Journey draft cannot be submitted by the current user.');
-  }
+  assertGovernedDraftSubmittable(input, 'Journey');
 }
 
 export function assertRevisionReviewable(input: {
@@ -39,13 +29,7 @@ export function assertRevisionReviewable(input: {
   authorId: string | null;
   status: RevisionStatus;
 }) {
-  assertRolePermission(input.role, 'REVIEW');
-  if (
-    !canReviewRevision(input.role, input.actorId, input.authorId)
-    || input.status !== 'IN_REVIEW'
-  ) {
-    throw new Error('Journey revision cannot be reviewed by the current user.');
-  }
+  assertGovernedRevisionReviewable(input, 'Journey');
 }
 
 export function assertRevisionPublishable(input: {
@@ -54,12 +38,5 @@ export function assertRevisionPublishable(input: {
   authorId: string | null;
   status: RevisionStatus;
 }) {
-  assertRolePermission(input.role, 'PUBLISH');
-  if (
-    input.actorId === input.authorId
-    || !canReviewRevision(input.role, input.actorId, input.authorId)
-    || !canTransition(input.status, 'PUBLISH')
-  ) {
-    throw new Error('Journey revision cannot be published by its author.');
-  }
+  assertGovernedRevisionPublishable(input, 'Journey');
 }
