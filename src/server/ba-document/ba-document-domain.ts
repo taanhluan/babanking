@@ -47,7 +47,7 @@ const validationSchema = z.object({
   id: artifactId, name: text, category: z.enum(['ELIGIBILITY', 'DATA_QUALITY', 'COMPLIANCE', 'LIMIT', 'DUPLICATE', 'STATE', 'AUTHORIZATION', 'OTHER']),
   trigger: text, condition: text, validationLogic: text, successOutcome: text, failureOutcome: text,
   errorMessageGuidance: text.optional(), exceptionHandling: text.optional(), requirementRefs: refs,
-  processRefs: refs.optional(), ruleRefs: refs.optional(),
+  processRefs: refs.optional(), ruleRefs: refs.optional(), dataRefs: refs.optional(), notes: text.optional(),
 });
 
 const processStepSchema = z.object({ id: text, name: text, laneId: text, responsibility: text, description: text, requirementRefs: refs.optional(), ruleRefs: refs.optional(), validationRefs: refs.optional() });

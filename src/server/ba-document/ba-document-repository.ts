@@ -30,6 +30,12 @@ export const BaDocumentRepository = {
       select: { id: true, slug: true, previewJson: true, updatedAt: true, owner: { select: { name: true } }, primaryJourney: { select: { slug: true, previewJson: true } }, publishedRevision: { select: { id: true, version: true, contentJson: true, publishedAt: true, updatedAt: true } } },
     });
   },
+  getPublishedTranslation(authorization: AuthorizedBaDocument, locale: string) {
+    return db.contentTranslation.findFirst({
+      where: { contentItemId: authorization.id, locale, status: 'PUBLISHED', publishedRevisionId: { not: null }, contentItem: { primaryJourneyContentItemId: authorization.primaryJourneyContentItemId } },
+      select: { title: true, summary: true, publishedRevision: { select: { contentJson: true, version: true, updatedAt: true } } },
+    });
+  },
   getWorkspace(authorization: AuthorizedBaDocument) {
     return db.contentItem.findUnique({
       where: { id: authorization.id, type: 'BA_DOCUMENT', primaryJourneyContentItemId: authorization.primaryJourneyContentItemId },
