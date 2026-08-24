@@ -84,6 +84,25 @@
 - No Prisma migration or Production change was required. Primary Journey
   authorization remains before protected BA Document content queries.
 
+### Phase 4 revision UX remediation
+
+- Contributor BA Document cards now represent one logical `ContentItem` and
+  distinguish the latest published version from an optional working revision.
+- `Create New Revision` is available only inside an existing published BA
+  Document. It authorizes EDIT through the immutable Primary Journey, clones
+  the current published canonical JSON into the next `ContentRevision`, and
+  never creates another `ContentItem`.
+- If a DRAFT, CHANGES_REQUESTED, or IN_REVIEW revision already exists, revision
+  creation returns that revision without inserting another working version.
+- Contributor actions and history are state-specific. Member library and global
+  search continue to query one ContentItem and only its current
+  `publishedRevision`; drafts cannot become additional member cards.
+- Read-only Development audit found two Customer Onboarding ContentItems with
+  the same Primary Journey, identical stable artifact-ID sets, identical
+  artifact/module counts, and separate v1 publications (`BRD-01` and `BRD-02`).
+  They are treated as likely revision-testing duplicates pending explicit
+  archive authorization; this remediation did not mutate either record.
+
 ## Project Skill
 
 The repository includes a dedicated Codex project skill:

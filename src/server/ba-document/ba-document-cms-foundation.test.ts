@@ -39,11 +39,29 @@ describe('BA Document lifecycle service', () => {
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
 
-  it('rejects a concurrent active draft', async () => {
-    const tx = { contentItem: { findUnique: vi.fn().mockResolvedValue({ publishedRevision: { id: 'published', contentJson: validJson, schemaVersion: 1 }, revisions: [{ id: 'active' }] }) } };
+  it('returns a concurrent active draft without creating another revision', async () => {
+    const create=vi.fn();
+    const active={id:'active',version:2,status:'DRAFT',contentItemId:'document',schemaVersion:1,contentJson:validJson,authorId:'author'};
+    const tx = { contentItem: { findUnique: vi.fn().mockResolvedValue({ primaryJourneyContentItemId:'journey',publishedRevision: { id: 'published', contentJson: validJson, schemaVersion: 1 }, revisions: [active] }) },contentRevision:{create} };
+    mocks.evaluate.mockResolvedValue({allowed:true});
     mocks.transaction.mockImplementation(async (callback) => callback(tx));
     const { createBaDocumentDraftFromPublished } = await import('./ba-document-service');
-    await expect(createBaDocumentDraftFromPublished('document', { id: 'author', role: 'CONTRIBUTOR' })).rejects.toThrow(/active BA Document revision/);
+    await expect(createBaDocumentDraftFromPublished('document', { id: 'author', role: 'CONTRIBUTOR' })).resolves.toEqual({revision:active,created:false});
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('creates only the next revision by cloning published canonical content', async()=>{
+    const created={id:'draft-v2',contentItemId:'document',version:2,status:'DRAFT',schemaVersion:1,contentJson:validJson,authorId:'author'};
+    const create=vi.fn().mockResolvedValue(created),auditCreate=vi.fn();
+    const tx={contentItem:{findUnique:vi.fn().mockResolvedValue({primaryJourneyContentItemId:'journey',publishedRevision:{id:'published-v1',contentJson:validJson,schemaVersion:1},revisions:[]})},contentRevision:{findFirst:vi.fn().mockResolvedValue({version:1}),create},auditLog:{create:auditCreate}};
+    mocks.evaluate.mockResolvedValue({allowed:true});mocks.transaction.mockImplementation(async callback=>callback(tx));
+    const{createBaDocumentDraftFromPublished}=await import('./ba-document-service');
+    const result=await createBaDocumentDraftFromPublished('document',{id:'author',role:'CONTRIBUTOR'});
+    expect(result).toEqual({revision:created,created:true});
+    expect(create).toHaveBeenCalledWith({data:expect.objectContaining({contentItemId:'document',version:2,status:'DRAFT',contentJson:validJson})});
+    expect(tx.contentItem.findUnique).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(created.contentJson).artifacts).toEqual(baDocumentTemplates.BRD_STANDARD.artifacts);
+    expect(auditCreate).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a publication pointer race before audit', async () => {
@@ -56,6 +74,18 @@ describe('BA Document lifecycle service', () => {
     const { publishBaDocumentRevisionTransaction } = await import('./ba-document-service');
     await expect(publishBaDocumentRevisionTransaction(tx as never, 'document', 'revision', { id: 'reviewer', role: 'REVIEWER' })).rejects.toThrow(/pointer conflict/);
     expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it('publishes the new revision by moving only the ContentItem pointer',async()=>{
+    const revisionUpdate=vi.fn().mockResolvedValue({count:1}),itemUpdate=vi.fn().mockResolvedValue({count:1}),auditCreate=vi.fn();
+    const tx={contentRevision:{findFirst:vi.fn().mockResolvedValue({id:'revision-v2',status:'IN_REVIEW',authorId:'author',contentJson:validJson}),updateMany:revisionUpdate},contentItem:{findUnique:vi.fn().mockResolvedValueOnce({publishedRevisionId:'revision-v1'}).mockResolvedValueOnce({publishedRevision:{contentJson:validJson}}),updateMany:itemUpdate},auditLog:{create:auditCreate}};
+    const{publishBaDocumentRevisionTransaction}=await import('./ba-document-service');
+    await publishBaDocumentRevisionTransaction(tx as never,'document','revision-v2',{id:'reviewer',role:'REVIEWER'});
+    expect(itemUpdate).toHaveBeenCalledWith({where:{id:'document',publishedRevisionId:'revision-v1'},data:expect.objectContaining({publishedRevisionId:'revision-v2'})});
+    expect(revisionUpdate).toHaveBeenCalledTimes(1);
+    expect(revisionUpdate.mock.calls[0]?.[0].where.id).toBe('revision-v2');
+    expect(JSON.stringify(revisionUpdate.mock.calls)).not.toContain('revision-v1');
+    expect(auditCreate).toHaveBeenCalledTimes(1);
   });
 });
 

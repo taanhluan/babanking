@@ -9,7 +9,7 @@ const actions=readFileSync(join(process.cwd(),'src/app/admin/contributor/ba-docu
 
 describe('Phase 3 BA Document security architecture',()=>{
   it('filters member documents in SQL by accessible Primary Journey, publication and archive state',()=>{
-    expect(repository).toContain("type: 'BA_DOCUMENT', isArchived: false, publishedRevisionId: { not: null }, primaryJourneyContentItemId: { in: journeyIds }");
+    for(const guard of ['type: "BA_DOCUMENT"','isArchived: false','publishedRevisionId: { not: null }','primaryJourneyContentItemId: { in: journeyIds }'])expect(repository).toContain(guard);
     expect(repository.indexOf('getAccessibleContentIds')).toBeLessThan(repository.indexOf("primaryJourneyContentItemId: { in: journeyIds }"));
   });
   it('authorizes the Primary Journey before loading published document content',()=>{
