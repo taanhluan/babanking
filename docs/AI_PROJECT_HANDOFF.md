@@ -65,6 +65,25 @@
   `BaDocumentContentV1` contract and persistence hash/read-back gates remain
   unchanged.
 
+### Phase 4 reader remediation — semantic artifacts and traceability
+
+- The protected member BA Document reader uses semantic presentations for
+  requirements, rules, validations, processes, data, acceptance criteria, UAT,
+  and decisions instead of a generic schema-property table.
+- Known nested structures such as requirement sources, process steps, actors,
+  preconditions, outcomes, and UAT steps are rendered as business-readable
+  fields, lists, cards, or contained tables; the member artifact reader no
+  longer serializes these structures as JSON.
+- Imported conversion diagnostics remain persisted for governance but are
+  presented to members only as `Needs BA confirmation`. No missing business
+  rationale, source, purpose, or decision was fabricated.
+- A pure in-memory same-document reference index resolves stable IDs to titles,
+  supplies anchored navigation, and safely derives reverse Requirement links
+  from explicit AC, UAT, Rule, Validation, and Process references. It does not
+  query or infer cross-document relationships.
+- No Prisma migration or Production change was required. Primary Journey
+  authorization remains before protected BA Document content queries.
+
 ## Project Skill
 
 The repository includes a dedicated Codex project skill:
