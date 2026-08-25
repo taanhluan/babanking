@@ -104,7 +104,7 @@ export const BaDocumentRepository = {
         title: true,
         summary: true,
         publishedRevision: {
-          select: { contentJson: true, version: true, updatedAt: true },
+          select: { id: true, contentJson: true, version: true, publishedAt: true, updatedAt: true },
         },
       },
     });

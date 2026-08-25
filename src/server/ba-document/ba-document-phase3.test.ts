@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const repository=readFileSync(join(process.cwd(),'src/server/ba-document/ba-document-repository.ts'),'utf8');
 const memberRoute=readFileSync(join(process.cwd(),'src/app/ba-documents/[slug]/page.tsx'),'utf8');
+const memberLoader=readFileSync(join(process.cwd(),'src/server/ba-document/ba-document-export-service.ts'),'utf8');
 const createRoute=readFileSync(join(process.cwd(),'src/app/admin/contributor/ba-documents/new/page.tsx'),'utf8');
 const actions=readFileSync(join(process.cwd(),'src/app/admin/contributor/ba-documents/actions.ts'),'utf8');
 
@@ -13,7 +14,8 @@ describe('Phase 3 BA Document security architecture',()=>{
     expect(repository.indexOf('getAccessibleContentIds')).toBeLessThan(repository.indexOf("primaryJourneyContentItemId: { in: journeyIds }"));
   });
   it('authorizes the Primary Journey before loading published document content',()=>{
-    expect(memberRoute.indexOf('requireBaDocumentAccessBySlug')).toBeLessThan(memberRoute.indexOf('BaDocumentRepository.getPublished'));
+    expect(memberRoute).toContain('loadAuthorizedPublishedBaDocumentView');
+    expect(memberLoader.indexOf('requireBaDocumentAccessBySlug')).toBeLessThan(memberLoader.indexOf('BaDocumentRepository.getPublished'));
     expect(memberRoute).not.toContain('relatedJourneySlugs');
     expect(memberRoute).not.toContain('metadata.primaryJourneySlug');
   });
