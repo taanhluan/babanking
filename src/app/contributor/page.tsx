@@ -7,7 +7,7 @@ import { formatDate } from '@/i18n/format';
 import { listContributorRevisions, type ContributorListParams } from '@/server/contributor/contributor-list';
 import { contributorListHref, parseContributorListParams } from '@/server/contributor/contributor-list-params';
 
-const typeLabels = { BANKING_JOURNEY: 'Banking Journey', BA_PRACTICE: 'BA Practice', CASE_STUDY: 'Case Study', CAREER_LEVEL: 'Career Level', BA_DOCUMENT: 'BA Document' } as const;
+const typeLabels = { BANKING_JOURNEY: 'Banking Journey', BA_PRACTICE: 'BA Practice', CASE_STUDY: 'Case Study', CAREER_LEVEL: 'Career Level', BA_DOCUMENT: 'BA Document', CUSTOMER_SEGMENT: 'Customer Segment' } as const;
 const statusLabels: Record<string, string> = { DRAFT: 'Draft', IN_REVIEW: 'In Review', PUBLISHED: 'Published', ARCHIVED: 'Archived', CHANGES_REQUESTED: 'Changes Requested', REJECTED: 'Rejected' };
 
 function pageNumbers(current: number, total: number) {

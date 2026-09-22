@@ -21,6 +21,7 @@ enum ContentType {
   CASE_STUDY
   CAREER_LEVEL
   BA_DOCUMENT
+  CUSTOMER_SEGMENT
 }
 
 enum RevisionStatus {

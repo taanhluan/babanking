@@ -7,6 +7,7 @@ const basePaths = [
   '/admin/users',
   '/admin/access-control',
   '/admin/content',
+  '/admin/customer-segments',
   '/admin/content/translations',
   '/admin/audit',
   '/admin/system/environment',

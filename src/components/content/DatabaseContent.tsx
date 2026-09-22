@@ -9,11 +9,11 @@ import { JourneyReadingProgress } from '@/components/journeys/JourneyReadingProg
 import { isCanonicalStructuredJourneyContent, mapStructuredJourneyToCanonical } from '@/components/journeys/structured-journey-mapper';
 
 const routeFor = (type: PublishedContent['type']) => ({
-  BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap', BA_DOCUMENT: 'ba-documents',
+  BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap', BA_DOCUMENT: 'ba-documents', CUSTOMER_SEGMENT: 'banking-journeys',
 }[type]);
 
 const labelFor = (type: PublishedContent['type']) => ({
-  BANKING_JOURNEY: 'Banking Journeys', BA_PRACTICE: 'BA Practice', CASE_STUDY: 'Case Studies', CAREER_LEVEL: 'Career Roadmap', BA_DOCUMENT: 'BA Documents',
+  BANKING_JOURNEY: 'Banking Journeys', BA_PRACTICE: 'BA Practice', CASE_STUDY: 'Case Studies', CAREER_LEVEL: 'Career Roadmap', BA_DOCUMENT: 'BA Documents', CUSTOMER_SEGMENT: 'Customer Segment',
 }[type]);
 
 export function DatabaseContentLibrary({ items }: { items: ContentPreview[] }) {
@@ -156,7 +156,7 @@ export function DatabaseArticle({ content, paymentType, stage, module }: { conte
   }
   if (content.type === 'BANKING_JOURNEY' && isCanonicalStructuredJourneyContent(content.body)) {
     const journey = mapStructuredJourneyToCanonical(content.body);
-    return <><JourneyReadingProgress/><ContentHero eyebrow={labelFor(content.type)} title={content.title} summary={content.summary} parentLabel={labelFor(content.type)} parentHref={`/${routeFor(content.type)}`} /><section className="min-w-0 overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12"><div className="mx-auto min-w-0 max-w-7xl"><KnowledgeActions type={content.type} slug={content.slug} /><div className="mt-5"><SharedJourneyReader journey={journey} activeStageId={stage} navigation={{ basePath: `banking-journeys/${content.slug}` }} /></div></div></section></>;
+    return <><JourneyReadingProgress/><ContentHero eyebrow={labelFor(content.type)} title={content.title} summary={content.summary} parentLabel={labelFor(content.type)} parentHref={`/${routeFor(content.type)}`} /><section className="min-w-0 overflow-x-clip px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12"><div className="mx-auto min-w-0 max-w-7xl"><KnowledgeActions type={content.type} slug={content.slug} /><div className="mt-5"><SharedJourneyReader journey={journey} activeStageId={stage} navigation={{ basePath: `banking-journeys/${content.slug}` }} /></div></div></section></>;
   }
   const modules = genericModules(content.body.modules);
   const entries = Object.entries(content.body).filter(([key]) => !['title', 'summary', 'slug', 'contentType', 'schemaVersion', 'metadata', 'modules', 'keywords', 'relatedJourneySlugs', 'relatedPracticeSlugs', 'relatedCaseStudySlugs', 'previousLevelSlug', 'nextLevelSlug'].includes(key));

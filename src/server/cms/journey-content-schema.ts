@@ -20,7 +20,7 @@ const journeyBlockSchema = z.object({
   payload: z.record(z.string(), z.unknown()),
 }).passthrough();
 
-const journeySectionSchema = z.object({
+const journeySubsectionSchema = z.object({
   id: z.string().trim().min(1).max(120).optional(),
   key: z.string().trim().min(1).max(100).optional(),
   title: z.string().trim().min(1).max(180),
@@ -28,25 +28,34 @@ const journeySectionSchema = z.object({
   blocks: z.array(journeyBlockSchema).max(100),
 }).passthrough();
 
+const journeySectionSchema = z.object({
+  id: z.string().trim().min(1).max(120).optional(),
+  key: z.string().trim().min(1).max(100).optional(),
+  title: z.string().trim().min(1).max(180),
+  order: z.number().int().min(0).optional(),
+  blocks: z.array(journeyBlockSchema).max(100),
+  subsections: z.array(journeySubsectionSchema).max(20).optional(),
+}).passthrough();
+
 const journeyModuleSchema = z.object({
   id: z.string().trim().min(1).max(120).optional(),
   key: z.string().trim().min(1).max(100).optional(),
   title: z.string().trim().min(1).max(180),
   order: z.number().int().min(0).optional(),
-  sections: z.array(journeySectionSchema).max(100),
+  sections: z.array(journeySectionSchema).max(20),
 }).passthrough();
 
 export const journeyContentSchema = z.object({
   title: z.string().trim().min(5).max(160),
   slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   summary: z.string().trim().min(30).max(500),
-  schemaVersion: z.number().int().min(1).default(1),
+  schemaVersion: z.number().int().refine((value) => value === 1 || value === 2, 'schemaVersion must be 1 or 2').default(1),
   metadata: z.record(z.string(), z.unknown()).optional(),
   modules: z.array(journeyModuleSchema).max(100).optional(),
 }).passthrough();
 
 export type JourneyContent = z.infer<typeof journeyContentSchema>;
-export const supportedJourneySchemaVersion = 1;
+export const supportedJourneySchemaVersion = 2;
 
 export const journeyBusinessDraftInputSchema = z.object({
   title: z.string().trim().min(5).max(160),
@@ -59,10 +68,11 @@ export function parseJourneyContentJson(value: string): JourneyContent {
   return journeyContentSchema.parse(parsed);
 }
 
-export function journeyPreviewJson(content: JourneyContent) {
+export function journeyPreviewJson(content: JourneyContent, plannedSegment?: string | null) {
   return JSON.stringify({
     title: content.title,
     summary: content.summary,
+    ...(plannedSegment ? { plannedSegment } : {}),
   });
 }
 
@@ -143,13 +153,14 @@ export function canonicalizeJourneyDraft(input: {
     ? submitted.metadata as Record<string, unknown>
     : {};
   const baseContent = submittedMetadata.journeyReader === 'canonical' ? {} : authoritative;
+  const schemaVersion = submitted.schemaVersion === 2 || authoritative.schemaVersion === 2 ? 2 : 1;
   const finalContent = {
     ...baseContent,
     ...submitted,
     title: input.title,
     slug: input.stableSlug,
     summary: input.summary,
-    schemaVersion: supportedJourneySchemaVersion,
+    schemaVersion,
   };
   assertNoPrivilegedJourneyMetadata(finalContent);
   return journeyContentSchema.parse(finalContent);

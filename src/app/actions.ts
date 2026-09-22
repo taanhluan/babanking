@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { clearSession, createSession, getCurrentUser, requireRole, safeCallback } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { canEditRevision, canReviewRevision } from '@/lib/permissions';
+import { assertGenericReviewContentType } from '@/server/review/generic-review-workflow';
 import { canTransition } from '@/lib/workflow';
 import { requirePremiumAccess } from '@/lib/membership';
 import { careerPreferenceSchema, contentDraftSchema, loginSchema, progressSchema, reservedSlugs } from '@/lib/validation';
@@ -114,6 +115,16 @@ export async function submitRevisionAction(formData: FormData) {
 export async function reviewRevisionAction(formData: FormData) {
   const user = await requireRole('REVIEWER'), revisionId = String(formData.get('revisionId')), action = String(formData.get('action')), note = String(formData.get('reviewNote') || '').trim();
   const securityIdentity = await db.contentRevision.findUnique({ where: { id: revisionId }, select: { contentItem: { select: { type: true } } } });
+  if (securityIdentity?.contentItem.type === 'BANKING_JOURNEY') {
+    const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, select: { contentItemId: true, contentItem: { select: { slug: true } } } });
+    if (!revision) throw new Error('Journey revision cannot be reviewed.');
+    const { content } = await (await import('@/server/cms/journey-cms-authorization')).requireJourneyCmsAccess(revision.contentItem.slug, action === 'publish' ? 'PUBLISH' : 'REVIEW');
+    if (content.id !== revision.contentItemId) throw new Error('Journey revision identity mismatch.');
+    const service = await import('@/server/cms/journey-cms-service');
+    if (action === 'publish') await service.publishJourneyRevision(revision.contentItemId, revisionId, user);
+    else { if (action !== 'changes' && action !== 'reject') throw new Error('Invalid review action.'); await service.reviewJourneyRevision(revision.contentItemId, revisionId, action, note, user); }
+    revalidatePath('/review'); revalidatePath('/banking-journeys'); revalidatePath(`/banking-journeys/${revision.contentItem.slug}`); redirect('/review');
+  }
   if (securityIdentity?.contentItem.type === 'BA_DOCUMENT') {
     const { requireBaDocumentRevisionAccess } = await import('@/server/ba-document/ba-document-authorization');
     const { publishBaDocumentRevision, reviewBaDocumentRevision } = await import('@/server/ba-document/ba-document-service');
@@ -122,6 +133,16 @@ export async function reviewRevisionAction(formData: FormData) {
     else await reviewBaDocumentRevision(document.id, revisionId, action === 'changes' ? 'changes' : 'reject', note, user);
     revalidatePath('/review'); revalidatePath('/ba-documents'); redirect('/review');
   }
+  if (securityIdentity?.contentItem.type === 'CUSTOMER_SEGMENT') {
+    const { publishCustomerSegment, reviewCustomerSegment } = await import('@/server/customer-segment/customer-segment-service');
+    const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, select: { contentItemId: true, contentItem: { select: { slug: true } } } });
+    if (!revision) throw new Error('Customer Segment revision cannot be reviewed.');
+    if (action === 'publish') await publishCustomerSegment(revision.contentItemId, revisionId, user);
+    else { if (action !== 'changes' && action !== 'reject') throw new Error('Invalid review action.'); if (note.length < 10) throw new Error('A review note is required.'); await reviewCustomerSegment(revision.contentItemId, revisionId, action, note, user); }
+    revalidatePath('/review'); revalidatePath('/banking-journeys'); revalidatePath(`/banking-journeys/segments/${revision.contentItem.slug}`); redirect('/review');
+  }
+  if (!securityIdentity) throw new Error('Revision cannot be reviewed.');
+  assertGenericReviewContentType(securityIdentity.contentItem.type);
   const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, include: { contentItem: true } }); if (!revision || !canReviewRevision(user.role, user.id, revision.authorId) || revision.status !== 'IN_REVIEW') throw new Error('Revision cannot be reviewed.');
   await assertContentActionAccess(user.id, revision.contentItemId, action === 'publish' ? 'PUBLISH' : 'REVIEW');
   if ((action === 'changes' || action === 'reject') && note.length < 10) throw new Error('A review note is required.');

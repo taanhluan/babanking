@@ -1,4 +1,4 @@
-export type JourneySectionLink = { id: string; title: string };
+export type JourneySectionLink = { id: string; title: string; children?: JourneySectionLink[] };
 
 export type JourneyStageLink = {
   id: string;
@@ -17,14 +17,14 @@ export function deriveJourneyNavigation(
   stages: Array<{
     id: string;
     title: string;
-    states: Array<{ id: string; title: string }>;
+    states: Array<{ id: string; title: string; children?: Array<{ id: string; title: string }> }>;
   }>,
 ): JourneyStageLink[] {
   return stages.map((stage) => ({
     id: stage.id,
     title: stage.title,
     sectionCount: stage.states.length,
-    sections: stage.states.map((state) => ({ id: state.id, title: state.title })),
+    sections: stage.states.map((state) => ({ id: state.id, title: state.title, children: state.children?.map((child) => ({ id: child.id, title: child.title })) })),
   }));
 }
 

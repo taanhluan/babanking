@@ -20,7 +20,7 @@ export function assertDraftSubmittable(input: {
   authorId: string | null;
   status: RevisionStatus;
 }) {
-  assertGovernedDraftSubmittable(input, 'Journey');
+  assertGovernedDraftSubmittable(input, 'Journey', true);
 }
 
 export function assertRevisionReviewable(input: {

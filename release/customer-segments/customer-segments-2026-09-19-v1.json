@@ -1,0 +1,195 @@
+{
+  "releaseId": "customer-segments-2026-09-19-v1",
+  "createdAt": "2026-09-19T12:30:00.000Z",
+  "entries": [
+    {
+      "slug": "retail-banking",
+      "sourceEnvironment": "development",
+      "sourceRevisionId": "cmu8d2mah0001rg0oanmxuamu",
+      "sourceVersion": 2,
+      "sourcePublishedAt": "2026-09-19T12:28:59.746Z",
+      "sourceHash": "2e7811e638e5857c5f1bbc1485b4aaa9761fc44fd20368084d5137356bce9b7f",
+      "content": {
+        "schemaVersion": 2,
+        "en": {
+          "title": "General Retail Banking Ecosystem",
+          "description": "An end-to-end retail banking ecosystem serving individuals, households, and micro-entrepreneurs throughout their financial lifecycle. It connects everyday payments, deposits, lending, wealth, protection, digital engagement, customer service, and security into a consistent omnichannel experience.",
+          "focus": [
+            "Everyday banking and smart payments",
+            "Savings, wealth and bancassurance",
+            "Personal lending and mortgages",
+            "Digital onboarding and customer engagement",
+            "Security, fraud prevention and data privacy"
+          ],
+          "alt": "Retail banking ecosystem connecting customers with payments, savings, lending, wealth management and secure digital services",
+          "sections": [
+            {
+              "type": "TEXT",
+              "heading": "What is Retail Banking?",
+              "content": "Retail Banking provides financial products and services directly to individual customers, households, and eligible micro-entrepreneurs. It supports customers from their first account and payment card through borrowing, home ownership, family protection, wealth accumulation, retirement planning, and ongoing financial wellbeing.\n\nA modern retail bank is more than a collection of products. It is an integrated ecosystem combining customer data, channels, products, operations, risk controls, payments infrastructure, analytics, and partner services. Customers expect to begin an activity on one channel and complete it seamlessly on another without repeating information."
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Who Does Retail Banking Serve?",
+              "items": [
+                { "title": "Young and First-Time Customers", "description": "Customers opening their first account, receiving income, making digital payments, building savings habits, and establishing an initial credit profile." },
+                { "title": "Working Professionals", "description": "Salaried customers requiring transaction accounts, cards, personal loans, automated savings, insurance, investments, and convenient digital servicing." },
+                { "title": "Families and Households", "description": "Customers managing household expenses, education funding, home ownership, emergency savings, protection, and long-term family wealth." },
+                { "title": "Affluent Customers", "description": "Customers seeking personalized advisory, investment products, portfolio insights, premium cards, protection, and preferential servicing." },
+                { "title": "Micro-Entrepreneurs", "description": "Individuals and household businesses needing payment collection, cash-flow visibility, deposits, working-capital credit, and separation of personal and business finances." },
+                { "title": "Senior and Retirement Customers", "description": "Customers prioritizing capital preservation, retirement income, simple servicing, fraud protection, accessibility, and trusted human support." }
+              ]
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Core Product and Service Families",
+              "items": [
+                { "title": "Accounts and Deposits", "description": "Current accounts, savings accounts, term deposits, salary accounts, goal-based savings, interest management, funding, withdrawal, maturity, and closure." },
+                { "title": "Payments and Cards", "description": "Debit and credit cards, domestic and international transfers, bill payments, QR payments, digital wallets, merchant payments, recurring payments, and cross-border services." },
+                { "title": "Consumer Lending", "description": "Personal loans, mortgages, auto loans, secured and unsecured credit, overdrafts, credit lines, refinancing, repayment, collections, and restructuring." },
+                { "title": "Wealth and Investment", "description": "Investment onboarding, suitability assessment, funds, bonds, securities, portfolio monitoring, financial goals, advisory, and regulatory reporting." },
+                { "title": "Insurance and Protection", "description": "Life, health, property, travel, and loan protection distributed through bancassurance partnerships and embedded customer journeys." },
+                { "title": "Service and Engagement", "description": "Customer inquiries, service requests, complaints, disputes, notifications, personalized offers, financial insights, loyalty, and retention programs." }
+              ]
+            },
+            {
+              "type": "TEXT",
+              "heading": "How the Retail Banking Business Creates Value",
+              "content": "Retail Banking creates value by building trusted, long-term customer relationships rather than selling isolated products. Revenue may come from lending margins, deposit economics, card and payment fees, interchange, account services, investment fees, insurance commissions, and partner propositions.\n\nSustainable growth depends on acquiring suitable customers, increasing primary-bank relationships, improving product adoption, retaining deposits, managing credit and fraud risk, and reducing service costs through effective digital journeys. Sales conversations should therefore connect customer needs across their lifecycle instead of focusing only on the product currently requested."
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Customer Needs and Relevant Solutions",
+              "items": [
+                { "title": "Manage Money Every Day", "description": "Position transaction accounts, debit cards, mobile banking, bill payments, transfers, alerts, spending insights, and convenient cash access." },
+                { "title": "Build Financial Resilience", "description": "Explore emergency savings, automated transfers, term deposits, budgeting tools, insurance protection, and responsible access to short-term credit." },
+                { "title": "Finance Important Goals", "description": "Connect education, vehicle, home, renovation, and personal goals with appropriate lending, affordability assessment, repayment planning, and protection." },
+                { "title": "Grow Long-Term Wealth", "description": "Discuss financial goals, risk appetite, investment horizon, diversified investments, recurring contributions, advisory, and portfolio monitoring." },
+                { "title": "Protect Identity and Transactions", "description": "Explain authentication, biometrics, transaction monitoring, card controls, fraud alerts, dispute support, privacy, and customer security responsibilities." },
+                { "title": "Receive Convenient Support", "description": "Present consistent mobile, web, branch, contact-center, relationship-manager, chatbot, notification, and complaint-resolution capabilities." }
+              ]
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Sales Discovery Guide",
+              "items": [
+                { "title": "Understand the Customer", "description": "Ask about life stage, household responsibilities, employment, income patterns, financial goals, current banking relationships, and preferred service channels." },
+                { "title": "Identify the Primary Need", "description": "Clarify the outcome the customer wants, the urgency, current pain points, expected transaction behavior, and how success should be measured." },
+                { "title": "Assess Suitability", "description": "Confirm eligibility, affordability, risk appetite, investment knowledge, documentation, regulatory requirements, and any vulnerability or accessibility needs." },
+                { "title": "Connect Related Needs", "description": "Explore relevant combinations such as salary account plus savings, mortgage plus protection, card plus alerts, or investment plus goal tracking." },
+                { "title": "Explain Value Clearly", "description": "Describe customer outcomes, key features, fees, rates, risks, obligations, service conditions, and alternatives using transparent language." },
+                { "title": "Confirm the Next Step", "description": "Agree on application, document collection, consent, verification, follow-up, activation, onboarding support, and post-sale service expectations." }
+              ]
+            },
+            {
+              "type": "TEXT",
+              "heading": "Responsible Sales and Customer Protection",
+              "content": "Every recommendation must be suitable for the customer's needs and circumstances. Sales teams should provide transparent information about pricing, interest, fees, risks, exclusions, repayment obligations, early termination, and complaint channels. Consent, privacy, KYC, sanctions screening, affordability, suitability, and product-governance controls must be completed through approved processes.\n\nCustomer Segment content supports product understanding and navigation. It does not replace approved product terms, credit policy, compliance guidance, or professional financial advice."
+            },
+            {
+              "type": "IMAGE",
+              "assetKey": "retail-banking",
+              "alt": "Retail banking ecosystem connecting everyday banking, payments, savings, lending, protection and wealth services",
+              "caption": "Retail Banking connects products, channels, customer service, risk controls, data, and partner capabilities across the customer lifecycle."
+            }
+          ]
+        },
+        "vi": {
+          "title": "Hệ sinh thái Ngân hàng Bán lẻ Toàn diện",
+          "description": "Hệ sinh thái ngân hàng bán lẻ phục vụ cá nhân, hộ gia đình và chủ hộ kinh doanh trong suốt vòng đời tài chính. Hệ sinh thái kết nối thanh toán, tiền gửi, tín dụng, đầu tư, bảo vệ, tương tác số, dịch vụ khách hàng và bảo mật thành trải nghiệm đa kênh nhất quán.",
+          "focus": [
+            "Ngân hàng hằng ngày và thanh toán thông minh",
+            "Tiết kiệm, đầu tư và bancassurance",
+            "Tín dụng cá nhân và vay thế chấp",
+            "Mở tài khoản số và tương tác khách hàng",
+            "Bảo mật, chống gian lận và quyền riêng tư"
+          ],
+          "alt": "Hệ sinh thái ngân hàng bán lẻ kết nối thanh toán, tiết kiệm, tín dụng, đầu tư và dịch vụ số an toàn",
+          "sections": [
+            {
+              "type": "TEXT",
+              "heading": "Ngân hàng Bán lẻ là gì?",
+              "content": "Ngân hàng Bán lẻ cung cấp sản phẩm và dịch vụ tài chính trực tiếp cho khách hàng cá nhân, hộ gia đình và các chủ hộ kinh doanh phù hợp. Ngân hàng đồng hành từ khi khách hàng mở tài khoản, nhận thu nhập và sử dụng thẻ đầu tiên đến khi vay vốn, mua nhà, bảo vệ gia đình, tích lũy tài sản và chuẩn bị cho nghỉ hưu.\n\nNgân hàng bán lẻ hiện đại không chỉ là tập hợp sản phẩm. Đây là một hệ sinh thái tích hợp dữ liệu khách hàng, kênh giao dịch, sản phẩm, vận hành, quản trị rủi ro, hạ tầng thanh toán, phân tích dữ liệu và dịch vụ đối tác. Khách hàng kỳ vọng có thể bắt đầu trên một kênh và hoàn thành trên kênh khác mà không phải cung cấp lại thông tin."
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Ngân hàng Bán lẻ phục vụ ai?",
+              "items": [
+                { "title": "Khách hàng trẻ và mới sử dụng ngân hàng", "description": "Khách hàng mở tài khoản đầu tiên, nhận thu nhập, thanh toán số, hình thành thói quen tiết kiệm và xây dựng hồ sơ tín dụng ban đầu." },
+                { "title": "Người đi làm", "description": "Khách hàng cần tài khoản giao dịch, thẻ, vay tiêu dùng, tiết kiệm tự động, bảo hiểm, đầu tư và dịch vụ số thuận tiện." },
+                { "title": "Gia đình và hộ gia đình", "description": "Khách hàng quản lý chi tiêu, giáo dục, mua nhà, quỹ dự phòng, bảo vệ gia đình và kế hoạch tích lũy tài sản dài hạn." },
+                { "title": "Khách hàng ưu tiên", "description": "Khách hàng cần tư vấn cá nhân hóa, đầu tư, quản lý danh mục, thẻ cao cấp, giải pháp bảo vệ và dịch vụ ưu tiên." },
+                { "title": "Chủ hộ kinh doanh", "description": "Khách hàng cần thu tiền, theo dõi dòng tiền, tiền gửi, vốn lưu động và tách bạch tài chính cá nhân với hoạt động kinh doanh." },
+                { "title": "Khách hàng cao tuổi và nghỉ hưu", "description": "Khách hàng ưu tiên bảo toàn vốn, thu nhập hưu trí, dịch vụ đơn giản, chống gian lận, khả năng tiếp cận và hỗ trợ đáng tin cậy." }
+              ]
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Các nhóm sản phẩm và dịch vụ cốt lõi",
+              "items": [
+                { "title": "Tài khoản và Tiền gửi", "description": "Tài khoản thanh toán, tiết kiệm, tiền gửi có kỳ hạn, tài khoản nhận lương, tiết kiệm theo mục tiêu, trả lãi, đáo hạn và tất toán." },
+                { "title": "Thanh toán và Thẻ", "description": "Thẻ ghi nợ, thẻ tín dụng, chuyển tiền, thanh toán hóa đơn, QR, ví điện tử, thanh toán định kỳ và dịch vụ xuyên biên giới." },
+                { "title": "Tín dụng Tiêu dùng", "description": "Vay cá nhân, vay mua nhà, vay mua xe, tín dụng có hoặc không có tài sản bảo đảm, thấu chi, tái cấp vốn và quản lý thu hồi nợ." },
+                { "title": "Đầu tư và Quản lý Tài sản", "description": "Mở hồ sơ đầu tư, đánh giá phù hợp, quỹ, trái phiếu, chứng khoán, theo dõi danh mục, mục tiêu tài chính và báo cáo." },
+                { "title": "Bảo hiểm và Bảo vệ", "description": "Bảo hiểm nhân thọ, sức khỏe, tài sản, du lịch và bảo hiểm khoản vay được phân phối qua bancassurance hoặc tích hợp trong hành trình." },
+                { "title": "Dịch vụ và Tương tác", "description": "Tra cứu, yêu cầu dịch vụ, khiếu nại, tranh chấp, thông báo, ưu đãi cá nhân hóa, phân tích tài chính, loyalty và giữ chân khách hàng." }
+              ]
+            },
+            {
+              "type": "TEXT",
+              "heading": "Ngân hàng Bán lẻ tạo ra giá trị như thế nào?",
+              "content": "Ngân hàng Bán lẻ tạo giá trị bằng cách xây dựng quan hệ lâu dài và đáng tin cậy với khách hàng thay vì bán từng sản phẩm riêng lẻ. Nguồn thu có thể đến từ biên lợi nhuận tín dụng, hiệu quả huy động, phí thẻ và thanh toán, interchange, phí dịch vụ tài khoản, phí đầu tư, hoa hồng bảo hiểm và sản phẩm đối tác.\n\nTăng trưởng bền vững phụ thuộc vào việc thu hút đúng khách hàng, trở thành ngân hàng giao dịch chính, tăng mức độ sử dụng sản phẩm, duy trì tiền gửi, quản lý rủi ro tín dụng và gian lận, đồng thời giảm chi phí phục vụ bằng hành trình số hiệu quả. Vì vậy, Sales cần kết nối nhiều nhu cầu trong vòng đời khách hàng thay vì chỉ tập trung vào sản phẩm đang được hỏi."
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Nhu cầu khách hàng và giải pháp phù hợp",
+              "items": [
+                { "title": "Quản lý tiền hằng ngày", "description": "Giới thiệu tài khoản thanh toán, thẻ ghi nợ, mobile banking, thanh toán hóa đơn, chuyển tiền, cảnh báo và phân tích chi tiêu." },
+                { "title": "Xây dựng khả năng dự phòng", "description": "Khám phá quỹ khẩn cấp, tiết kiệm tự động, tiền gửi kỳ hạn, quản lý ngân sách, bảo hiểm và tín dụng ngắn hạn có trách nhiệm." },
+                { "title": "Tài trợ các mục tiêu quan trọng", "description": "Kết nối nhu cầu học tập, mua xe, mua nhà hoặc sửa nhà với khoản vay phù hợp, đánh giá khả năng trả nợ và giải pháp bảo vệ." },
+                { "title": "Tích lũy tài sản dài hạn", "description": "Trao đổi về mục tiêu, khẩu vị rủi ro, thời hạn đầu tư, đa dạng hóa, đầu tư định kỳ, tư vấn và theo dõi danh mục." },
+                { "title": "Bảo vệ danh tính và giao dịch", "description": "Giải thích xác thực, sinh trắc học, giám sát giao dịch, khóa thẻ, cảnh báo gian lận, hỗ trợ tranh chấp và trách nhiệm bảo mật." },
+                { "title": "Nhận hỗ trợ thuận tiện", "description": "Giới thiệu trải nghiệm nhất quán qua ứng dụng, website, chi nhánh, contact center, relationship manager, chatbot và thông báo." }
+              ]
+            },
+            {
+              "type": "FEATURE_GRID",
+              "heading": "Hướng dẫn Sales khám phá nhu cầu",
+              "items": [
+                { "title": "Hiểu khách hàng", "description": "Tìm hiểu giai đoạn cuộc sống, trách nhiệm gia đình, nghề nghiệp, thu nhập, mục tiêu tài chính, ngân hàng đang sử dụng và kênh ưa thích." },
+                { "title": "Xác định nhu cầu chính", "description": "Làm rõ kết quả khách hàng mong muốn, mức độ cấp thiết, vấn đề hiện tại, hành vi giao dịch dự kiến và tiêu chí thành công." },
+                { "title": "Đánh giá tính phù hợp", "description": "Xác nhận điều kiện, khả năng chi trả, khẩu vị rủi ro, kiến thức đầu tư, hồ sơ, yêu cầu tuân thủ và nhu cầu hỗ trợ đặc biệt." },
+                { "title": "Kết nối các nhu cầu liên quan", "description": "Khám phá tổ hợp phù hợp như tài khoản lương với tiết kiệm, vay mua nhà với bảo hiểm hoặc thẻ với cảnh báo giao dịch." },
+                { "title": "Giải thích giá trị minh bạch", "description": "Trình bày lợi ích, tính năng, lãi suất, phí, rủi ro, nghĩa vụ, điều kiện dịch vụ và lựa chọn thay thế bằng ngôn ngữ rõ ràng." },
+                { "title": "Thống nhất bước tiếp theo", "description": "Xác nhận quy trình đăng ký, hồ sơ, đồng ý, xác minh, thời gian theo dõi, kích hoạt, hướng dẫn ban đầu và hỗ trợ sau bán." }
+              ]
+            },
+            {
+              "type": "TEXT",
+              "heading": "Bán hàng có trách nhiệm và Bảo vệ khách hàng",
+              "content": "Mọi đề xuất phải phù hợp với nhu cầu và hoàn cảnh của khách hàng. Sales cần minh bạch về giá, lãi suất, phí, rủi ro, điều khoản loại trừ, nghĩa vụ trả nợ, tất toán trước hạn và kênh khiếu nại. Các bước về đồng ý, quyền riêng tư, KYC, kiểm soát cấm vận, khả năng chi trả, suitability và quản trị sản phẩm phải được thực hiện qua quy trình đã phê duyệt.\n\nNội dung Customer Segment hỗ trợ hiểu sản phẩm và định hướng hành trình. Nội dung này không thay thế điều khoản sản phẩm được phê duyệt, chính sách tín dụng, hướng dẫn tuân thủ hoặc tư vấn tài chính chuyên nghiệp."
+            },
+            {
+              "type": "IMAGE",
+              "assetKey": "retail-banking",
+              "alt": "Hệ sinh thái ngân hàng bán lẻ kết nối ngân hàng hằng ngày, thanh toán, tiết kiệm, tín dụng, bảo hiểm và đầu tư",
+              "caption": "Ngân hàng Bán lẻ kết nối sản phẩm, kênh giao dịch, dịch vụ khách hàng, kiểm soát rủi ro, dữ liệu và đối tác trong toàn bộ vòng đời khách hàng."
+            }
+          ]
+        },
+        "journeys": [
+          "cards",
+          "customer-onboarding",
+          "customer-service",
+          "deposits",
+          "lending",
+          "notification-and-engagement",
+          "payments-and-transfers",
+          "personal-finance-management",
+          "security-and-access",
+          "wealth-and-investment"
+        ]
+      }
+    }
+  ]
+}

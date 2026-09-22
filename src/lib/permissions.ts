@@ -6,4 +6,4 @@ export const canReview = (role: Role) => role === 'REVIEWER' || role === 'ADMIN'
 export const canManageUsers = (role: Role) => role === 'ADMIN';
 export const canEditRevision = (role: Role, userId: string, authorId: string | null, status: RevisionStatus) =>
   (role === 'ADMIN' || userId === authorId) && (status === 'DRAFT' || status === 'CHANGES_REQUESTED');
-export const canReviewRevision = (role: Role, userId: string, authorId: string | null) => canReview(role) && userId !== authorId;
+export const canReviewRevision = (role: Role, userId: string, authorId: string | null) => canReview(role) && (role === 'ADMIN' || userId !== authorId);

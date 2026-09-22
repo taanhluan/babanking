@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480">
+<rect width="800" height="480" fill="#10253e"/><circle cx="640" cy="90" r="210" fill="#173853"/><circle cx="120" cy="470" r="250" fill="#143249"/>
+<path d="M100 360H700" stroke="#54708a" stroke-width="2"/>
+<path d="M155 240L310 110L465 240" fill="none" stroke="#d8b76a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M180 230V360H440V230L310 130Z" fill="#e5edf3"/><rect x="275" y="265" width="65" height="95" rx="5" fill="#325b7c"/><rect x="210" y="240" width="40" height="45" rx="5" fill="#73b5c5"/><rect x="366" y="240" width="40" height="45" rx="5" fill="#73b5c5"/>
+<rect x="430" y="205" width="240" height="145" rx="18" fill="#327d9b"/><rect x="450" y="230" width="35" height="28" rx="5" fill="#e9cb87"/><path d="M452 300H548M452 320H510" stroke="#d9ebf4" stroke-width="8" stroke-linecap="round"/><circle cx="605" cy="250" r="18" fill="#e9cb87"/>
+<ellipse cx="550" cy="378" rx="60" ry="12" fill="#091a2d"/><path d="M510 344V365C510 383 590 383 590 365V344" fill="#c59e4f"/><ellipse cx="550" cy="344" rx="40" ry="13" fill="#efcf86"/><path d="M510 330V347C510 365 590 365 590 347V330" fill="#c59e4f"/><ellipse cx="550" cy="330" rx="40" ry="13" fill="#f5d996"/>
+</svg>

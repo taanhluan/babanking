@@ -2,6 +2,7 @@ import 'server-only';
 import type { Prisma, Role } from '@prisma/client';
 import { db } from '@/lib/db';
 import type { ApplicationEnvironment } from '@/server/environment-core';
+import { customerSegmentSlugSchema, type CustomerSegmentSlug } from '@/server/customer-segment/customer-segment-domain';
 import { assertJourneyCmsWriteEnvironment } from './journey-cms-environment';
 import {
   assertJourneyStableSlug,
@@ -18,11 +19,74 @@ import {
 } from './journey-cms-policy';
 
 type Actor = { id: string; role: Role };
+type CreateJourneyInput = {
+  slug: string;
+  title: string;
+  summary: string;
+  knowledgeScopeId: string;
+  plannedSegment: CustomerSegmentSlug;
+};
 
 function auditMetadata(environment: ApplicationEnvironment, value: Record<string, unknown>) {
   return JSON.stringify({
     environment,
     ...value,
+  });
+}
+
+function plannedSegmentFromPreview(value: string | null) {
+  try {
+    const preview = value ? JSON.parse(value) as { plannedSegment?: unknown } : null;
+    return customerSegmentSlugSchema.safeParse(preview?.plannedSegment).data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function createJourney(input: CreateJourneyInput, actor: Actor) {
+  const environment = assertJourneyCmsWriteEnvironment();
+  assertRolePermission(actor.role, 'CREATE');
+  const plannedSegment = customerSegmentSlugSchema.parse(input.plannedSegment);
+  const content = parseJourneyContentJson(JSON.stringify({
+    title: input.title,
+    slug: input.slug,
+    summary: input.summary,
+    schemaVersion: 1,
+    metadata: { journeyReader: 'canonical' },
+    modules: [],
+  }));
+  assertJourneyStableSlug(content, input.slug);
+  return db.$transaction(async (transaction) => {
+    const [existing, scope] = await Promise.all([
+      transaction.contentItem.findUnique({ where: { type_slug: { type: 'BANKING_JOURNEY', slug: input.slug } }, select: { id: true } }),
+      transaction.knowledgeScope.findFirst({ where: { id: input.knowledgeScopeId, isActive: true }, select: { id: true } }),
+    ]);
+    if (existing) throw new Error('Journey slug already exists.');
+    if (!scope) throw new Error('Knowledge scope not found.');
+    const contentJson = JSON.stringify(content);
+    const item = await transaction.contentItem.create({
+      data: {
+        type: 'BANKING_JOURNEY',
+        slug: input.slug,
+        stableKey: `banking-journey:${input.slug}`,
+        ownerId: actor.id,
+        previewJson: journeyPreviewJson(content, plannedSegment),
+        knowledgeScopes: { create: { knowledgeScopeId: scope.id, relationshipType: 'PRIMARY', isRequired: true } },
+      },
+    });
+    const revision = await transaction.contentRevision.create({
+      data: { contentItemId: item.id, version: 1, status: 'DRAFT', schemaVersion: 1, contentJson, authorId: actor.id },
+    });
+    await transaction.auditLog.create({
+      data: {
+        actorId: actor.id,
+        action: 'JOURNEY_CREATED',
+        entityType: 'ContentItem',
+        entityId: item.id,
+        metadataJson: auditMetadata(environment.APP_ENV, { revisionId: revision.id, plannedSegment, knowledgeScopeId: scope.id }),
+      },
+    });
+    return { item, revision };
   });
 }
 
@@ -210,7 +274,7 @@ export async function publishJourneyRevisionTransaction(
   const content = parseJourneyContentJson(revision.contentJson);
   const item = await transaction.contentItem.findUnique({
     where: { id: contentItemId, type: 'BANKING_JOURNEY' },
-    select: { publishedRevisionId: true, slug: true },
+    select: { publishedRevisionId: true, slug: true, previewJson: true },
   });
   if (!item) throw new Error('Journey not found.');
   assertJourneyStableSlug(content, item.slug);
@@ -229,7 +293,7 @@ export async function publishJourneyRevisionTransaction(
     where: { id: contentItemId, publishedRevisionId: item.publishedRevisionId },
     data: {
       publishedRevisionId: revision.id,
-      previewJson: journeyPreviewJson(content),
+      previewJson: journeyPreviewJson(content, plannedSegmentFromPreview(item.previewJson)),
     },
   });
   if (pointed.count !== 1) throw new Error('Journey publication pointer conflict.');
@@ -275,7 +339,7 @@ export async function rollbackJourneyRevisionTransaction(
   const content = parseJourneyContentJson(target.contentJson);
   const item = await transaction.contentItem.findUnique({
     where: { id: contentItemId, type: 'BANKING_JOURNEY' },
-    select: { publishedRevisionId: true, slug: true },
+    select: { publishedRevisionId: true, slug: true, previewJson: true },
   });
   if (!item || item.publishedRevisionId === target.id) {
     throw new Error('Journey revision is already published.');
@@ -285,7 +349,7 @@ export async function rollbackJourneyRevisionTransaction(
     where: { id: contentItemId, publishedRevisionId: item.publishedRevisionId },
     data: {
       publishedRevisionId: target.id,
-      previewJson: journeyPreviewJson(content),
+      previewJson: journeyPreviewJson(content, plannedSegmentFromPreview(item.previewJson)),
     },
   });
   if (rolledBack.count !== 1) throw new Error('Journey rollback pointer conflict.');

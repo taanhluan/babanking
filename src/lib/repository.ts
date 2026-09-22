@@ -32,16 +32,18 @@ const routes: Record<ContentType, string> = {
   CASE_STUDY: "case-studies",
   CAREER_LEVEL: "career-roadmap",
   BA_DOCUMENT: "ba-documents",
+  CUSTOMER_SEGMENT: "banking-journeys",
 };
 
 const labels: Record<
   Exclude<ContentType, "BA_DOCUMENT">,
-  "Banking Journey" | "BA Practice" | "Case Study" | "Career Level"
+  "Banking Journey" | "BA Practice" | "Case Study" | "Career Level" | "Customer Segment"
 > = {
   BANKING_JOURNEY: "Banking Journey",
   BA_PRACTICE: "BA Practice",
   CASE_STUDY: "Case Study",
   CAREER_LEVEL: "Career Level",
+  CUSTOMER_SEGMENT: "Customer Segment",
 };
 
 function parseBody(value: string): Record<string, unknown> | null {
@@ -84,7 +86,7 @@ export const ContentRepository = {
       db.contentItem.findMany({
         where: {
           id: { in: accessibleIds },
-          type: { not: "BA_DOCUMENT" },
+          type: { notIn: ["BA_DOCUMENT", "CUSTOMER_SEGMENT"] },
           isArchived: false,
           publishedRevisionId: { not: null },
         },
@@ -217,7 +219,7 @@ export const ContentRepository = {
       db.contentItem.findMany({
         where: {
           id: { in: accessibleIds },
-          type: { not: "BA_DOCUMENT" },
+          type: { notIn: ["BA_DOCUMENT", "CUSTOMER_SEGMENT"] },
           isArchived: false,
           publishedRevisionId: { not: null },
         },

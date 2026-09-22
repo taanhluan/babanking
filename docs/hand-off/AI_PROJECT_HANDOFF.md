@@ -1,5 +1,71 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Payments business flow reader compatibility (2026-09-11)
+
+- Incoming published flows use CODE blocks with payload.code/language=mermaid;
+  the previous CODE renderer read only text/content and displayed empty cards.
+- Added a lazy Mermaid client renderer with strict security and visible source
+  fallback. Existing structured BusinessProcessDiagram rendering is preserved.
+- Payment mapping now retains published supporting sections, including Activity
+  Flow, Sequence Diagram and State Machine, rather than filtering them out.
+- No published JSON, revision, or Production data was changed. Browser visual
+  verification remains outstanding; regression coverage includes CODE source
+  preservation and supporting-section navigation.
+
+## Payments published JSON verification (2026-09-11)
+
+- Read-only Development verification confirmed v12 published at 10:22:56 local
+  time, with all 25 modules matching the user-supplied JSON by normalized hash.
+  Preview title/summary also match the new JSON. No data repair was needed.
+- Payment portal recognized only 15 of the 17 supplied payment capabilities.
+  Added Scheduled Payment and Standing Order to the existing alias list, with
+  a regression test. Other portal behavior remains unchanged.
+
+## Journey ADMIN submission enhancement (2026-09-11)
+
+- User explicitly authorized ADMIN submission of any Journey draft without
+  transferring authorship. Journey policy now opts into the existing shared
+  submission guard's admin allowance; DRAFT/CHANGES_REQUESTED transition checks
+  still apply. Other governed content retains author-only submission by default.
+- Editor Submit visibility and permission copy match this rule. Review/publish
+  independence, content validation, transactional writes and audits are unchanged.
+- No database mutation, ownership transfer, deployment, or architecture change.
+
+## Journey large draft request fix (2026-09-11)
+
+- Subsequent `?error=permission` investigation found the editor offered Submit
+  to non-author ADMINs although the lifecycle requires the actual draft author.
+  Submit visibility now matches author ownership, with an explanatory message
+  for admins editing another user's draft. Payments v12 retains its cloned
+  author; no ownership transfer or workflow transition was performed.
+- Follow-up read-only verification confirmed Payments & Transfers v12 remains
+  DRAFT with successful `JOURNEY_DRAFT_UPDATED` audits through 10:05:05 local
+  time. The editor rendered an old error query parameter even after successful
+  saves. Successful Journey mutations now redirect to the clean editor URL
+  after revalidation, clearing stale error banners.
+- Development logs confirmed `Body exceeded 1 MB limit` from the Journey
+  editor Save Draft request; the user identified Payments & Transfers.
+- `next.config.mjs` now sets `experimental.serverActions.bodySizeLimit` to
+  `10mb`, allowing larger JSON requests to reach existing authorization and
+  content validation. This is an application-wide Server Actions limit.
+- Next configuration loader confirmed 10mb; all six editor save tests passed.
+  Actual user JSON has not been resubmitted or verified persisted.
+- No database mutation or Preview/Production deployment was performed.
+
+## Development admin access restored (2026-09-11)
+
+- Follow-up: changed both admin passwords at the user's explicit request to
+  satisfy the login form/server minimum of 12 characters. Conditional updates
+  and `DEVELOPMENT_ADMIN_PASSWORD_CHANGED` audits committed in one Serializable
+  transaction. Both passed loginSchema validation and bcrypt read-back checks.
+- Explicitly authorized creation of `insceta@gmail.com` and `taanhluan@gmail.com`
+  as active ADMIN accounts in Development after confirming both were absent.
+- Creation and one `DEVELOPMENT_ADMIN_CREATED` AuditLog per account committed
+  in one Serializable transaction, with an absence precondition.
+- Read-back confirmed ADMIN, ACTIVE, isActive=true, matching bcrypt password
+  verification, and one audit per account. No credentials are recorded here.
+- Existing anonymized users were preserved. Production and Preview were untouched.
+
 > Last verified: 2026-07-26, Asia/Ho_Chi_Minh
 > Current working environment: Development only
 > Purpose: Give the next engineer or AI agent enough verified context to continue safely without reconstructing the project history from chat.
@@ -97,11 +163,19 @@
 - Contributor actions and history are state-specific. Member library and global
   search continue to query one ContentItem and only its current
   `publishedRevision`; drafts cannot become additional member cards.
-- Read-only Development audit found two Customer Onboarding ContentItems with
-  the same Primary Journey, identical stable artifact-ID sets, identical
-  artifact/module counts, and separate v1 publications (`BRD-01` and `BRD-02`).
-  They are treated as likely revision-testing duplicates pending explicit
-  archive authorization; this remediation did not mutate either record.
+- Development consolidation confirmed `customer-ob-02` (`BRD-02`) as the
+  authoritative logical document. It retains published v1 and its existing v2
+  DRAFT on the same ContentItem with unchanged Primary Journey, stable IDs,
+  content, and revision hash.
+- Field-level comparison found that legacy `customer-onboarding-brd` (`BRD-01`)
+  had no unique requirement, rule, validation, process, data, acceptance, UAT,
+  decision, module, block, reference, or other business content. Differences
+  were limited to document-identifying metadata and search tags; BRD-02 has the
+  intended newer, more detailed metadata.
+- The legacy ContentItem was conditionally archived in Development with an
+  AuditLog. Its published v1 and history were preserved; no ContentItem or
+  revision was deleted or created. Member library/search now have one active
+  published Customer Onboarding BA Document.
 
 ## Project Skill
 
@@ -712,3 +786,109 @@ For every continuation, start with:
 ```text
 Use $banking-ba-project and read docs/AI_PROJECT_HANDOFF.md before changing code or data.
 ```
+
+## 16. Proposed Change Request — Customer-Segmented Banking Journeys (2026-09-19)
+
+The Product Owner requested that Banking Journeys open into three Customer Segments:
+Retail Banking, SME, and Enterprise Banking. All currently published Journeys are initially grouped under Retail Banking; SME and Enterprise remain explicit empty categories until approved content exists.
+
+The design and request history are recorded in [`CHANGE_REQUEST_CUSTOMER_SEGMENTED_BANKING_JOURNEYS.md`](./CHANGE_REQUEST_CUSTOMER_SEGMENTED_BANKING_JOURNEYS.md). Phase 1 was authorized and implemented locally on 2026-09-19; Product Owner visual review is next.
+
+Phase 1 must be a navigation/catalog enhancement only:
+
+- `/[locale]/banking-journeys` becomes the segment selector.
+- `/[locale]/banking-journeys/segments/[segmentSlug]` becomes a segment Welcome Page with localized General description, curated image/alt text, and authorized Journey previews.
+- Existing `/[locale]/banking-journeys/[journeySlug]` detail URLs remain unchanged.
+- Use a typed server-side segment catalog; do not add a new content type, schema, revision model, reader, renderer, or permission system.
+- Phase 1 ships authored static SVG illustrations (no scripts or external references). Admin media upload remains a separate future capability; the proposed raster upload restrictions are unchanged.
+- Segment classification is not authorization. Existing server-side Knowledge Access evaluation remains authoritative before grouping or displaying previews.
+- No ContentItem, ContentRevision, published pointer, scope, grant, membership, or Production data changes are authorized for Phase 1.
+
+Before implementation, preserve the current Development/Production drift finding: schema/access counts match, but Customer Onboarding and Payments & Transfers Published content do not. Do not reconcile that drift as part of this navigation request.
+
+Implementation hand-off: catalog in `src/server/journey-segments.ts`, reusable server-rendered presentation in `src/components/journeys/SegmentWelcome.tsx`, static illustrations in `public/images/segments/`. Both locales and all three segment routes exist. Existing authorized previews are filtered by the explicit catalog; future Journeys require explicit catalog assignment. Legacy duplicate visibility is left to existing repository filters.
+
+Checks: 294 tests across 42 files, typecheck and local build passed; migration runner explicitly skipped. Lint warning in new test mock was corrected. Signed-in browser verified selector (10/0/0), Retail welcome and Vietnamese SME mobile welcome. No database mutation or Production access in this implementation turn. Local development server started on port 3000 for review. Full release and restricted-member manual regression remain separate follow-up work.
+
+## 17. Customer Segment CMS — Development implementation (2026-09-19)
+
+The approved CMS follow-up is implemented on Development only. `CUSTOMER_SEGMENT` was added to the Prisma ContentType enum and migration `20260919090000_add_customer_segment` was applied after `db:check-env` confirmed both application and database environment were `development`. No segment records were auto-created, and no Preview/Production access occurred.
+
+Use `/admin/customer-segments` as Admin to create the three initial governed drafts. Content includes EN/VI welcome metadata and Journey slug assignments; schema validation, published-Journey validation, duplicate assignment prevention, immutable slug, audit logs, drafts, review queue handling, publish, and clone-from-published draft are in place. Each public segment consumes its own published CMS record independently; an unpublished segment retains its audited static fallback.
+
+The segment remains catalog metadata only: it is never a Knowledge Scope, grant, entitlement, or direct content-access path. Existing authorized Journey retrieval remains authoritative. Static reviewed SVG assets remain in use. CMS media upload and a field-based authoring UX are explicitly deferred.
+
+Verification in this change: lint, typecheck, all 42 test files / 294 tests, `VERCEL=0 npm run build`, and `npm run db:migrate:status` passed. Next owner action: create, submit, review and publish each segment as needed, then manually verify an authorized and a restricted user. Release remains a separate explicit authorization.
+
+## 18. Segment landing and Journey navigation — Development status (2026-09-19)
+
+- Status: implementation complete locally on Development; release is not authorized.
+- General content stays at `/[locale]/banking-journeys/segments/[segmentSlug]`; authorized Journey cards are at the child `/journeys` route.
+- Landing content supports backward-compatible CMS schema v1 plus optional v2 `TEXT`, `FEATURE_GRID`, and approved internal `IMAGE` sections. No database migration was needed.
+- Shared localized `Overview / Journeys` tabs, hero CTA, closing CTA, active-page state, breadcrumbs, and Journey card transitions connect both pages clearly.
+- Direct browser verification on the signed-in Retail page confirmed the `Explore journeys` link navigates to `/en/banking-journeys/segments/retail-banking/journeys`, shows ten authorized Journey cards, and links back to the General Retail overview.
+- Remaining owner checks: inspect desktop/mobile visuals for EN/VI and exercise restricted-member behavior. Preview/Production remain untouched.
+- Retail landing media update: `assetKey: "retail-banking"` inside a CMS `IMAGE` section resolves to the owner-provided `retail-banking-orchestration.png` diagram at the end of General content. It does not replace the hero SVG. The image remains code-reviewed local media; no upload capability or external URL was introduced.
+
+## 19. Customer Segment Production release preparation (2026-09-19)
+
+Release `customer-segments-2026-09-19-v1` is prepared but not deployed. The immutable artifact under `release/customer-segments/` contains only Retail Banking Development published v2 because SME and Enterprise have no CMS-published Development revisions. Artifact and direct Development DB read-back canonical hashes match: `2e7811e638e5857c5f1bbc1485b4aaa9761fc44fd20368084d5137356bce9b7f`.
+
+`scripts/promote-customer-segments.ts` provides read-only verification plus guarded, idempotent Production apply and audited pointer rollback. It permits no manual content reconstruction and requires two distinct Production actor identities. See `CUSTOMER_SEGMENT_PRODUCTION_RELEASE_RUNBOOK.md` for exact order and gates.
+
+Validation after packaging: lint passed, TypeScript passed, 43 test files / 298 tests passed, build passed, and Development release verification returned `matches: true`. A local Production preflight did not access Production: unavailable Vercel secrets caused Development `.env.local` to conflict with Production identity, and the safety gate stopped execution. Production/Preview remain unchanged.
+
+## 20. Customer Segment Production release and scroll follow-up (2026-09-20)
+
+- Release v1 is live at `https://babanking.vercel.app` through deployment `dpl_46X5Fa7PwHCJd1s8tsKoznywbHxn`. Production Retail revision `cmu8dyar10003gm7dnshiuol5` matched canonical hash `2e7811e638e5857c5f1bbc1485b4aaa9761fc44fd20368084d5137356bce9b7f`.
+- A reported continuous light scroll latency was not caused by CMS/database work, React scroll listeners, or authorization. A large final image remains a possible one-time decode cost only.
+- Development A/B checks tried native document scrolling, alternate navbar compositing, reduced image paint work, and an optimized local Production build; none removed the latency.
+- A no-JavaScript static HTML baseline reproduced the same latency, ruling out Customer Segment, React, Next.js, CMS, database, and access control. Experimental CSS changes were reverted, so no scroll patch remains to deploy.
+- System evidence points outside the application: the built-in panel is 60 Hz, Chrome GPU acceleration is active, Low Power Mode is off, memory is not swapping, and WindowServer showed sustained high compositor CPU while the Chrome page renderer stayed low.
+- Safari rendered the same local page smoothly while Chrome retained the latency, completing isolation to Chrome/profile/extensions or its GPU compositor. Do not change or deploy application code for this symptom.
+
+## 21. SME and Enterprise orchestration media (2026-09-21)
+
+- Owner approved a Production media enhancement adding one local 1672×941 PNG to SME and one to Enterprise.
+- `SegmentWelcome` now maps the existing safe CMS keys `sme` and `enterprise-banking` to the new local files; Retail mapping and all hero SVGs remain unchanged.
+- No CMS record is created, edited, submitted, reviewed, or published by this release. Published content must include the corresponding `IMAGE` section for the diagram to render.
+- Focused component tests, TypeScript, lint, clean build, Production deployment, and HTTP asset smoke tests are the release gates. Deployment outcome is recorded in the Production runbook.
+- Outcome: deployment `dpl_EN2EXLF1KQFVT6obLVP83KFjWCX7` is live on the Production alias. Remote build passed, no migration was pending, and both public asset checksums match local approved files.
+- The prior one-time Retail promotion variables had remained configured and correctly caused the first media deployment attempt to fail closed; all three were removed before the successful retry and verified absent afterward.
+
+## 22. Journey-to-Segment management — Phase 1 complete on Development (2026-09-21)
+
+- Journey CMS has segment filters/badges for Retail, SME, Enterprise, and Unassigned. Development currently resolves 10 Retail, 0 SME, 0 Enterprise, and 1 unassigned published Journey.
+- Customer Segment CMS has a published-Journey assignment picker while retaining the validated JSON landing-content editor. Published Segment revisions remain authoritative; assignment never grants knowledge access.
+- Admin can create a new Banking Journey as an unpublished scoped Draft with optional planning-only segment metadata. It becomes public only through the existing specialist Journey review/publish flow, then can be assigned through a separately reviewed Segment revision.
+- No migration or Development data mutation was required for the implementation. Existing Retail/public routes/access behavior are preserved, and no SME/Enterprise Journey content was authored.
+- Verification passed: 44 test files / 303 tests, ESLint, TypeScript, diff check, local build, and signed-in Development UI checks.
+- Production and Preview were not deployed or mutated. Phase 2 content authoring for SME/Enterprise requires separate approval.
+
+## 23. SME and Enterprise Journey portfolios — Phase 2 Development status (2026-09-21)
+
+- Product Owner authorized Phase 2. Development now contains 20 new private Journey identities: 10 planned for SME and 10 for Enterprise Banking.
+- All are version 1 `DRAFT`, unpublished and unassigned. Each has one required Primary Knowledge Scope reused from the existing access model and one `SEGMENT_JOURNEY_PHASE2_DRAFT_CREATED` audit record authored by the active Admin selected for this release.
+- Drafts cover the same ten capability families as the Retail portfolio but use SME/corporate-specific titles, summaries and lifecycle stages. Initial canonical content contains Overview, Lifecycle, and BA checklist modules plus an explicit pre-publication review warning.
+- Journey CMS includes planned, unassigned Drafts in SME/Enterprise filters without presenting them as published assignments. Customer Segment public rendering remains driven only by independently published Segment revisions and authorized published Journeys.
+- Guarded release ID: `segment-journey-phase-2-development-v1`; apply script: `npm run db:seed:segment-journey-drafts -- --apply`. A no-flag invocation is read-only verification and currently reports `existing: 20`, `pending: 0`.
+- The first transaction timed out before commit and rolled back completely; bounded-timeout retry committed all 20 atomically and read-back validated exact content, status, scope, planning metadata and audit evidence.
+- No migration, Retail reassignment, publication, public visibility, Preview access, or Production change occurred. Phase 3 is content review/enrichment and governed publication/assignment, only after separate approval.
+- Final gates passed: 45 test files / 305 tests, ESLint, TypeScript, diff check, Development read-back, and local production-style build.
+
+## 24. Detailed Segment Journey content — Phase 3 Development status (2026-09-21)
+
+- Product Owner authorized Phase 3. The 20 SME/Enterprise Journey identities were enriched in place; all remain private version 1 Drafts with their original stable slugs and Knowledge Scopes.
+- Each artifact has 13 modules and 65 canonical sections/blocks, including domain-specific lifecycle analysis, business rules, exceptions, systems/data, risks/controls, KPIs, sales discovery and BA deliverables. The structured reader recognizes all artifacts and their five supported block types.
+- Apply release: `segment-journey-phase-3-development-v1`; script: `npm run db:enrich:segment-journey-drafts -- --apply`. Read-only verification currently returns `detailed: 20`, `pending: 0` and rejects manual drift, publication, review, scope changes or missing audit evidence.
+- Each update has an audited before/after SHA-256. No new ContentItem, revision, scope, grant or assignment was created in Phase 3.
+- Content is bank-neutral and intentionally contains no fabricated product limits, pricing, approval authority or local regulatory conclusions. Independent Product, Operations, Risk/Compliance, Architecture and Security validation is still required.
+- No submit/review/publish action, Customer Segment assignment, Retail change, Preview access or Production mutation occurred.
+- Final gates passed: 46 test files / 306 tests, ESLint, TypeScript, diff check, structured-reader mapping, exact Development read-back, and local production-style build.
+
+## 25. Segment Journey Review submission — Development (2026-09-21)
+
+- All 20 SME/Enterprise Phase 3 revisions are now `IN_REVIEW`; Development read-back reports `inReview: 20`, `pending: 0`.
+- Guarded batch release: `segment-journey-phase-3-submit-development-v1`; command: `npm run db:submit:segment-journey-drafts -- --apply`. It validates exact governed content and authorship before writing standard `JOURNEY_SUBMITTED_FOR_REVIEW` audit records.
+- No review, publication or Customer Segment assignment occurred. The reviewer/publisher must be a distinct authorized actor from the author, preserving editorial independence.
+- Production, Preview, Retail assignments and public visibility remain unchanged.

@@ -106,6 +106,9 @@ export function parseServerEnvironment(
   if (appEnvironment === 'production' && parsed.ENABLE_STATIC_CONTENT_FALLBACK) {
     throw new Error('Static content fallback cannot be enabled in production.');
   }
+  if (appEnvironment === 'production' && parsed.KNOWLEDGE_ACCESS_MATRIX_MODE !== 'enforced') {
+    throw new Error('Knowledge access matrix must run in enforced mode in production.');
+  }
   return { APP_ENV: appEnvironment, ...parsed };
 }
 

@@ -11,7 +11,10 @@ export function governedContentHash(contentJson: string) {
 }
 
 export function governedAuditMetadata(environment: string, value: Record<string, unknown>) {
-  return JSON.stringify({ environment, ...value });
+  const blocked = /token|password|secret|authorization|cookie|contentjson|databaseurl|privatekey/i;
+  const allowed = new Set(['environment', 'contentItemId', 'revisionId', 'sourceRevisionId', 'knowledgeScopeId', 'plannedSegment', 'slug', 'from', 'to', 'archived']);
+  const safe = Object.fromEntries(Object.entries({ environment, ...value }).filter(([key, entry]) => allowed.has(key) && !blocked.test(key) && ['string', 'number', 'boolean'].includes(typeof entry)));
+  return JSON.stringify(safe);
 }
 
 export function assertGovernedRolePermission(role: Role, permission: KnowledgePermission, label: string) {
@@ -27,9 +30,9 @@ export function assertGovernedDraftEditable(input: RevisionInput, label: string)
   }
 }
 
-export function assertGovernedDraftSubmittable(input: RevisionInput, label: string) {
+export function assertGovernedDraftSubmittable(input: RevisionInput, label: string, allowAdmin = false) {
   assertGovernedRolePermission(input.role, 'EDIT', label);
-  if (input.authorId !== input.actorId || !canTransition(input.status, 'SUBMIT')) {
+  if ((input.authorId !== input.actorId && !(allowAdmin && input.role === 'ADMIN')) || !canTransition(input.status, 'SUBMIT')) {
     throw new Error(`${label.replace(' permission denied.', '')} draft cannot be submitted by the current user.`);
   }
 }
@@ -43,7 +46,7 @@ export function assertGovernedRevisionReviewable(input: RevisionInput, label: st
 
 export function assertGovernedRevisionPublishable(input: RevisionInput, label: string) {
   assertGovernedRolePermission(input.role, 'PUBLISH', label);
-  if (input.actorId === input.authorId || !canReviewRevision(input.role, input.actorId, input.authorId) || !canTransition(input.status, 'PUBLISH')) {
+  if ((input.role !== 'ADMIN' && input.actorId === input.authorId) || !canReviewRevision(input.role, input.actorId, input.authorId) || !canTransition(input.status, 'PUBLISH')) {
     throw new Error(`${label.replace(' permission denied.', '')} revision cannot be published by its author.`);
   }
 }

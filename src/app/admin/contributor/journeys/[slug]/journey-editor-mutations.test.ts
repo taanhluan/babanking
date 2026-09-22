@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { journeyContentSchema } from '@/server/cms/journey-content-schema';
-import { addJourneyBlock, duplicateJourneyBlock, moveJourneySection, removeJourneyBlock } from './journey-editor-mutations';
+import { addJourneyBlock, addJourneySubsection, duplicateJourneyBlock, moveJourneySection, removeJourneyBlock } from './journey-editor-mutations';
 
 const draft = journeyContentSchema.parse({ title: 'Payments and Transfers', summary: 'A sufficiently long journey summary for mutation tests.', schemaVersion: 1, modules: [{ key: 'internal-transfer', title: 'Internal Transfer', sections: [{ key: 'initiation', title: 'Initiation', blocks: [{ blockType: 'RICH_TEXT', schemaVersion: 1, payload: { title: 'Purpose', text: 'Start' } }] }, { title: 'Validation', blocks: [] }] }] });
 
 describe('journey editor mutations', () => {
+  it('creates a v2 subsection without changing legacy sections', () => {
+    const result = addJourneySubsection(draft, 0, 0);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.content.schemaVersion).toBe(2);
+      expect(result.content.modules?.[0].sections[0].subsections?.[0].title).toBe('New Subsection');
+    }
+  });
   it('adds a schema-valid block without mutating the input', () => {
     const result = addJourneyBlock(draft, 0, 0);
     expect(result.ok).toBe(true);
