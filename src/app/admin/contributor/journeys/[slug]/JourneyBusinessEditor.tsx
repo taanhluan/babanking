@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useCallback, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { MAX_JOURNEY_CONTENT_BYTES } from "@/lib/journey-media";
 import { saveJourneyDraftAction } from "../actions";
 import { ContentNavigator } from "./ContentNavigator";
 import { RevisionToolbar } from "./RevisionToolbar";
@@ -1451,6 +1452,7 @@ export function JourneyBusinessEditor({
     JSON.stringify(JSON.parse(initialContentJson), null, 2),
   );
   const [advancedError, setAdvancedError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const modules = modulesFrom(content);
   const nodes = useMemo(() => makeNodes(modules), [modules]);
   const visible = nodes.filter(
@@ -1558,12 +1560,21 @@ export function JourneyBusinessEditor({
     : { contentJson: advancedText, title: "", summary: "" };
   const submitDraft = (event: React.FormEvent<HTMLFormElement>) => {
     const result = resolveJourneyEditorSave({ mode, content, advancedText });
-    if (result.ok) {
-      setAdvancedError("");
+    if (!result.ok) {
+      event.preventDefault();
+      setAdvancedError(result.error);
       return;
     }
-    event.preventDefault();
-    setAdvancedError(result.error);
+    const byteLength = new TextEncoder().encode(result.payload.contentJson).byteLength;
+    if (byteLength > MAX_JOURNEY_CONTENT_BYTES) {
+      event.preventDefault();
+      setSaveError(
+        `This draft is ${(byteLength / 1024 / 1024).toFixed(1)} MB. The maximum is ${(MAX_JOURNEY_CONTENT_BYTES / 1024 / 1024).toFixed(0)} MB; remove embedded media or use an HTTPS image URL before saving.`,
+      );
+      return;
+    }
+    setAdvancedError("");
+    setSaveError("");
   };
   const applyJourneyMutation = (result: JourneyMutationResult) => {
     if (result.ok) {
@@ -1828,6 +1839,11 @@ export function JourneyBusinessEditor({
           Save Draft
         </button>
       </RevisionToolbar>
+      {saveError ? (
+        <p role="alert" className="mt-3 text-sm text-red-700">
+          {saveError}
+        </p>
+      ) : null}
       {mode === "advanced" ? (
         <AdvancedJsonEditor
           text={advancedText}
