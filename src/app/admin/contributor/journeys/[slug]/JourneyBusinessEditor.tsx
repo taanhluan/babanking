@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useCallback, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { saveJourneyDraftAction } from "../actions";
 import { ContentNavigator } from "./ContentNavigator";
@@ -227,6 +227,330 @@ function StructuredItemsEditor({
   );
 }
 
+const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+const ACCEPTED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const ACCEPTED_DIAGRAM_MIME_TYPES = new Set(["image/png"]);
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function ImageBlockEditor({
+  payload,
+  onChange,
+}: {
+  payload: JsonObject;
+  onChange: (payload: JsonObject) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      setUploadError("");
+      if (!ACCEPTED_IMAGE_MIME_TYPES.has(file.type)) {
+        setUploadError("Only PNG, JPG, and WEBP images are accepted.");
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setUploadError(`Image must be under 2 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+        return;
+      }
+      setUploading(true);
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        onChange({ ...payload, url: dataUrl, fileName: file.name });
+      } catch {
+        setUploadError("Failed to read the file. Please try again.");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [payload, onChange],
+  );
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const file = event.dataTransfer.files[0];
+      if (file) handleFile(file);
+    },
+    [handleFile],
+  );
+
+  const currentUrl = typeof payload.url === "string" ? payload.url : "";
+  const isDataUrl = currentUrl.startsWith("data:");
+  const fileName = typeof payload.fileName === "string" ? payload.fileName : "";
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-semibold">
+        Title
+        <input
+          value={typeof payload.title === "string" ? payload.title : ""}
+          onChange={(e) => onChange({ ...payload, title: e.target.value })}
+          placeholder="Image title"
+          className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+        />
+      </label>
+      <label className="block text-sm font-semibold">
+        Alt text
+        <input
+          value={typeof payload.alt === "string" ? payload.alt : ""}
+          onChange={(e) => onChange({ ...payload, alt: e.target.value })}
+          placeholder="Describe the image for accessibility"
+          className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+        />
+      </label>
+      <label className="block text-sm font-semibold">
+        Caption
+        <input
+          value={typeof payload.caption === "string" ? payload.caption : ""}
+          onChange={(e) => onChange({ ...payload, caption: e.target.value })}
+          placeholder="Optional caption displayed below image"
+          className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+        />
+      </label>
+
+      {/* Upload area */}
+      <div>
+        <p className="mb-2 text-sm font-semibold">Image file</p>
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          onClick={() => inputRef.current?.click()}
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-colors hover:border-royalBlue hover:bg-blue-50"
+        >
+          {uploading ? (
+            <p className="text-sm text-slate-500">Reading file…</p>
+          ) : currentUrl ? (
+            <>
+              {isDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentUrl}
+                  alt={typeof payload.alt === "string" ? payload.alt : "Preview"}
+                  className="max-h-48 max-w-full rounded-lg object-contain"
+                />
+              ) : null}
+              <p className="text-xs text-slate-500">
+                {fileName || "Image loaded"} · Click or drag to replace
+              </p>
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <p className="text-sm text-slate-500">Click or drag an image here</p>
+              <p className="text-xs text-slate-400">PNG, JPG, WEBP · max 2 MB</p>
+            </>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_TYPES}
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFile(file);
+            e.target.value = "";
+          }}
+        />
+        {uploadError ? (
+          <p className="mt-2 text-xs text-red-700" role="alert">{uploadError}</p>
+        ) : null}
+        {currentUrl ? (
+          <button
+            type="button"
+            onClick={() => onChange({ ...payload, url: "", fileName: "" })}
+            className="mt-2 text-xs text-red-700"
+          >
+            Remove image
+          </button>
+        ) : null}
+      </div>
+
+      {/* External URL fallback */}
+      <details>
+        <summary className="cursor-pointer text-sm font-semibold text-royalBlue">
+          Or enter an external URL
+        </summary>
+        <label className="mt-2 block text-sm">
+          <input
+            type="url"
+            value={typeof payload.url === "string" && !isDataUrl ? payload.url : ""}
+            onChange={(e) => onChange({ ...payload, url: e.target.value, fileName: "" })}
+            placeholder="https://..."
+            className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+          />
+        </label>
+      </details>
+    </div>
+  );
+}
+
+const DIAGRAM_TYPES = [
+  { value: "sequence", label: "Sequence Diagram" },
+  { value: "flowchart", label: "Flowchart" },
+  { value: "class", label: "Class Diagram" },
+  { value: "er", label: "Entity-Relationship" },
+  { value: "gantt", label: "Gantt Chart" },
+  { value: "other", label: "Other / Custom" },
+];
+
+function DiagramBlockEditor({
+  payload,
+  onChange,
+}: {
+  payload: JsonObject;
+  onChange: (payload: JsonObject) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      setUploadError("");
+      if (!ACCEPTED_DIAGRAM_MIME_TYPES.has(file.type)) {
+        setUploadError("Only PNG diagram exports are accepted.");
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setUploadError(`File must be under 2 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+        return;
+      }
+      setUploading(true);
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        onChange({ ...payload, url: dataUrl, fileName: file.name });
+      } catch {
+        setUploadError("Failed to read file. Please try again.");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [payload, onChange],
+  );
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const file = event.dataTransfer.files[0];
+      if (file) handleFile(file);
+    },
+    [handleFile],
+  );
+
+  const currentUrl = typeof payload.url === "string" ? payload.url : "";
+  const isDataUrl = currentUrl.startsWith("data:");
+  const fileName = typeof payload.fileName === "string" ? payload.fileName : "";
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-semibold">
+        Title
+        <input
+          value={typeof payload.title === "string" ? payload.title : ""}
+          onChange={(e) => onChange({ ...payload, title: e.target.value })}
+          placeholder="Diagram title"
+          className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+        />
+      </label>
+
+      <label className="block text-sm font-semibold">
+        Diagram type
+        <select
+          value={typeof payload.diagramType === "string" ? payload.diagramType : "other"}
+          onChange={(e) => onChange({ ...payload, diagramType: e.target.value })}
+          className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+        >
+          {DIAGRAM_TYPES.map((dt) => (
+            <option key={dt.value} value={dt.value}>{dt.label}</option>
+          ))}
+        </select>
+      </label>
+
+      {/* Upload area */}
+      <div>
+        <p className="mb-2 text-sm font-semibold">Diagram image file</p>
+        <p className="mb-3 text-xs text-slate-500">Upload a PNG export of your diagram (e.g. exported from draw.io, Lucidchart, PlantUML, or similar tools).</p>
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          onClick={() => inputRef.current?.click()}
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-colors hover:border-royalBlue hover:bg-blue-50"
+        >
+          {uploading ? (
+            <p className="text-sm text-slate-500">Reading file…</p>
+          ) : currentUrl ? (
+            <>
+              {isDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentUrl}
+                  alt={typeof payload.title === "string" ? payload.title : "Diagram preview"}
+                  className="max-h-64 max-w-full rounded-lg object-contain"
+                />
+              ) : null}
+              <p className="text-xs text-slate-500">
+                {fileName || "Diagram loaded"} · Click or drag to replace
+              </p>
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="9" y="15" width="6" height="6" rx="1"/><path d="M5 9v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><line x1="12" y1="12" x2="12" y2="15"/></svg>
+              <p className="text-sm text-slate-500">Click or drag a diagram image here</p>
+              <p className="text-xs text-slate-400">PNG · max 2 MB</p>
+            </>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFile(file);
+            e.target.value = "";
+          }}
+        />
+        {uploadError ? (
+          <p className="mt-2 text-xs text-red-700" role="alert">{uploadError}</p>
+        ) : null}
+        {currentUrl ? (
+          <button
+            type="button"
+            onClick={() => onChange({ ...payload, url: "", fileName: "" })}
+            className="mt-2 text-xs text-red-700"
+          >
+            Remove diagram image
+          </button>
+        ) : null}
+      </div>
+
+      <label className="block text-sm font-semibold">
+        Description / notes
+        <textarea
+          value={typeof payload.description === "string" ? payload.description : ""}
+          onChange={(e) => onChange({ ...payload, description: e.target.value })}
+          rows={3}
+          placeholder="Optional description of what this diagram shows"
+          className="mt-1 w-full rounded-lg border border-slate-300 p-3 font-normal"
+        />
+      </label>
+    </div>
+  );
+}
+
 function PayloadEditor({
   block,
   onChange,
@@ -269,6 +593,10 @@ function PayloadEditor({
       {error ? <p className="text-xs text-red-700">{error}</p> : null}
     </>
   );
+  if (block.blockType === "IMAGE")
+    return <ImageBlockEditor payload={payload} onChange={onChange} />;
+  if (block.blockType === "DIAGRAM")
+    return <DiagramBlockEditor payload={payload} onChange={onChange} />;
   if (["RICH_TEXT", "CALLOUT", "CODE"].includes(block.blockType))
     return (
       <div className="space-y-3">
@@ -1342,6 +1670,20 @@ export function JourneyBusinessEditor({
             }}
             onMutate={applyJourneyMutation}
           />
+          <label className="mb-4 block text-sm font-semibold">
+            Block type
+            <select
+              value={selectedBlock.blockType}
+              onChange={(event) =>
+                updateBlock(selectedBlock.payload, event.target.value)
+              }
+              className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
+            >
+              {blockTypes.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </label>
           <PayloadEditor
             key={selectedBlock.id ?? selectedNode.id}
             block={selectedBlock}

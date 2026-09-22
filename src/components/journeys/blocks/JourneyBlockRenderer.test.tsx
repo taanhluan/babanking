@@ -8,6 +8,30 @@ const renderBlock = (blockType: string, payload: unknown) =>
   renderToStaticMarkup(<JourneyBlockRenderer block={{ blockType, payload }} />);
 
 describe('JourneyBlockRenderer width semantics', () => {
+  it('renders approved image and diagram uploads with accessible metadata', () => {
+    const imageMarkup = renderBlock('IMAGE', {
+      url: 'data:image/png;base64,aGVsbG8=',
+      title: 'Identity evidence',
+      alt: 'A customer identity document',
+      caption: 'Accepted document example.',
+    });
+    const diagramMarkup = renderBlock('DIAGRAM', {
+      url: 'https://cdn.example.com/onboarding-flow.png',
+      title: 'Onboarding flow',
+    });
+
+    expect(imageMarkup).toContain('alt="A customer identity document"');
+    expect(imageMarkup).toContain('Identity evidence');
+    expect(imageMarkup).toContain('Accepted document example.');
+    expect(diagramMarkup).toContain('https://cdn.example.com/onboarding-flow.png');
+  });
+
+  it('does not render an untrusted image source', () => {
+    const markup = renderBlock('IMAGE', { url: 'javascript:alert(1)' });
+    expect(markup).not.toContain('javascript:');
+    expect(markup).not.toContain('<img');
+  });
+
   it('preserves published CODE payloads before diagram hydration', () => {
     const markup = renderBlock('CODE', { title: 'Business flow', language: 'mermaid', code: 'flowchart TB\n A-->B' });
     expect(markup).toContain('Business flow');

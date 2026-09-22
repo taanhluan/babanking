@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assertJourneyContentSize, isSafeJourneyMediaUrl } from '@/lib/journey-media';
 
 export const journeyBlockTypeSchema = z.enum([
   'RICH_TEXT',
@@ -18,7 +19,17 @@ const journeyBlockSchema = z.object({
   blockType: journeyBlockTypeSchema,
   schemaVersion: z.number().int().min(1),
   payload: z.record(z.string(), z.unknown()),
-}).passthrough();
+}).passthrough().superRefine((block, context) => {
+  if (!['IMAGE', 'DIAGRAM'].includes(block.blockType)) return;
+  const url = block.payload.url;
+  if (url !== undefined && !isSafeJourneyMediaUrl(url)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['payload', 'url'],
+      message: 'Media URL must be HTTPS or a PNG, JPEG, or WEBP base64 data URL.',
+    });
+  }
+});
 
 const journeySubsectionSchema = z.object({
   id: z.string().trim().min(1).max(120).optional(),
@@ -64,6 +75,7 @@ export const journeyBusinessDraftInputSchema = z.object({
 });
 
 export function parseJourneyContentJson(value: string): JourneyContent {
+  assertJourneyContentSize(value);
   const parsed: unknown = JSON.parse(value);
   return journeyContentSchema.parse(parsed);
 }
@@ -130,6 +142,7 @@ export function canonicalizeJourneyDraft(input: {
   summary: string;
   stableSlug: string;
 }) {
+  assertJourneyContentSize(input.submittedJson);
   const authoritative = parseJsonObject(input.authoritativeJson);
   const submitted = parseJsonObject(input.submittedJson);
   if (submitted.slug !== undefined && submitted.slug !== input.stableSlug) {

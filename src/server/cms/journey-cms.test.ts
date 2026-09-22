@@ -242,6 +242,35 @@ describe('Journey CMS validation and workflow policy', () => {
     }).success).toBe(false);
   });
 
+  it('enforces the media URL policy for direct server submissions', () => {
+    const base = {
+      title: 'Payments and Transfers',
+      summary: 'A sufficiently detailed Payment Journey summary for validation.',
+      modules: [{ title: 'Overview', sections: [{ title: 'Intro', blocks: [{
+        blockType: 'IMAGE',
+        schemaVersion: 1,
+        payload: { url: 'data:image/png;base64,aGVsbG8=' },
+      }] }] }],
+    };
+    expect(journeyContentSchema.safeParse(base).success).toBe(true);
+    expect(journeyContentSchema.safeParse({
+      ...base,
+      modules: [{ title: 'Overview', sections: [{ title: 'Intro', blocks: [{
+        blockType: 'IMAGE',
+        schemaVersion: 1,
+        payload: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' },
+      }] }] }],
+    }).success).toBe(false);
+    expect(journeyContentSchema.safeParse({
+      ...base,
+      modules: [{ title: 'Overview', sections: [{ title: 'Intro', blocks: [{
+        blockType: 'DIAGRAM',
+        schemaVersion: 1,
+        payload: { url: 'javascript:alert(1)' },
+      }] }] }],
+    }).success).toBe(false);
+  });
+
   it('keeps the ContentItem stable slug immutable', () => {
     const content = parseJourneyContentJson(contentJson);
     expect(() => assertJourneyStableSlug(content, 'payments-and-transfers')).not.toThrow();
