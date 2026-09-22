@@ -10,6 +10,10 @@ export function Reveal({ children, className = '', delay = 0 }: { children: Reac
     const element = ref.current;
     if (!element) return;
 
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
@@ -17,7 +21,7 @@ export function Reveal({ children, className = '', delay = 0 }: { children: Reac
           observer.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.28, rootMargin: '0px 0px -8% 0px' }
     );
 
     observer.observe(element);
@@ -27,7 +31,7 @@ export function Reveal({ children, className = '', delay = 0 }: { children: Reac
   return (
     <div
       ref={ref}
-      className={`reveal-motion transition-all duration-700 ease-out ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'} ${className}`}
+      className={`reveal-motion will-change-transform transition-[opacity,transform] duration-[850ms] ease-out motion-reduce:transition-none ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
