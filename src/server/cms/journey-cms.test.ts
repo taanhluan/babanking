@@ -11,14 +11,17 @@ import {
   assertJourneyStableSlug,
   canonicalizeJourneyDraft,
   journeyContentSchema,
+  journeyPreviewJson,
   parseJourneyContentJson,
 } from './journey-content-schema';
 import {
   assertDraftEditable,
+  assertDraftSubmittable,
   assertRevisionPublishable,
   assertRevisionReviewable,
 } from './journey-cms-policy';
 import { getJourneyCmsActionErrorCode } from './journey-cms-action-errors';
+import { assertGovernedDraftSubmittable } from './governed-content-lifecycle';
 
 const mockDatabase = vi.hoisted(() => ({ $transaction: vi.fn() }));
 const mockServerEnvironment = vi.hoisted(() => ({
@@ -56,6 +59,24 @@ const contentJson = JSON.stringify({
       }],
     }],
   }],
+});
+
+describe('Journey submission permissions', () => {
+  it('keeps other governed content author-only by default', () => {
+    expect(() => assertGovernedDraftSubmittable({ role: 'ADMIN', actorId: 'admin', authorId: 'author', status: 'DRAFT' }, 'BA Document')).toThrow();
+  });
+  it('allows admins to submit another author draft or requested changes', () => {
+    for (const status of ['DRAFT', 'CHANGES_REQUESTED'] as const) {
+      expect(() => assertDraftSubmittable({ role: 'ADMIN', actorId: 'admin', authorId: 'author', status })).not.toThrow();
+    }
+  });
+  it('preserves ownership checks for contributors and state checks for admins', () => {
+    expect(() => assertDraftSubmittable({ role: 'CONTRIBUTOR', actorId: 'other', authorId: 'author', status: 'DRAFT' })).toThrow();
+    expect(() => assertDraftSubmittable({ role: 'CONTRIBUTOR', actorId: 'author', authorId: 'author', status: 'DRAFT' })).not.toThrow();
+    for (const status of ['PUBLISHED', 'IN_REVIEW', 'REJECTED'] as const) {
+      expect(() => assertDraftSubmittable({ role: 'ADMIN', actorId: 'admin', authorId: 'author', status })).toThrow();
+    }
+  });
 });
 
 describe('Journey CMS environment protection', () => {
@@ -190,6 +211,13 @@ describe('Journey CMS environment protection', () => {
 });
 
 describe('Journey CMS validation and workflow policy', () => {
+  it('keeps planned segment as non-authoritative preview metadata', () => {
+    const content = parseJourneyContentJson(contentJson);
+    expect(JSON.parse(journeyPreviewJson(content, 'sme'))).toMatchObject({
+      title: 'Payments and Transfers',
+      plannedSegment: 'sme',
+    });
+  });
   it('maps expected CMS policy failures to controlled codes without hiding technical errors', () => {
     expect(getJourneyCmsActionErrorCode(new Error('Journey CMS permission denied.'))).toBe('permission');
     expect(getJourneyCmsActionErrorCode(new Error('An active Journey revision already exists.'))).toBe('workflow');
@@ -218,6 +246,16 @@ describe('Journey CMS validation and workflow policy', () => {
     const content = parseJourneyContentJson(contentJson);
     expect(() => assertJourneyStableSlug(content, 'payments-and-transfers')).not.toThrow();
     expect(() => assertJourneyStableSlug(content, 'cards')).toThrow(/cannot be changed/);
+  });
+
+  it('accepts v2 subsections while keeping v1 data flat and bounded', () => {
+    const v1 = journeyContentSchema.parse({ title: 'Legacy Journey', summary: 'A sufficiently detailed legacy Journey summary for validation.', schemaVersion: 1, modules: [{ title: 'Module', sections: [{ title: 'Section', blocks: [] }] }] });
+    expect(v1.schemaVersion).toBe(1);
+    const v2 = journeyContentSchema.parse({ title: 'Structured Journey', summary: 'A sufficiently detailed structured Journey summary for validation.', schemaVersion: 2, modules: [{ title: 'Module', sections: [{ title: 'Section', blocks: [], subsections: [{ title: 'Subsection', blocks: [] }] }] }] });
+    expect(v2.schemaVersion).toBe(2);
+    expect(v2.modules?.[0].sections[0].subsections).toHaveLength(1);
+    const tooMany = Array.from({ length: 21 }, (_, index) => ({ title: `Section ${index}`, blocks: [] }));
+    expect(journeyContentSchema.safeParse({ title: 'Too many', summary: 'A sufficiently detailed structured Journey summary for validation.', schemaVersion: 2, modules: [{ title: 'Module', sections: tooMany }] }).success).toBe(false);
   });
 
   it('replaces legacy body fields only for explicitly canonical structured submissions', () => {
@@ -329,13 +367,64 @@ describe('Journey CMS validation and workflow policy', () => {
       actorId: 'author',
       authorId: 'author',
       status: 'IN_REVIEW',
-    })).toThrow(/author/);
+    })).not.toThrow();
     expect(() => assertRevisionPublishable({
       role: 'REVIEWER',
       actorId: 'reviewer',
       authorId: 'author',
       status: 'IN_REVIEW',
     })).not.toThrow();
+  });
+});
+
+describe('Journey creation foundation', () => {
+  it('creates an unpublished scoped Draft with planned segment metadata and audit', async () => {
+    const itemCreate = vi.fn().mockResolvedValue({ id: 'new-journey', slug: 'sme-business-onboarding' });
+    const revisionCreate = vi.fn().mockResolvedValue({ id: 'new-revision', version: 1, status: 'DRAFT' });
+    const auditCreate = vi.fn();
+    const transaction = {
+      contentItem: { findUnique: vi.fn().mockResolvedValue(null), create: itemCreate },
+      knowledgeScope: { findFirst: vi.fn().mockResolvedValue({ id: 'scope-1' }) },
+      contentRevision: { create: revisionCreate },
+      auditLog: { create: auditCreate },
+    };
+    mockDatabase.$transaction.mockImplementation(async (callback) => callback(transaction));
+    const { createJourney } = await import('./journey-cms-service');
+    await createJourney({
+      slug: 'sme-business-onboarding',
+      title: 'SME Business Onboarding',
+      summary: 'A controlled end-to-end onboarding Journey for small and medium-sized enterprises.',
+      knowledgeScopeId: 'scope-1',
+      plannedSegment: 'sme',
+    }, { id: 'admin', role: 'ADMIN' });
+    expect(itemCreate).toHaveBeenCalledWith({ data: expect.objectContaining({
+      type: 'BANKING_JOURNEY',
+      slug: 'sme-business-onboarding',
+      previewJson: expect.stringContaining('"plannedSegment":"sme"'),
+      knowledgeScopes: { create: { knowledgeScopeId: 'scope-1', relationshipType: 'PRIMARY', isRequired: true } },
+    }) });
+    expect(revisionCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ version: 1, status: 'DRAFT', authorId: 'admin' }) });
+    expect(auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: 'JOURNEY_CREATED', entityId: 'new-journey' }) });
+  });
+
+  it('fails closed before creation for duplicate slugs or inactive scopes', async () => {
+    const create = vi.fn();
+    const transaction = {
+      contentItem: { findUnique: vi.fn().mockResolvedValue({ id: 'existing' }), create },
+      knowledgeScope: { findFirst: vi.fn().mockResolvedValue(null) },
+      contentRevision: { create },
+      auditLog: { create },
+    };
+    mockDatabase.$transaction.mockImplementation(async (callback) => callback(transaction));
+    const { createJourney } = await import('./journey-cms-service');
+    await expect(createJourney({
+      slug: 'cards',
+      title: 'Duplicate Cards Journey',
+      summary: 'A sufficiently detailed duplicate Journey summary that must never be persisted.',
+      knowledgeScopeId: 'missing-scope',
+      plannedSegment: 'retail-banking',
+    }, { id: 'admin', role: 'ADMIN' })).rejects.toThrow(/already exists/);
+    expect(create).not.toHaveBeenCalled();
   });
 });
 
@@ -414,7 +503,7 @@ describe('Journey CMS publish and rollback transactions', () => {
       transaction,
       'journey-id',
       'revision-new',
-      { id: 'author', role: 'ADMIN' },
+      { id: 'author', role: 'REVIEWER' },
     )).rejects.toThrow(/author/);
     expect(update).not.toHaveBeenCalled();
   });
@@ -543,7 +632,7 @@ describe('public Journey reader regression', () => {
       join(process.cwd(), 'src/app/admin/contributor/journeys/[slug]/JourneyBusinessEditor.tsx'),
       'utf8',
     );
-    expect(editor).toContain("useState<'business' | 'advanced'>('business')");
+    expect(editor).toMatch(/useState<['"]business['"] \| ['"]advanced['"]>\(['"]business['"]\)/);
     expect(editor).toContain('Business Editor');
     expect(editor).toContain('Advanced JSON');
     expect(editor).toContain('Modules, sections and blocks');

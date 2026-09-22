@@ -4,6 +4,7 @@ export function getAdminOperations(isVietnamese: boolean, showJourneyCms: boolea
     [isVietnamese ? 'Quản lý người dùng' : 'Manage Users', '/admin/users'],
     [isVietnamese ? 'Kiểm soát quyền kiến thức' : 'Knowledge Access Control', '/admin/access-control'],
     [isVietnamese ? 'Quản lý nội dung' : 'Manage Content', '/admin/content'],
+    [isVietnamese ? 'Phân khúc khách hàng' : 'Customer Segments', '/admin/customer-segments'],
     [isVietnamese ? 'Quản lý bản dịch' : 'Manage Translations', '/admin/content/translations'],
     [isVietnamese ? 'Nhật ký kiểm toán' : 'View Audit Log', '/admin/audit'],
     [isVietnamese ? 'Môi trường hệ thống' : 'System Environment', '/admin/system/environment'],

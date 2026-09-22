@@ -7,7 +7,8 @@ type SearchContentType =
   | "BA Practice"
   | "Case Study"
   | "Career Level"
-  | "BA Document";
+  | "BA Document"
+  | "Customer Segment";
 type SearchRecord = {
   type: SearchContentType;
   title: string;

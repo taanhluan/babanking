@@ -51,7 +51,16 @@ export function mapStructuredJourneyToCanonical(body: unknown): CanonicalJourney
         title: String(section.title),
         summary: canonicalText(section, ['summary', 'description']),
         blocks: records(section.blocks).map((entry, blockIndex) => normalizeCanonicalBlock(entry, `${stateId}-block-${blockIndex + 1}`)),
-        children: [],
+        children: records(section.subsections).map((subsection, subsectionIndex) => {
+          const childId = uniqueId(canonicalId(subsection.id || subsection.key || subsection.title, `${stateId}-${subsectionIndex + 1}`), usedStateIds);
+          return {
+            id: childId,
+            title: String(subsection.title),
+            summary: canonicalText(subsection, ['summary', 'description']),
+            blocks: records(subsection.blocks).map((entry, blockIndex) => normalizeCanonicalBlock(entry, `${childId}-block-${blockIndex + 1}`)),
+            children: [],
+          };
+        }),
       };
     });
     return {

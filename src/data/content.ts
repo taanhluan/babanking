@@ -122,7 +122,7 @@ export const careerLevelContent: CareerLevelContent[] = careerLevels.map((item, 
   keywords: [item.name, item.focus, ...item.knowledge, ...item.practice],
 }));
 
-export type SearchContentType = 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level';
+export type SearchContentType = 'Banking Journey' | 'BA Practice' | 'Case Study' | 'Career Level' | 'Customer Segment';
 export interface SearchRecord { type: SearchContentType; title: string; summary: string; keywords: string[]; context: string; url: string }
 export const searchIndex: SearchRecord[] = [
   ...bankingJourneyContent.map((x) => ({ type: 'Banking Journey' as const, title: x.title, summary: x.summary, keywords: x.keywords, context: x.category, url: `/banking-journeys/${x.slug}` })),

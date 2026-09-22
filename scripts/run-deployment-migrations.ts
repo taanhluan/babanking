@@ -17,4 +17,29 @@ const result = spawnSync('npx', ['tsx', 'scripts/run-safe-prisma-command.ts', 'm
   env: process.env,
 });
 if (result.error) throw result.error;
-process.exit(result.status ?? 1);
+if (result.status !== 0) process.exit(result.status ?? 1);
+
+// A release-specific, explicit Production flag promotes the immutable approved
+// Customer Segment artifact after its additive migration and before app build.
+if (environment.APP_ENV === 'production' && process.env.CUSTOMER_SEGMENT_RELEASE_CONFIRM) {
+  const promotion = spawnSync('npx', ['tsx', 'scripts/promote-customer-segments.ts', '--apply'], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (promotion.error) throw promotion.error;
+  if (promotion.status !== 0) process.exit(promotion.status ?? 1);
+}
+
+// A separate one-time release gate promotes only SME and Enterprise Banking.
+// The promotion itself verifies that Retail Banking's hash and published pointer
+// remain unchanged before the transaction can commit.
+if (environment.APP_ENV === 'production' && process.env.SME_ENTERPRISE_RELEASE_CONFIRM) {
+  const promotion = spawnSync('npx', ['tsx', 'scripts/promote-sme-enterprise-release.ts', '--apply'], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (promotion.error) throw promotion.error;
+  if (promotion.status !== 0) process.exit(promotion.status ?? 1);
+}
+
+process.exit(0);

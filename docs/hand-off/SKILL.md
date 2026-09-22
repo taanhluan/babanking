@@ -21,6 +21,15 @@ Operate as the project’s senior engineering workflow. Preserve production safe
    - Testing, handoff, current blockers → read `references/validation-and-handoff.md`.
 6. Use a plan for multi-step implementation or any database-changing task.
 
+## Token Economy Principle
+
+- Keep routine commentary and final replies concise; target below 2% request usage when practical.
+- Maximum normal spend is 5% per prompt unless the task genuinely requires more.
+- Read the hand-off first and reuse recorded findings instead of repeating audits.
+- Use focused searches, tests, and tool output; do not print large files or logs without need.
+- Report only material findings, changes, validation, risks, and the exact stopping point.
+- Token saving never overrides correctness, security, environment safety, authorization, or required validation.
+
 ## Enforce Safety
 
 - Default to Development only.

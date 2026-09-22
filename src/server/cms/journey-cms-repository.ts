@@ -9,7 +9,7 @@ export const JourneyCmsRepository = {
     assertJourneyCmsReadEnvironment();
     const ids = await getAccessibleContentIds(userId, {
       type: 'BANKING_JOURNEY',
-      permission: 'VIEW',
+      permission: 'EDIT',
     });
     return db.contentItem.findMany({
       where: {
@@ -50,6 +50,7 @@ export const JourneyCmsRepository = {
         id: true,
         slug: true,
         isArchived: true,
+        previewJson: true,
         knowledgeScopes: {
           select: {
             relationshipType: true,

@@ -1,0 +1,65 @@
+<div id="banking-scroll-concept" aria-label="Video-scroll landing page concept">
+  <style>
+    #banking-scroll-concept { --ink:#edf4ff; --muted:#b4c4da; --navy:#06172b; --panel:#10263f; --line:rgba(205,222,246,.18); --gold:#d9b957; --blue:#2e67ed; color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
+    #banking-scroll-concept * { box-sizing:border-box; }
+    #banking-scroll-concept .shell { overflow:hidden; border-radius:20px; background:var(--navy); box-shadow:0 18px 50px rgba(4,14,29,.18); }
+    #banking-scroll-concept .bar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px; border-bottom:1px solid var(--line); }
+    #banking-scroll-concept .brand { font-weight:600; letter-spacing:.01em; }
+    #banking-scroll-concept .brand small { display:block; color:var(--muted); font-weight:400; }
+    #banking-scroll-concept .label { color:var(--gold); font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+    #banking-scroll-concept .story { display:grid; grid-template-columns:155px minmax(0,1fr); min-height:520px; }
+    #banking-scroll-concept .rail { display:flex; flex-direction:column; gap:12px; padding:42px 20px; border-right:1px solid var(--line); }
+    #banking-scroll-concept .scene-btn { display:flex; align-items:center; gap:10px; width:100%; border:0; border-radius:10px; padding:10px; color:var(--muted); background:transparent; text-align:left; font:inherit; cursor:pointer; }
+    #banking-scroll-concept .scene-btn.is-active { color:var(--ink); background:rgba(255,255,255,.08); }
+    #banking-scroll-concept .dot { width:9px; height:9px; border-radius:50%; background:currentColor; opacity:.75; }
+    #banking-scroll-concept .stage { display:grid; align-items:center; padding:42px clamp(24px,5vw,72px); background:radial-gradient(circle at 80% 24%,rgba(46,103,237,.24),transparent 31%),linear-gradient(120deg,#06172b,#0b213a); }
+    #banking-scroll-concept .scene { display:none; grid-template-columns:minmax(0,1fr) minmax(260px,.82fr); align-items:center; gap:42px; }
+    #banking-scroll-concept .scene.is-active { display:grid; }
+    #banking-scroll-concept h2 { max-width:560px; margin:10px 0 16px; font-size:clamp(32px,4vw,54px); line-height:1.04; letter-spacing:-.04em; }
+    #banking-scroll-concept p { max-width:520px; margin:0; color:var(--muted); line-height:1.65; }
+    #banking-scroll-concept .action { display:inline-flex; align-items:center; gap:8px; margin-top:24px; border:0; border-radius:10px; padding:12px 16px; background:var(--blue); color:white; font:inherit; font-weight:600; }
+    #banking-scroll-concept .visual { min-height:258px; border:1px solid var(--line); border-radius:22px; padding:20px; background:rgba(16,38,63,.82); }
+    #banking-scroll-concept .visual-title { display:flex; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:1px solid var(--line); font-weight:600; }
+    #banking-scroll-concept .chip { border-radius:999px; padding:5px 10px; background:rgba(217,185,87,.14); color:var(--gold); font-size:12px; }
+    #banking-scroll-concept .card-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+    #banking-scroll-concept .mini { min-height:86px; border:1px solid var(--line); border-radius:15px; padding:14px; color:var(--ink); background:rgba(6,23,43,.38); font-size:14px; font-weight:600; }
+    #banking-scroll-concept .line { height:7px; width:78%; margin-top:16px; border-radius:999px; background:rgba(207,223,245,.2); }
+    #banking-scroll-concept .journey { display:grid; gap:12px; margin-top:18px; }
+    #banking-scroll-concept .step { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+    #banking-scroll-concept .number { display:grid; width:27px; height:27px; place-items:center; border-radius:50%; background:rgba(46,103,237,.28); color:#cddcff; font-size:12px; }
+    #banking-scroll-concept .footer-note { display:flex; align-items:center; gap:8px; padding:12px 24px; color:var(--muted); background:#081b31; font-size:12px; }
+    @media (max-width:680px) { #banking-scroll-concept .bar { padding:14px 16px; } #banking-scroll-concept .story { grid-template-columns:1fr; } #banking-scroll-concept .rail { flex-direction:row; overflow:auto; padding:12px; border-right:0; border-bottom:1px solid var(--line); } #banking-scroll-concept .scene-btn { min-width:max-content; } #banking-scroll-concept .stage { padding:34px 24px; } #banking-scroll-concept .scene.is-active { grid-template-columns:1fr; gap:26px; } }
+  </style>
+  <div class="shell">
+    <div class="bar"><div class="brand">Banking BA<small>Knowledge Hub</small></div><span class="label">Scroll story concept</span></div>
+    <div class="story">
+      <nav class="rail" aria-label="Scroll scenes">
+        <button class="scene-btn is-active" type="button" data-scene="0" aria-pressed="true"><span class="dot"></span>01 Discover</button>
+        <button class="scene-btn" type="button" data-scene="1" aria-pressed="false"><span class="dot"></span>02 Analyze</button>
+        <button class="scene-btn" type="button" data-scene="2" aria-pressed="false"><span class="dot"></span>03 Deliver</button>
+      </nav>
+      <div class="stage">
+        <section class="scene is-active" data-panel="0"><div><span class="label">A focused opening</span><h2>Banking knowledge, shown as a story—not a wall of content.</h2><p>One calm hero scene establishes the member value. The content transition waits for a section boundary, rather than moving continuously with every scroll pixel.</p><button class="action" type="button" data-next>Continue story <i data-lucide="arrow-down" aria-hidden="true"></i></button></div><div class="visual"><div class="visual-title"><span>Professional knowledge workspace</span><span class="chip">Members only</span></div><div class="card-grid"><div class="mini">Journey Explorer<div class="line"></div></div><div class="mini">BA Framework<div class="line"></div></div><div class="mini">Practice Analysis<div class="line"></div></div><div class="mini">Career Roadmap<div class="line"></div></div></div></div></section>
+        <section class="scene" data-panel="1"><div><span class="label">Evidence before decisions</span><h2>Each scroll scene explains one professional outcome.</h2><p>Use a short cross-fade and a 12–16px transform only when the next section enters view. No scroll-linked canvas, video decode, parallax stack, or layout measurement loop is needed.</p><button class="action" type="button" data-next>Next scene <i data-lucide="arrow-down" aria-hidden="true"></i></button></div><div class="visual"><div class="visual-title"><span>From journey to decision</span><span class="chip">Structured</span></div><div class="journey"><div class="step"><span class="number">1</span><strong>Understand customer and process context</strong></div><div class="step"><span class="number">2</span><strong>Identify rules, controls and gaps</strong></div><div class="step"><span class="number">3</span><strong>Document a decision-ready recommendation</strong></div></div></div></section>
+        <section class="scene" data-panel="2"><div><span class="label">Conversion with clarity</span><h2>End with one clear access action, not another animation.</h2><p>The final scene turns the explanation into an immediate next step. It works with keyboard navigation, reduced motion, slow devices and ordinary document scrolling.</p><button class="action" type="button">Request access <i data-lucide="arrow-right" aria-hidden="true"></i></button></div><div class="visual"><div class="visual-title"><span>Member outcome</span><span class="chip">Ready</span></div><div class="journey"><div class="step"><i data-lucide="check" aria-hidden="true"></i><strong>Explore banking journeys</strong></div><div class="step"><i data-lucide="check" aria-hidden="true"></i><strong>Apply BA methods in context</strong></div><div class="step"><i data-lucide="check" aria-hidden="true"></i><strong>Build career direction deliberately</strong></div></div></div></section>
+      </div>
+    </div>
+    <div class="footer-note"><i data-lucide="gauge" aria-hidden="true"></i> Native scroll + IntersectionObserver + compositor-only transitions; reduced motion has a static fallback.</div>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('banking-scroll-concept');
+      const buttons = [...root.querySelectorAll('[data-scene]')];
+      const panels = [...root.querySelectorAll('[data-panel]')];
+      let index = 0;
+      const render = (next) => {
+        index = (next + panels.length) % panels.length;
+        buttons.forEach((button, i) => { const active = i === index; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active)); });
+        panels.forEach((panel, i) => panel.classList.toggle('is-active', i === index));
+      };
+      buttons.forEach((button, i) => button.addEventListener('click', () => render(i)));
+      root.querySelectorAll('[data-next]').forEach(button => button.addEventListener('click', () => render(index + 1)));
+      if (globalThis.Tweak) { const state = { scene: '01 Discover' }; const tweak = new Tweak({ container: root, onChange: () => render(['01 Discover','02 Analyze','03 Deliver'].indexOf(state.scene)) }); tweak.addSelect(state, 'scene', { label: 'Preview scene', options: ['01 Discover','02 Analyze','03 Deliver'] }); }
+    })();
+  </script>
+</div>

@@ -8,12 +8,18 @@ const renderBlock = (blockType: string, payload: unknown) =>
   renderToStaticMarkup(<JourneyBlockRenderer block={{ blockType, payload }} />);
 
 describe('JourneyBlockRenderer width semantics', () => {
+  it('preserves published CODE payloads before diagram hydration', () => {
+    const markup = renderBlock('CODE', { title: 'Business flow', language: 'mermaid', code: 'flowchart TB\n A-->B' });
+    expect(markup).toContain('Business flow');
+    expect(markup).toContain('flowchart TB');
+  });
   it.each(['RICH_TEXT', 'TEXT', 'PARAGRAPH'])(
-    'uses a readable outer card for %s prose',
+    'uses a full-width card with readable inner text for %s prose',
     (blockType) => {
       const markup = renderBlock(blockType, { text: 'Readable banking journey prose.' });
       expect(markup).toContain('data-block-layout="readable"');
       expect(markup).toContain('max-w-prose');
+      expect(markup).toMatch(/^<div[^>]*class="[^"]*w-full max-w-full/);
     },
   );
 

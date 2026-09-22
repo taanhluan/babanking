@@ -35,6 +35,7 @@ describe('permissions', () => {
     expect(canEditRevision('CONTRIBUTOR', 'u1', 'u2', 'DRAFT')).toBe(false);
     expect(canReviewRevision('REVIEWER', 'u1', 'u1')).toBe(false);
     expect(canReviewRevision('REVIEWER', 'u1', 'u2')).toBe(true);
+    expect(canReviewRevision('ADMIN', 'admin-1', 'admin-1')).toBe(true);
   });
 });
 describe('workflow', () => {

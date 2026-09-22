@@ -5,6 +5,16 @@ import type { PublishedContent } from '@/lib/repository';
 const content = (body: Record<string, unknown>): PublishedContent => ({ id: '1', type: 'BANKING_JOURNEY', slug: 'payments-and-transfers', title: 'Payments', summary: 'A sufficiently long journey summary for mapper tests.', body });
 
 describe('mapJourneyPortal', () => {
+  it('retains published flow and supporting sections in payment navigation', () => {
+    const sections = ['initiation', 'activity-flow', 'sequence-diagram', 'state-machine', 'business-overview'].map(key => ({ key, title: key, blocks: [{ id: `${key}-diagram`, blockType: 'CODE', payload: { language: 'mermaid', code: 'flowchart TB\n A-->B' } }] }));
+    const result = mapJourneyPortal(content({ modules: [{ key: 'internal-transfer', title: 'Internal Transfer', sections }] }));
+    expect(result.paymentTypeGroups[0].paymentTypes[0].lifecycle.map(stage => stage.id)).toEqual(sections.map(section => section.key));
+  });
+  it('exposes scheduled payments and standing orders with their published content', () => {
+    const result = mapJourneyPortal(content({ modules: ['scheduled-payment', 'standing-order'].map(key => ({ key, title: key, sections: [{ title: 'Initiation', blocks: [{ id: key, blockType: 'RICH_TEXT', payload: { text: 'Published scheduling instructions' } }] }] })) }));
+    expect(result.contentReadiness.recognizedPaymentTypeKeys).toEqual(['scheduled-payment', 'standing-order']);
+    expect(result.paymentTypeGroups[0].paymentTypes.every(type => type.knowledgeNodeCount > 0)).toBe(true);
+  });
   it('maps CMS modules, sections, and blocks in order', () => {
     const result = mapJourneyPortal(content({ modules: [{ key: LIFECYCLE_ALIASES[0], title: 'Payment Lifecycle', sections: [{ title: 'Initiation', blocks: [{ id: 'b', blockType: 'TABLE', schemaVersion: 1, payload: { rows: [] } }] }] }, { title: 'Rules', sections: [{ title: 'Controls', blocks: [{ blockType: 'UNKNOWN', payload: { value: 1 } }] }] }] }));
     expect(result.source.lifecycle).toBe('cms');
