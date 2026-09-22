@@ -22,6 +22,6 @@ describe('journey media policy', () => {
 
   it('caps total serialized journey content before the server action persists it', () => {
     expect(() => assertJourneyContentSize('x'.repeat(MAX_JOURNEY_CONTENT_BYTES))).not.toThrow();
-    expect(() => assertJourneyContentSize('x'.repeat(MAX_JOURNEY_CONTENT_BYTES + 1))).toThrow(/7 MB/);
+    expect(() => assertJourneyContentSize('x'.repeat(MAX_JOURNEY_CONTENT_BYTES + 1))).toThrow(/25 MB/);
   });
 });

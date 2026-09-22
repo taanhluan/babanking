@@ -230,7 +230,7 @@ function StructuredItemsEditor({
 const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
 const ACCEPTED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const ACCEPTED_DIAGRAM_MIME_TYPES = new Set(["image/png"]);
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -260,7 +260,7 @@ function ImageBlockEditor({
         return;
       }
       if (file.size > MAX_IMAGE_BYTES) {
-        setUploadError(`Image must be under 2 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+        setUploadError(`Image must be under 15 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
         return;
       }
       setUploading(true);
