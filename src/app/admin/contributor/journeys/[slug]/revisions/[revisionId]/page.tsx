@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { StatusLabel, WorkspaceTitle } from '@/components/workspace/WorkspaceShell';
 import { requireJourneyCmsAccess } from '@/server/cms/journey-cms-authorization';
 import { JourneyCmsRepository } from '@/server/cms/journey-cms-repository';
+import { prettyJsonSafely } from '@/lib/safe-json';
 
 export default async function JourneyRevisionPage({
   params,
@@ -26,7 +27,7 @@ export default async function JourneyRevisionPage({
       {revision.publishedAt ? ` · Published ${revision.publishedAt.toLocaleString()}` : ''}
     </p>
     <pre className="mt-5 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white p-5 text-xs leading-5">
-      {JSON.stringify(JSON.parse(revision.contentJson), null, 2)}
+      {prettyJsonSafely(revision.contentJson)}
     </pre>
   </>;
 }

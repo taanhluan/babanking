@@ -10,9 +10,10 @@ export type SharedJourneyReaderProps = {
   activeStageId?: string;
   navigation: JourneyNavigationConfig;
   afterStage?: ReactNode;
+  mediaJourneySlug?: string;
 };
 
-function StageContent({ stage, stages, navigation }: { stage: CanonicalStage; stages: CanonicalStage[]; navigation: JourneyNavigationConfig }) {
+function StageContent({ stage, stages, navigation, mediaJourneySlug }: { stage: CanonicalStage; stages: CanonicalStage[]; navigation: JourneyNavigationConfig; mediaJourneySlug?: string }) {
   const index = stages.findIndex((item) => item.id === stage.id);
   const adjacent = (offset: number) => stages[index + offset];
   const sections = stage.states.map((state) => ({ id: state.id, title: state.title }));
@@ -20,17 +21,18 @@ function StageContent({ stage, stages, navigation }: { stage: CanonicalStage; st
     <p className="text-xs font-semibold uppercase tracking-wide text-royalBlue">Stage {index + 1} of {stages.length}</p>
     <h2 className="mt-2 break-words text-2xl font-semibold text-navy sm:text-3xl">{stage.title}</h2>
     {stage.summary ? <p className="mt-3 w-full max-w-[90ch] text-textSecondary">{stage.summary}</p> : null}
+    {stage.media ? <div className="mt-5"><JourneyBlockRenderer block={stage.media} journeySlug={mediaJourneySlug} /></div> : null}
     <SectionNavigator sections={sections} />
-    {stage.states.length ? <div className="mt-5 grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-5">{stage.states.map((state, stateIndex) => <article key={state.id} id={`state-${state.id}`} style={{ scrollMarginTop: '9rem' }} className="min-w-0 max-w-full overflow-hidden border-t border-slate-200 pt-4"><h3 className="w-full max-w-[90ch] font-semibold text-navy">{stateIndex + 1}. {state.title}</h3>{state.summary ? <p className="mt-2 w-full max-w-[90ch] text-sm leading-6 text-textSecondary">{state.summary}</p> : null}<div className="mt-3 min-w-0 max-w-full space-y-3">{state.blocks.map((block) => <JourneyBlockRenderer key={block.id} block={block} />)}</div>{state.children?.map((child, childIndex) => <section key={child.id} id={`state-${child.id}`} style={{ scrollMarginTop: '9rem' }} className="mt-6 border-l-2 border-blue-100 pl-4"><h4 className="w-full max-w-[90ch] font-semibold text-navy">{stateIndex + 1}.{childIndex + 1} {child.title}</h4>{child.summary ? <p className="mt-2 w-full max-w-[90ch] text-sm leading-6 text-textSecondary">{child.summary}</p> : null}<div className="mt-3 space-y-3">{child.blocks.map((block) => <JourneyBlockRenderer key={block.id} block={block} />)}</div></section>)}</article>)}</div> : <p className="mt-6 rounded-xl border border-dashed border-slate-300 p-5 text-sm text-textSecondary">No documentation is available for this stage yet.</p>}
+    {stage.states.length ? <div className="mt-5 grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-5">{stage.states.map((state, stateIndex) => <article key={state.id} id={`state-${state.id}`} style={{ scrollMarginTop: '9rem' }} className="min-w-0 max-w-full overflow-hidden border-t border-slate-200 pt-4"><h3 className="w-full max-w-[90ch] font-semibold text-navy">{stateIndex + 1}. {state.title}</h3>{state.summary ? <p className="mt-2 w-full max-w-[90ch] text-sm leading-6 text-textSecondary">{state.summary}</p> : null}{state.media ? <div className="mt-3"><JourneyBlockRenderer block={state.media} journeySlug={mediaJourneySlug} /></div> : null}<div className="mt-3 min-w-0 max-w-full space-y-3">{state.blocks.map((block) => <JourneyBlockRenderer key={block.id} block={block} journeySlug={mediaJourneySlug} />)}</div>{state.children?.map((child, childIndex) => <section key={child.id} id={`state-${child.id}`} style={{ scrollMarginTop: '9rem' }} className="mt-6 border-l-2 border-blue-100 pl-4"><h4 className="w-full max-w-[90ch] font-semibold text-navy">{stateIndex + 1}.{childIndex + 1} {child.title}</h4>{child.summary ? <p className="mt-2 w-full max-w-[90ch] text-sm leading-6 text-textSecondary">{child.summary}</p> : null}{child.media ? <div className="mt-3"><JourneyBlockRenderer block={child.media} journeySlug={mediaJourneySlug} /></div> : null}<div className="mt-3 space-y-3">{child.blocks.map((block) => <JourneyBlockRenderer key={block.id} block={block} journeySlug={mediaJourneySlug} />)}</div></section>)}</article>)}</div> : <p className="mt-6 rounded-xl border border-dashed border-slate-300 p-5 text-sm text-textSecondary">No documentation is available for this stage yet.</p>}
     <div className="mt-7 flex flex-wrap justify-between gap-3 border-t border-slate-200 pt-5">{adjacent(-1) ? <Link href={buildStageHref(navigation, adjacent(-1)!.id)} className="min-h-11 font-semibold text-royalBlue">← Previous: {adjacent(-1)!.title}</Link> : <span />}{adjacent(1) ? <Link href={buildStageHref(navigation, adjacent(1)!.id)} className="min-h-11 font-semibold text-royalBlue">Next: {adjacent(1)!.title} →</Link> : null}</div>
   </section>;
 }
 
-export function SharedJourneyReader({ journey, activeStageId, navigation, afterStage }: SharedJourneyReaderProps) {
+export function SharedJourneyReader({ journey, activeStageId, navigation, afterStage, mediaJourneySlug }: SharedJourneyReaderProps) {
   const activeStage = journey.stages.find((stage) => stage.id === activeStageId) ?? journey.stages[0];
   return <>
     <JourneyReaderLayout stages={deriveJourneyNavigation(journey.stages)} selectedStage={activeStage?.id ?? ''} navigation={navigation}>
-      {activeStage ? <StageContent stage={activeStage} stages={journey.stages} navigation={navigation} /> : <p className="rounded-xl border border-dashed p-5 text-textSecondary">No lifecycle stage content is available yet.</p>}
+      {activeStage ? <StageContent stage={activeStage} stages={journey.stages} navigation={navigation} mediaJourneySlug={mediaJourneySlug} /> : <p className="rounded-xl border border-dashed p-5 text-textSecondary">No lifecycle stage content is available yet.</p>}
       {afterStage}
     </JourneyReaderLayout>
     <BackToTop />

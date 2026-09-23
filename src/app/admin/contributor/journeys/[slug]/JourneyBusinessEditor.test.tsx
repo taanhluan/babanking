@@ -19,6 +19,7 @@ function renderEditor(content: object) {
       slug="notification-and-engagement"
       revisionId="draft-revision"
       initialContentJson={JSON.stringify(content)}
+      mediaUploadsEnabled={false}
     />,
   );
 }
@@ -40,6 +41,21 @@ describe('JourneyBusinessEditor legacy content compatibility', () => {
 
     expect(html).toContain('Selected module');
     expect(html).toContain('Empty section');
+  });
+
+  it('shows a recovery editor instead of crashing when persisted draft JSON is malformed', () => {
+    const html = renderToStaticMarkup(
+      <JourneyBusinessEditor
+        slug="notification-and-engagement"
+        revisionId="draft-revision"
+        initialContentJson="{ malformed"
+        mediaUploadsEnabled={false}
+      />,
+    );
+
+    expect(html).toContain('Draft recovery required');
+    expect(html).toContain('This draft contains invalid JSON.');
+    expect(html).toContain('{ malformed');
   });
 
   it.each([

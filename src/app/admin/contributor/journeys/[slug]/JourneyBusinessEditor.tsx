@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useRef, useCallback, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { MAX_JOURNEY_CONTENT_BYTES } from "@/lib/journey-media";
+import { journeyMediaProxyUrl, journeyMediaUploadPath, MAX_JOURNEY_CONTENT_BYTES } from "@/lib/journey-media";
+import { parseJsonObjectSafely } from "@/lib/safe-json";
 import { saveJourneyDraftAction } from "../actions";
 import { ContentNavigator } from "./ContentNavigator";
 import { RevisionToolbar } from "./RevisionToolbar";
@@ -28,6 +30,11 @@ import {
   removeJourneyBlock,
   removeJourneySection,
   removeJourneySubsection,
+  updateJourneyBlockType,
+  updateJourneyModuleMedia,
+  updateJourneySectionMedia,
+  updateJourneySubsectionMedia,
+  type JourneyMediaAsset,
   type JourneyEditorNodePath,
   type JourneyMutationResult,
 } from "./journey-editor-mutations";
@@ -49,6 +56,7 @@ type Subsection = {
   title: string;
   order?: number;
   blocks: Block[];
+  media?: JourneyMediaAsset;
 };
 type Section = {
   id?: string;
@@ -57,6 +65,7 @@ type Section = {
   order?: number;
   blocks: Block[];
   subsections?: Subsection[];
+  media?: JourneyMediaAsset;
 };
 type Module = {
   id?: string;
@@ -65,6 +74,7 @@ type Module = {
   summary?: string;
   order?: number;
   sections: Section[];
+  media?: JourneyMediaAsset;
 };
 type Node = EditorNode & { depth: number };
 const blockTypes = [
@@ -232,30 +242,65 @@ const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
 const ACCEPTED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const ACCEPTED_DIAGRAM_MIME_TYPES = new Set(["image/png"]);
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
+type MediaUploadContext = { slug: string; revisionId: string; enabled: boolean };
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsDataURL(file);
+async function sha256File(file: File) {
+  const bytes = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function journeyMediaAlreadyExists(
+  uploadContext: MediaUploadContext,
+  kind: "image" | "diagram",
+  contentHash: string,
+) {
+  const params = new URLSearchParams({
+    slug: uploadContext.slug,
+    revisionId: uploadContext.revisionId,
+    kind,
+    contentHash,
   });
+  const response = await fetch(`/api/journey-media/upload?${params.toString()}`);
+  if (!response.ok) throw new Error("Media lookup failed.");
+  return (await response.json() as { exists?: boolean }).exists === true;
+}
+
+function emptyJourneyDraft(): JsonObject {
+  return { title: "", summary: "", schemaVersion: 2, modules: [] };
+}
+
+function initialJourneyEditorState(initialContentJson: string) {
+  const parsed = parseJsonObjectSafely(initialContentJson);
+  return parsed.ok
+    ? { content: parsed.value, advancedText: JSON.stringify(parsed.value, null, 2), error: "" }
+    : { content: emptyJourneyDraft(), advancedText: initialContentJson, error: parsed.error };
 }
 
 function ImageBlockEditor({
   payload,
   onChange,
+  uploadContext,
+  label = "Image",
 }: {
   payload: JsonObject;
   onChange: (payload: JsonObject) => void;
+  uploadContext: MediaUploadContext;
+  label?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadInFlightRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
   const handleFile = useCallback(
     async (file: File) => {
+      if (uploadInFlightRef.current) return;
       setUploadError("");
+      if (!uploadContext.enabled) {
+        setUploadError("Journey media storage is not configured. Use an HTTPS image URL instead.");
+        return;
+      }
       if (!ACCEPTED_IMAGE_MIME_TYPES.has(file.type)) {
         setUploadError("Only PNG, JPG, and WEBP images are accepted.");
         return;
@@ -264,17 +309,37 @@ function ImageBlockEditor({
         setUploadError(`Image must be under 15 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
         return;
       }
+      uploadInFlightRef.current = true;
       setUploading(true);
       try {
-        const dataUrl = await readFileAsDataUrl(file);
-        onChange({ ...payload, url: dataUrl, fileName: file.name });
+        const contentHash = await sha256File(file);
+        const pathname = journeyMediaUploadPath(uploadContext.slug, uploadContext.revisionId, "image", contentHash);
+        const rest = { ...payload };
+        delete rest.url;
+        if (await journeyMediaAlreadyExists(uploadContext, "image", contentHash)) {
+          onChange({ ...rest, mediaPath: pathname, fileName: file.name, mimeType: file.type, bytes: file.size });
+          return;
+        }
+        const blob = await upload(
+          pathname,
+          file,
+          {
+            access: "private",
+            contentType: file.type,
+            handleUploadUrl: "/api/journey-media/upload",
+            clientPayload: JSON.stringify({ slug: uploadContext.slug, revisionId: uploadContext.revisionId, kind: "image", contentHash }),
+            multipart: file.size > 4_500_000,
+          },
+        );
+        onChange({ ...rest, mediaPath: blob.pathname, fileName: file.name, mimeType: file.type, bytes: file.size });
       } catch {
-        setUploadError("Failed to read the file. Please try again.");
+        setUploadError("Upload failed. Check your access and try again.");
       } finally {
         setUploading(false);
+        uploadInFlightRef.current = false;
       }
     },
-    [payload, onChange],
+    [payload, onChange, uploadContext],
   );
 
   const handleDrop = useCallback(
@@ -287,13 +352,18 @@ function ImageBlockEditor({
   );
 
   const currentUrl = typeof payload.url === "string" ? payload.url : "";
+  const mediaPath = typeof payload.mediaPath === "string" ? payload.mediaPath : "";
   const isDataUrl = currentUrl.startsWith("data:");
+  const hasMedia = Boolean(mediaPath || currentUrl);
+  const previewUrl = mediaPath
+    ? journeyMediaProxyUrl(uploadContext.slug, mediaPath, uploadContext.revisionId)
+    : currentUrl;
   const fileName = typeof payload.fileName === "string" ? payload.fileName : "";
 
   return (
     <div className="space-y-4">
       <label className="block text-sm font-semibold">
-        Title
+        {label} title
         <input
           value={typeof payload.title === "string" ? payload.title : ""}
           onChange={(e) => onChange({ ...payload, title: e.target.value })}
@@ -322,34 +392,36 @@ function ImageBlockEditor({
 
       {/* Upload area */}
       <div>
-        <p className="mb-2 text-sm font-semibold">Image file</p>
+        <p className="mb-2 text-sm font-semibold">{label} file</p>
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => {
+            if (!uploadInFlightRef.current) inputRef.current?.click();
+          }}
           className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-colors hover:border-royalBlue hover:bg-blue-50"
         >
           {uploading ? (
             <p className="text-sm text-slate-500">Reading file…</p>
-          ) : currentUrl ? (
+          ) : hasMedia ? (
             <>
-              {isDataUrl ? (
+              {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={currentUrl}
+                  src={previewUrl}
                   alt={typeof payload.alt === "string" ? payload.alt : "Preview"}
                   className="max-h-48 max-w-full rounded-lg object-contain"
                 />
               ) : null}
               <p className="text-xs text-slate-500">
-                {fileName || "Image loaded"} · Click or drag to replace
+                {fileName || `${label} loaded`} · Click or drag to replace
               </p>
             </>
           ) : (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               <p className="text-sm text-slate-500">Click or drag an image here</p>
-              <p className="text-xs text-slate-400">PNG, JPG, WEBP · max 2 MB</p>
+              <p className="text-xs text-slate-400">PNG, JPG, WEBP · max 15 MB</p>
             </>
           )}
         </div>
@@ -367,10 +439,18 @@ function ImageBlockEditor({
         {uploadError ? (
           <p className="mt-2 text-xs text-red-700" role="alert">{uploadError}</p>
         ) : null}
-        {currentUrl ? (
+        {hasMedia ? (
           <button
             type="button"
-            onClick={() => onChange({ ...payload, url: "", fileName: "" })}
+            onClick={() => {
+              const next = { ...payload };
+              delete next.url;
+              delete next.mediaPath;
+              delete next.fileName;
+              delete next.mimeType;
+              delete next.bytes;
+              onChange(next);
+            }}
             className="mt-2 text-xs text-red-700"
           >
             Remove image
@@ -387,13 +467,64 @@ function ImageBlockEditor({
           <input
             type="url"
             value={typeof payload.url === "string" && !isDataUrl ? payload.url : ""}
-            onChange={(e) => onChange({ ...payload, url: e.target.value, fileName: "" })}
+            onChange={(e) => {
+              const next: JsonObject = { ...payload, url: e.target.value, fileName: "" };
+              delete next.mediaPath;
+              delete next.mimeType;
+              delete next.bytes;
+              onChange(next);
+            }}
             placeholder="https://..."
             className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
           />
         </label>
       </details>
     </div>
+  );
+}
+
+function LevelImageEditor({
+  media,
+  level,
+  onChange,
+  uploadContext,
+}: {
+  media?: JourneyMediaAsset;
+  level: "Module" | "Section" | "Subsection";
+  onChange: (media?: JourneyMediaAsset) => void;
+  uploadContext: MediaUploadContext;
+}) {
+  const payload: JsonObject = media ?? { kind: "IMAGE", title: `${level} cover`, alt: "" };
+  return (
+    <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-semibold text-navy">{level} cover image</h4>
+          <p className="mt-1 text-xs text-slate-500">Optional visual context shown before this {level.toLowerCase()}.</p>
+        </div>
+        {media ? (
+          <button type="button" onClick={() => onChange(undefined)} className="text-xs font-semibold text-red-700">
+            Remove cover
+          </button>
+        ) : null}
+      </div>
+      <ImageBlockEditor
+        label={`${level} cover image`}
+        payload={payload}
+        uploadContext={uploadContext}
+        onChange={(next) => onChange({
+          kind: "IMAGE",
+          title: typeof next.title === "string" ? next.title : undefined,
+          mediaPath: typeof next.mediaPath === "string" ? next.mediaPath : undefined,
+          url: typeof next.url === "string" ? next.url : undefined,
+          alt: typeof next.alt === "string" ? next.alt : "",
+          caption: typeof next.caption === "string" ? next.caption : undefined,
+          fileName: typeof next.fileName === "string" ? next.fileName : undefined,
+          mimeType: typeof next.mimeType === "string" ? next.mimeType : undefined,
+          bytes: typeof next.bytes === "number" ? next.bytes : undefined,
+        })}
+      />
+    </section>
   );
 }
 
@@ -409,36 +540,64 @@ const DIAGRAM_TYPES = [
 function DiagramBlockEditor({
   payload,
   onChange,
+  uploadContext,
 }: {
   payload: JsonObject;
   onChange: (payload: JsonObject) => void;
+  uploadContext: MediaUploadContext;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadInFlightRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
   const handleFile = useCallback(
     async (file: File) => {
+      if (uploadInFlightRef.current) return;
       setUploadError("");
+      if (!uploadContext.enabled) {
+        setUploadError("Journey media storage is not configured. Use a supported external image URL instead.");
+        return;
+      }
       if (!ACCEPTED_DIAGRAM_MIME_TYPES.has(file.type)) {
         setUploadError("Only PNG diagram exports are accepted.");
         return;
       }
       if (file.size > MAX_IMAGE_BYTES) {
-        setUploadError(`File must be under 2 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+        setUploadError(`File must be under 15 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
         return;
       }
+      uploadInFlightRef.current = true;
       setUploading(true);
       try {
-        const dataUrl = await readFileAsDataUrl(file);
-        onChange({ ...payload, url: dataUrl, fileName: file.name });
+        const contentHash = await sha256File(file);
+        const pathname = journeyMediaUploadPath(uploadContext.slug, uploadContext.revisionId, "diagram", contentHash);
+        const rest = { ...payload };
+        delete rest.url;
+        if (await journeyMediaAlreadyExists(uploadContext, "diagram", contentHash)) {
+          onChange({ ...rest, mediaPath: pathname, fileName: file.name, mimeType: file.type, bytes: file.size });
+          return;
+        }
+        const blob = await upload(
+          pathname,
+          file,
+          {
+            access: "private",
+            contentType: file.type,
+            handleUploadUrl: "/api/journey-media/upload",
+            clientPayload: JSON.stringify({ slug: uploadContext.slug, revisionId: uploadContext.revisionId, kind: "diagram", contentHash }),
+            multipart: file.size > 4_500_000,
+          },
+        );
+        onChange({ ...rest, mediaPath: blob.pathname, fileName: file.name, mimeType: file.type, bytes: file.size });
       } catch {
-        setUploadError("Failed to read file. Please try again.");
+        setUploadError("Upload failed. Check your access and try again.");
       } finally {
         setUploading(false);
+        uploadInFlightRef.current = false;
       }
     },
-    [payload, onChange],
+    [payload, onChange, uploadContext],
   );
 
   const handleDrop = useCallback(
@@ -451,7 +610,11 @@ function DiagramBlockEditor({
   );
 
   const currentUrl = typeof payload.url === "string" ? payload.url : "";
-  const isDataUrl = currentUrl.startsWith("data:");
+  const mediaPath = typeof payload.mediaPath === "string" ? payload.mediaPath : "";
+  const hasMedia = Boolean(mediaPath || currentUrl);
+  const previewUrl = mediaPath
+    ? journeyMediaProxyUrl(uploadContext.slug, mediaPath, uploadContext.revisionId)
+    : currentUrl;
   const fileName = typeof payload.fileName === "string" ? payload.fileName : "";
 
   return (
@@ -486,17 +649,19 @@ function DiagramBlockEditor({
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => {
+            if (!uploadInFlightRef.current) inputRef.current?.click();
+          }}
           className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-colors hover:border-royalBlue hover:bg-blue-50"
         >
           {uploading ? (
             <p className="text-sm text-slate-500">Reading file…</p>
-          ) : currentUrl ? (
+          ) : hasMedia ? (
             <>
-              {isDataUrl ? (
+              {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={currentUrl}
+                  src={previewUrl}
                   alt={typeof payload.title === "string" ? payload.title : "Diagram preview"}
                   className="max-h-64 max-w-full rounded-lg object-contain"
                 />
@@ -509,7 +674,7 @@ function DiagramBlockEditor({
             <>
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="9" y="15" width="6" height="6" rx="1"/><path d="M5 9v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><line x1="12" y1="12" x2="12" y2="15"/></svg>
               <p className="text-sm text-slate-500">Click or drag a diagram image here</p>
-              <p className="text-xs text-slate-400">PNG · max 2 MB</p>
+              <p className="text-xs text-slate-400">PNG · max 15 MB</p>
             </>
           )}
         </div>
@@ -527,10 +692,18 @@ function DiagramBlockEditor({
         {uploadError ? (
           <p className="mt-2 text-xs text-red-700" role="alert">{uploadError}</p>
         ) : null}
-        {currentUrl ? (
+        {hasMedia ? (
           <button
             type="button"
-            onClick={() => onChange({ ...payload, url: "", fileName: "" })}
+            onClick={() => {
+              const next = { ...payload };
+              delete next.url;
+              delete next.mediaPath;
+              delete next.fileName;
+              delete next.mimeType;
+              delete next.bytes;
+              onChange(next);
+            }}
             className="mt-2 text-xs text-red-700"
           >
             Remove diagram image
@@ -555,16 +728,17 @@ function DiagramBlockEditor({
 function PayloadEditor({
   block,
   onChange,
+  uploadContext,
 }: {
   block: Block;
   onChange: (payload: JsonObject) => void;
+  uploadContext: MediaUploadContext;
 }) {
   const [value, setValue] = useState(JSON.stringify(block.payload, null, 2));
   const [error, setError] = useState("");
-  const update = (next: string) => {
-    setValue(next);
+  const applyJson = () => {
     try {
-      const parsed: unknown = JSON.parse(next);
+      const parsed: unknown = JSON.parse(value);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
         throw new Error();
       setError("");
@@ -587,17 +761,23 @@ function PayloadEditor({
     <>
       <textarea
         value={value}
-        onChange={(event) => update(event.target.value)}
+        onChange={(event) => {
+          setValue(event.target.value);
+          setError("");
+        }}
         rows={8}
         className="mt-2 w-full overflow-auto rounded-lg border border-slate-300 p-3 font-mono text-xs font-normal"
       />
+      <button type="button" onClick={applyJson} className="mt-2 min-h-9 rounded-lg border border-royalBlue px-3 text-xs font-semibold text-royalBlue">
+        Apply payload JSON
+      </button>
       {error ? <p className="text-xs text-red-700">{error}</p> : null}
     </>
   );
   if (block.blockType === "IMAGE")
-    return <ImageBlockEditor payload={payload} onChange={onChange} />;
+    return <ImageBlockEditor payload={payload} onChange={onChange} uploadContext={uploadContext} />;
   if (block.blockType === "DIAGRAM")
-    return <DiagramBlockEditor payload={payload} onChange={onChange} />;
+    return <DiagramBlockEditor payload={payload} onChange={onChange} uploadContext={uploadContext} />;
   if (["RICH_TEXT", "CALLOUT", "CODE"].includes(block.blockType))
     return (
       <div className="space-y-3">
@@ -1239,6 +1419,7 @@ function SubsectionWorkspace({
   content,
   onUpdate,
   onRemove,
+  uploadContext,
 }: {
   subsection: Subsection;
   moduleIndex: number;
@@ -1247,6 +1428,7 @@ function SubsectionWorkspace({
   content: JsonObject;
   onUpdate: (next: JsonObject) => void;
   onRemove: () => void;
+  uploadContext: MediaUploadContext;
 }) {
   const updateSubsection = (next: Subsection) =>
     onUpdate({
@@ -1355,6 +1537,7 @@ function SubsectionWorkspace({
                 <PayloadEditor
                   key={block.id ?? blockIndex}
                   block={block}
+                  uploadContext={uploadContext}
                   onChange={(payload) =>
                     updateSubsection({
                       ...subsection,
@@ -1437,20 +1620,24 @@ export function JourneyBusinessEditor({
   slug,
   revisionId,
   initialContentJson,
+  mediaUploadsEnabled,
 }: {
   slug: string;
   revisionId: string;
   initialContentJson: string;
+  mediaUploadsEnabled: boolean;
 }) {
+  const uploadContext = { slug, revisionId, enabled: mediaUploadsEnabled };
+  const [initialState] = useState(() => initialJourneyEditorState(initialContentJson));
   const [content, setContent] = useState(
-    () => JSON.parse(initialContentJson) as JsonObject,
+    initialState.content,
   );
   const [selected, setSelected] = useState("m-0");
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"business" | "advanced">("business");
-  const [advancedText, setAdvancedText] = useState(() =>
-    JSON.stringify(JSON.parse(initialContentJson), null, 2),
-  );
+  const [advancedText, setAdvancedText] = useState(initialState.advancedText);
+  const [advancedBaseline, setAdvancedBaseline] = useState(initialState.advancedText);
+  const [initialError, setInitialError] = useState(initialState.error);
   const [advancedError, setAdvancedError] = useState("");
   const [saveError, setSaveError] = useState("");
   const modules = modulesFrom(content);
@@ -1530,14 +1717,19 @@ export function JourneyBusinessEditor({
     }
     const next = result.content;
     setContent(next);
-    setAdvancedText(JSON.stringify(next, null, 2));
+    const formatted = JSON.stringify(next, null, 2);
+    setAdvancedText(formatted);
+    setAdvancedBaseline(formatted);
     setAdvancedError("");
+    setInitialError("");
     setSelected(makeNodes(modulesFrom(next))[0]?.id ?? "");
     setMode("business");
   };
   const toggleMode = () => {
     if (mode === "business") {
-      setAdvancedText(JSON.stringify(content, null, 2));
+      const formatted = JSON.stringify(content, null, 2);
+      setAdvancedText(formatted);
+      setAdvancedBaseline(formatted);
       setAdvancedError("");
       setMode("advanced");
       return;
@@ -1550,14 +1742,12 @@ export function JourneyBusinessEditor({
       return;
     }
     setContent(result.content);
-    setAdvancedText(JSON.stringify(result.content, null, 2));
+    const formatted = JSON.stringify(result.content, null, 2);
+    setAdvancedText(formatted);
+    setAdvancedBaseline(formatted);
     setAdvancedError("");
     setMode("business");
   };
-  const saveResult = resolveJourneyEditorSave({ mode, content, advancedText });
-  const savePayload = saveResult.ok
-    ? saveResult.payload
-    : { contentJson: advancedText, title: "", summary: "" };
   const submitDraft = (event: React.FormEvent<HTMLFormElement>) => {
     const result = resolveJourneyEditorSave({ mode, content, advancedText });
     if (!result.ok) {
@@ -1565,6 +1755,18 @@ export function JourneyBusinessEditor({
       setAdvancedError(result.error);
       return;
     }
+    const form = event.currentTarget;
+    const title = form.elements.namedItem("title") as HTMLInputElement | null;
+    const summary = form.elements.namedItem("summary") as HTMLInputElement | null;
+    const contentJson = form.elements.namedItem("contentJson") as HTMLInputElement | null;
+    if (!title || !summary || !contentJson) {
+      event.preventDefault();
+      setSaveError("The editor could not prepare this draft for saving.");
+      return;
+    }
+    title.value = result.payload.title;
+    summary.value = result.payload.summary;
+    contentJson.value = result.payload.contentJson;
     const byteLength = new TextEncoder().encode(result.payload.contentJson).byteLength;
     if (byteLength > MAX_JOURNEY_CONTENT_BYTES) {
       event.preventDefault();
@@ -1602,26 +1804,31 @@ export function JourneyBusinessEditor({
       );
     if (selectedNode.type === "module" && selectedModule)
       return (
-        <ModuleWorkspace
-          module={selectedModule}
-          moduleIndex={selectedNode.moduleIndex}
-          totalModules={modules.length}
-          sections={selectedModule.sections}
-          content={content}
-          onUpdate={update}
-          onSelect={setSelected}
-          onPrevious={() => {
-            const previous = getSiblingNode(nodes, selected, -1);
-            if (previous) setSelected(previous.id);
-          }}
-          onNext={() => {
-            const next = getSiblingNode(nodes, selected, 1);
-            if (next) setSelected(next.id);
-          }}
-        />
+        <>
+          <ModuleWorkspace
+            module={selectedModule}
+            moduleIndex={selectedNode.moduleIndex}
+            totalModules={modules.length}
+            sections={selectedModule.sections}
+            content={content}
+            onUpdate={update}
+            onSelect={setSelected}
+            onPrevious={() => {
+              const previous = getSiblingNode(nodes, selected, -1);
+              if (previous) setSelected(previous.id);
+            }}
+            onNext={() => {
+              const next = getSiblingNode(nodes, selected, 1);
+              if (next) setSelected(next.id);
+            }}
+          />
+          <LevelImageEditor level="Module" media={selectedModule.media} uploadContext={uploadContext}
+            onChange={(media) => applyJourneyMutation(updateJourneyModuleMedia(content as never, selectedNode.moduleIndex, media))} />
+        </>
       );
     if (selectedNode.type === "section" && selectedSection && selectedModule)
       return (
+        <>
         <SectionWorkspace
           section={selectedSection}
           module={selectedModule}
@@ -1640,6 +1847,9 @@ export function JourneyBusinessEditor({
             if (next) setSelected(next.id);
           }}
         />
+          <LevelImageEditor level="Section" media={selectedSection.media} uploadContext={uploadContext}
+            onChange={(media) => applyJourneyMutation(updateJourneySectionMedia(content as never, selectedNode.moduleIndex, selectedNode.sectionIndex ?? 0, media))} />
+        </>
       );
     if (
       selectedNode.type === "subsection" &&
@@ -1647,6 +1857,7 @@ export function JourneyBusinessEditor({
       selectedSection
     )
       return (
+        <>
         <SubsectionWorkspace
           subsection={selectedSubsection}
           moduleIndex={selectedNode.moduleIndex}
@@ -1654,6 +1865,7 @@ export function JourneyBusinessEditor({
           subsectionIndex={selectedNode.subsectionIndex ?? 0}
           content={content}
           onUpdate={update}
+          uploadContext={uploadContext}
           onRemove={() =>
             applyJourneyMutation(
               removeJourneySubsection(
@@ -1665,6 +1877,9 @@ export function JourneyBusinessEditor({
             )
           }
         />
+          <LevelImageEditor level="Subsection" media={selectedSubsection.media} uploadContext={uploadContext}
+            onChange={(media) => applyJourneyMutation(updateJourneySubsectionMedia(content as never, selectedNode.moduleIndex, selectedNode.sectionIndex ?? 0, selectedNode.subsectionIndex ?? 0, media))} />
+        </>
       );
     if (selectedNode.type === "block" && selectedBlock && selectedSection)
       return (
@@ -1685,9 +1900,11 @@ export function JourneyBusinessEditor({
             Block type
             <select
               value={selectedBlock.blockType}
-              onChange={(event) =>
-                updateBlock(selectedBlock.payload, event.target.value)
-              }
+              onChange={(event) => applyJourneyMutation(updateJourneyBlockType(
+                content as never,
+                { moduleIndex: selectedNode.moduleIndex, sectionIndex: selectedNode.sectionIndex, blockIndex: selectedNode.blockIndex },
+                event.target.value as never,
+              ))}
               className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 font-normal"
             >
               {blockTypes.map((type) => (
@@ -1699,6 +1916,7 @@ export function JourneyBusinessEditor({
             key={selectedBlock.id ?? selectedNode.id}
             block={selectedBlock}
             onChange={updateBlock}
+            uploadContext={uploadContext}
           />
         </>
       );
@@ -1769,9 +1987,11 @@ export function JourneyBusinessEditor({
               Block type
               <select
                 value={selectedBlock.blockType}
-                onChange={(event) =>
-                  updateBlock(selectedBlock.payload, event.target.value)
-                }
+                onChange={(event) => applyJourneyMutation(updateJourneyBlockType(
+                  content as never,
+                  { moduleIndex: selectedNode.moduleIndex, sectionIndex: selectedNode.sectionIndex, blockIndex: selectedNode.blockIndex },
+                  event.target.value as never,
+                ))}
                 className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal"
               >
                 {blockTypes.map((type) => (
@@ -1784,6 +2004,7 @@ export function JourneyBusinessEditor({
                 key={selectedBlock.id ?? selectedNode.id}
                 block={selectedBlock}
                 onChange={updateBlock}
+                uploadContext={uploadContext}
               />
             </div>
           </>
@@ -1819,6 +2040,25 @@ export function JourneyBusinessEditor({
       </button>
     </div>
   );
+  if (initialError) {
+    return (
+      <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Draft recovery required</p>
+        <h2 className="mt-2 text-xl font-semibold text-navy">This draft contains invalid JSON.</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-700">No change has been saved. Correct the JSON below, then apply it to recover the structured editor.</p>
+        <AdvancedJsonEditor
+          text={advancedText}
+          error={advancedError || initialError}
+          dirty
+          onTextChange={(next) => {
+            setAdvancedText(next);
+            setAdvancedError("");
+          }}
+          onApply={applyAdvanced}
+        />
+      </section>
+    );
+  }
   return (
     <form
       action={saveJourneyDraftAction}
@@ -1827,9 +2067,9 @@ export function JourneyBusinessEditor({
     >
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="revisionId" value={revisionId} />
-      <input type="hidden" name="title" value={savePayload.title} />
-      <input type="hidden" name="summary" value={savePayload.summary} />
-      <input type="hidden" name="contentJson" value={savePayload.contentJson} />
+      <input type="hidden" name="title" defaultValue="" />
+      <input type="hidden" name="summary" defaultValue="" />
+      <input type="hidden" name="contentJson" defaultValue="" />
       <RevisionToolbar
         moduleCount={modules.length}
         mode={mode}
@@ -1848,7 +2088,7 @@ export function JourneyBusinessEditor({
         <AdvancedJsonEditor
           text={advancedText}
           error={advancedError}
-          dirty={advancedText !== JSON.stringify(content, null, 2)}
+          dirty={advancedText !== advancedBaseline}
           onTextChange={(next) => {
             setAdvancedText(next);
             setAdvancedError("");

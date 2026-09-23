@@ -64,7 +64,6 @@ export const JourneyCmsRepository = {
             version: true,
             status: true,
             schemaVersion: true,
-            contentJson: true,
             createdAt: true,
             author: { select: { id: true, name: true } },
             reviewer: { select: { id: true, name: true } },
@@ -133,6 +132,14 @@ export const JourneyCmsRepository = {
         updatedAt: true,
         publishedAt: true,
       },
+    });
+  },
+
+  async getPublishedContentJson(contentItemId: string) {
+    assertJourneyCmsReadEnvironment();
+    return db.contentItem.findUnique({
+      where: { id: contentItemId, type: 'BANKING_JOURNEY' },
+      select: { publishedRevision: { select: { contentJson: true } } },
     });
   },
 };

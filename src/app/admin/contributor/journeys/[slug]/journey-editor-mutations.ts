@@ -18,6 +18,17 @@ export type JourneyMutationResult =
     };
 type Direction = "up" | "down";
 type JsonObject = Record<string, unknown>;
+export type JourneyMediaAsset = {
+  kind: 'IMAGE';
+  title?: string;
+  mediaPath?: string;
+  url?: string;
+  alt: string;
+  caption?: string;
+  fileName?: string;
+  mimeType?: string;
+  bytes?: number;
+};
 type SupportedBlockType =
   | "RICH_TEXT"
   | "TABLE"
@@ -368,4 +379,52 @@ export function updateJourneyBlockPayload(
     path.blockIndex!
   ].payload = clone(payload);
   return success(next, path);
+}
+
+export function updateJourneyModuleMedia(
+  content: JourneyContent,
+  moduleIndex: number,
+  media?: JourneyMediaAsset,
+): JourneyMutationResult {
+  if (!modules(content)[moduleIndex]) return fail(content, pathFor(moduleIndex), 'INVALID_PATH');
+  const next = clone(content);
+  if (media) next.modules![moduleIndex].media = clone(media);
+  else delete next.modules![moduleIndex].media;
+  next.schemaVersion = 2;
+  return success(next, pathFor(moduleIndex));
+}
+
+export function updateJourneySectionMedia(
+  content: JourneyContent,
+  moduleIndex: number,
+  sectionIndex: number,
+  media?: JourneyMediaAsset,
+): JourneyMutationResult {
+  if (!modules(content)[moduleIndex]?.sections[sectionIndex]) {
+    return fail(content, pathFor(moduleIndex, sectionIndex), 'INVALID_PATH');
+  }
+  const next = clone(content);
+  const section = next.modules![moduleIndex].sections[sectionIndex];
+  if (media) section.media = clone(media);
+  else delete section.media;
+  next.schemaVersion = 2;
+  return success(next, pathFor(moduleIndex, sectionIndex));
+}
+
+export function updateJourneySubsectionMedia(
+  content: JourneyContent,
+  moduleIndex: number,
+  sectionIndex: number,
+  subsectionIndex: number,
+  media?: JourneyMediaAsset,
+): JourneyMutationResult {
+  if (!modules(content)[moduleIndex]?.sections[sectionIndex]?.subsections?.[subsectionIndex]) {
+    return fail(content, pathFor(moduleIndex, sectionIndex), 'INVALID_PATH');
+  }
+  const next = clone(content);
+  const subsection = next.modules![moduleIndex].sections[sectionIndex].subsections![subsectionIndex];
+  if (media) subsection.media = clone(media);
+  else delete subsection.media;
+  next.schemaVersion = 2;
+  return success(next, pathFor(moduleIndex, sectionIndex));
 }

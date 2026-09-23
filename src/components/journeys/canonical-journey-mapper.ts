@@ -10,6 +10,7 @@ export type CanonicalState = {
   title: string;
   summary?: string;
   blocks: CanonicalBlock[];
+  media?: CanonicalBlock;
   children: CanonicalState[];
 };
 
@@ -18,6 +19,7 @@ export type CanonicalStage = {
   title: string;
   summary?: string;
   states: CanonicalState[];
+  media?: CanonicalBlock;
 };
 
 export type CanonicalJourney = {

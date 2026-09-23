@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { assertJourneyContentSize, isSafeJourneyMediaUrl } from '@/lib/journey-media';
+import { assertJourneyContentSize, isJourneyMediaPathForSlug, isSafeJourneyMediaUrl, MAX_JOURNEY_MEDIA_DATA_URL_LENGTH } from '@/lib/journey-media';
 
 export const journeyBlockTypeSchema = z.enum([
   'RICH_TEXT',
@@ -29,7 +29,35 @@ const journeyBlockSchema = z.object({
       message: 'Media URL must be HTTPS or a PNG, JPEG, or WEBP base64 data URL.',
     });
   }
+  if (block.payload.mediaPath !== undefined && typeof block.payload.mediaPath !== 'string') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['payload', 'mediaPath'],
+      message: 'Media path must be a storage pathname.',
+    });
+  }
 });
+
+export const journeyMediaAssetSchema = z.object({
+  kind: z.literal('IMAGE').default('IMAGE'),
+  title: z.string().trim().max(180).optional(),
+  mediaPath: z.string().trim().min(1).max(512).optional(),
+  url: z.string().trim().max(MAX_JOURNEY_MEDIA_DATA_URL_LENGTH).optional(),
+  alt: z.string().trim().max(500).default(''),
+  caption: z.string().trim().max(1_000).optional(),
+  fileName: z.string().trim().max(255).optional(),
+  mimeType: z.string().trim().max(100).optional(),
+  bytes: z.number().int().positive().max(15 * 1024 * 1024).optional(),
+}).superRefine((media, context) => {
+  if (media.url !== undefined && !isSafeJourneyMediaUrl(media.url)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['url'],
+      message: 'Media URL must be HTTPS or a PNG, JPEG, or WEBP base64 data URL.',
+    });
+  }
+});
+export type JourneyMediaAsset = z.infer<typeof journeyMediaAssetSchema>;
 
 const journeySubsectionSchema = z.object({
   id: z.string().trim().min(1).max(120).optional(),
@@ -37,6 +65,7 @@ const journeySubsectionSchema = z.object({
   title: z.string().trim().min(1).max(180),
   order: z.number().int().min(0).optional(),
   blocks: z.array(journeyBlockSchema).max(100),
+  media: journeyMediaAssetSchema.optional(),
 }).passthrough();
 
 const journeySectionSchema = z.object({
@@ -46,6 +75,7 @@ const journeySectionSchema = z.object({
   order: z.number().int().min(0).optional(),
   blocks: z.array(journeyBlockSchema).max(100),
   subsections: z.array(journeySubsectionSchema).max(20).optional(),
+  media: journeyMediaAssetSchema.optional(),
 }).passthrough();
 
 const journeyModuleSchema = z.object({
@@ -54,6 +84,7 @@ const journeyModuleSchema = z.object({
   title: z.string().trim().min(1).max(180),
   order: z.number().int().min(0).optional(),
   sections: z.array(journeySectionSchema).max(20),
+  media: journeyMediaAssetSchema.optional(),
 }).passthrough();
 
 export const journeyContentSchema = z.object({
@@ -135,6 +166,33 @@ export function assertNoPrivilegedJourneyMetadata(
   }
 }
 
+function assertJourneyMediaPaths(value: unknown, stableSlug: string) {
+  if (Array.isArray(value)) {
+    value.forEach((entry) => assertJourneyMediaPaths(entry, stableSlug));
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const record = value as Record<string, unknown>;
+  if (
+    (record.blockType === 'IMAGE' || record.blockType === 'DIAGRAM')
+    && record.payload
+    && typeof record.payload === 'object'
+    && (record.payload as Record<string, unknown>).mediaPath !== undefined
+    && !isJourneyMediaPathForSlug((record.payload as Record<string, unknown>).mediaPath, stableSlug)
+  ) {
+    throw new Error('Journey media path does not belong to this Journey.');
+  }
+  if (
+    record.media
+    && typeof record.media === 'object'
+    && (record.media as Record<string, unknown>).mediaPath !== undefined
+    && !isJourneyMediaPathForSlug((record.media as Record<string, unknown>).mediaPath, stableSlug)
+  ) {
+    throw new Error('Journey media path does not belong to this Journey.');
+  }
+  Object.values(record).forEach((entry) => assertJourneyMediaPaths(entry, stableSlug));
+}
+
 export function canonicalizeJourneyDraft(input: {
   authoritativeJson: string;
   submittedJson: string;
@@ -176,5 +234,6 @@ export function canonicalizeJourneyDraft(input: {
     schemaVersion,
   };
   assertNoPrivilegedJourneyMetadata(finalContent);
+  assertJourneyMediaPaths(finalContent, input.stableSlug);
   return journeyContentSchema.parse(finalContent);
 }

@@ -50,6 +50,9 @@ export function mapStructuredJourneyToCanonical(body: unknown): CanonicalJourney
         id: stateId,
         title: String(section.title),
         summary: canonicalText(section, ['summary', 'description']),
+        media: asCanonicalRecord(section.media).kind === 'IMAGE'
+          ? normalizeCanonicalBlock({ blockType: 'IMAGE', payload: asCanonicalRecord(section.media) }, `${stateId}-media`)
+          : undefined,
         blocks: records(section.blocks).map((entry, blockIndex) => normalizeCanonicalBlock(entry, `${stateId}-block-${blockIndex + 1}`)),
         children: records(section.subsections).map((subsection, subsectionIndex) => {
           const childId = uniqueId(canonicalId(subsection.id || subsection.key || subsection.title, `${stateId}-${subsectionIndex + 1}`), usedStateIds);
@@ -57,6 +60,9 @@ export function mapStructuredJourneyToCanonical(body: unknown): CanonicalJourney
             id: childId,
             title: String(subsection.title),
             summary: canonicalText(subsection, ['summary', 'description']),
+            media: asCanonicalRecord(subsection.media).kind === 'IMAGE'
+              ? normalizeCanonicalBlock({ blockType: 'IMAGE', payload: asCanonicalRecord(subsection.media) }, `${childId}-media`)
+              : undefined,
             blocks: records(subsection.blocks).map((entry, blockIndex) => normalizeCanonicalBlock(entry, `${childId}-block-${blockIndex + 1}`)),
             children: [],
           };
@@ -67,6 +73,9 @@ export function mapStructuredJourneyToCanonical(body: unknown): CanonicalJourney
       id: stageId,
       title: String(module.title),
       summary: canonicalText(module, ['summary', 'description']),
+      media: asCanonicalRecord(module.media).kind === 'IMAGE'
+        ? normalizeCanonicalBlock({ blockType: 'IMAGE', payload: asCanonicalRecord(module.media) }, `${stageId}-media`)
+        : undefined,
       states,
     };
   });

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertJourneyContentSize,
+  isSha256Digest,
   isSafeJourneyMediaUrl,
+  journeyMediaUploadPath,
   MAX_JOURNEY_CONTENT_BYTES,
 } from './journey-media';
 
@@ -23,5 +25,22 @@ describe('journey media policy', () => {
   it('caps total serialized journey content before the server action persists it', () => {
     expect(() => assertJourneyContentSize('x'.repeat(MAX_JOURNEY_CONTENT_BYTES))).not.toThrow();
     expect(() => assertJourneyContentSize('x'.repeat(MAX_JOURNEY_CONTENT_BYTES + 1))).toThrow(/25 MB/);
+  });
+});
+
+describe('content-addressed journey media paths', () => {
+  const digest = 'a'.repeat(64);
+
+  it('reuses one immutable path for matching file content across revisions', () => {
+    expect(journeyMediaUploadPath('customer-onboarding', 'cm123', 'image', digest))
+      .toBe(`journey-media/customer-onboarding/sha256/${digest}`);
+    expect(journeyMediaUploadPath('customer-onboarding', 'cm456', 'diagram', digest))
+      .toBe(`journey-media/customer-onboarding/sha256/${digest}`);
+  });
+
+  it('accepts only lowercase SHA-256 digests for content-addressed media', () => {
+    expect(isSha256Digest(digest)).toBe(true);
+    expect(isSha256Digest('not-a-digest')).toBe(false);
+    expect(isSha256Digest('A'.repeat(64))).toBe(false);
   });
 });

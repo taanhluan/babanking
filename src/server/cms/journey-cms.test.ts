@@ -654,6 +654,11 @@ describe('public Journey reader regression', () => {
     expect(listMethod).not.toContain('contentJson');
     expect(repository).toContain('publishedRevision: {');
     expect(repository).toContain('async getRevision');
+    const workspaceMethod = repository.slice(
+      repository.indexOf('async getWorkspace'),
+      repository.indexOf('async getEditableRevision'),
+    );
+    expect(workspaceMethod).not.toContain('contentJson');
   });
 
   it('defaults to a Business Editor and keeps Advanced JSON secondary', () => {

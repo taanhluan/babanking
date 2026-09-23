@@ -112,6 +112,7 @@ export default async function JourneyCmsEditorPage({
         slug={slug}
         revisionId={activeRevision.id}
         initialContentJson={activeRevision.contentJson}
+        mediaUploadsEnabled={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
       /> : null}
 
       {editable && (user.role === 'ADMIN' || activeRevision.authorId === user.id) && ['DRAFT', 'CHANGES_REQUESTED'].includes(activeRevision.status) ? <form action={submitJourneyRevisionAction} className="mt-4">
@@ -151,9 +152,10 @@ export default async function JourneyCmsEditorPage({
     <div className="grid gap-6 xl:grid-cols-2">
       {published ? <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <h2 className="text-xl font-semibold">Current published reference</h2>
-        <pre className="mt-4 max-h-[640px] overflow-auto whitespace-pre-wrap text-xs leading-5">
-          {JSON.stringify(JSON.parse(published.contentJson), null, 2)}
-        </pre>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Published JSON is available on its revision page when you need to inspect it. It is not rendered here so this workspace remains responsive for large journeys.</p>
+        <Link href={`/admin/contributor/journeys/${slug}/revisions/${published.id}`} className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-royalBlue px-3 text-sm font-semibold text-royalBlue">
+          View published revision JSON
+        </Link>
       </section> : <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-5"><h2 className="text-xl font-semibold">Current published reference</h2><p className="mt-3 text-sm text-slate-600">No published revision yet.</p></section>}
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <h2 className="text-xl font-semibold">Revision history</h2>

@@ -30,4 +30,25 @@ describe('structured Journey canonical mapping', () => {
     expect(buildStageHref({ basePath: 'banking-journeys/customer-onboarding' }, navigation[1].id, navigation[1].sections[0].id))
       .toBe('/banking-journeys/customer-onboarding?stage=capture#state-purpose');
   });
+
+  it('maps optional cover images at module, section and subsection levels', () => {
+    const journey = mapStructuredJourneyToCanonical({
+      ...structured,
+      modules: [{
+        ...structured.modules[0],
+        media: { kind: 'IMAGE', alt: 'Module cover', url: 'https://example.com/module.png' },
+        sections: [{
+          ...structured.modules[0].sections[0],
+          media: { kind: 'IMAGE', alt: 'Section cover', url: 'https://example.com/section.png' },
+          subsections: [{
+            id: 'detail', title: 'Detail', blocks: [],
+            media: { kind: 'IMAGE', alt: 'Subsection cover', url: 'https://example.com/subsection.png' },
+          }],
+        }],
+      }],
+    });
+    expect(journey.stages[0].media?.payload).toMatchObject({ alt: 'Module cover' });
+    expect(journey.stages[0].states[0].media?.payload).toMatchObject({ alt: 'Section cover' });
+    expect(journey.stages[0].states[0].children[0].media?.payload).toMatchObject({ alt: 'Subsection cover' });
+  });
 });
