@@ -5,6 +5,7 @@ import {
   isSafeJourneyMediaUrl,
   journeyMediaUploadPath,
   MAX_JOURNEY_CONTENT_BYTES,
+  publishedJourneyIncludesMediaPath,
 } from './journey-media';
 
 describe('journey media policy', () => {
@@ -42,5 +43,22 @@ describe('content-addressed journey media paths', () => {
     expect(isSha256Digest(digest)).toBe(true);
     expect(isSha256Digest('not-a-digest')).toBe(false);
     expect(isSha256Digest('A'.repeat(64))).toBe(false);
+  });
+
+  it('recognizes block and three-level cover-media references in published content', () => {
+    const blockPath = `journey-media/customer-onboarding/sha256/${'b'.repeat(64)}`;
+    const coverPath = `journey-media/customer-onboarding/sha256/${'c'.repeat(64)}`;
+    const content = {
+      modules: [{
+        media: { kind: 'IMAGE', mediaPath: coverPath },
+        sections: [{
+          media: { kind: 'IMAGE', mediaPath: coverPath },
+          blocks: [{ blockType: 'IMAGE', payload: { mediaPath: blockPath } }],
+        }],
+      }],
+    };
+    expect(publishedJourneyIncludesMediaPath(content, blockPath)).toBe(true);
+    expect(publishedJourneyIncludesMediaPath(content, coverPath)).toBe(true);
+    expect(publishedJourneyIncludesMediaPath(content, `journey-media/customer-onboarding/sha256/${'d'.repeat(64)}`)).toBe(false);
   });
 });

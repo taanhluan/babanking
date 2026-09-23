@@ -34,6 +34,26 @@ export function isJourneyMediaPathForSlug(value: unknown, slug: string): value i
     && !value.includes('#');
 }
 
+/**
+ * Checks a persisted Journey JSON tree for a media reference. Canonical content
+ * permits images both as IMAGE/DIAGRAM block payloads and as direct `media`
+ * fields on modules, sections and subsections.
+ */
+export function publishedJourneyIncludesMediaPath(value: unknown, mediaPath: string): boolean {
+  if (Array.isArray(value)) return value.some((entry) => publishedJourneyIncludesMediaPath(entry, mediaPath));
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  const blockPayload = record.payload && typeof record.payload === 'object' && !Array.isArray(record.payload)
+    ? record.payload as Record<string, unknown>
+    : null;
+  if (
+    (record.blockType === 'IMAGE' || record.blockType === 'DIAGRAM')
+    && blockPayload?.mediaPath === mediaPath
+  ) return true;
+  if (record.kind === 'IMAGE' && record.mediaPath === mediaPath) return true;
+  return Object.values(record).some((entry) => publishedJourneyIncludesMediaPath(entry, mediaPath));
+}
+
 export function journeyMediaProxyUrl(slug: string, mediaPath: string, revisionId?: string) {
   const params = new URLSearchParams({ slug, path: mediaPath });
   if (revisionId) params.set('revisionId', revisionId);

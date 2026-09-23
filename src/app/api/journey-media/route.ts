@@ -1,26 +1,13 @@
 import { get } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import { canEditRevision } from '@/lib/permissions';
-import { isJourneyMediaPathForSlug } from '@/lib/journey-media';
+import { isJourneyMediaPathForSlug, publishedJourneyIncludesMediaPath } from '@/lib/journey-media';
 import { requireContentSlugAccess } from '@/server/access-control/require-knowledge-access';
 import { requireJourneyCmsAccess } from '@/server/cms/journey-cms-authorization';
 import { JourneyCmsRepository } from '@/server/cms/journey-cms-repository';
 import { parseJourneyContentJson } from '@/server/cms/journey-content-schema';
 
 export const runtime = 'nodejs';
-
-function includesMediaPath(value: unknown, mediaPath: string): boolean {
-  if (Array.isArray(value)) return value.some((entry) => includesMediaPath(entry, mediaPath));
-  if (!value || typeof value !== 'object') return false;
-  const record = value as Record<string, unknown>;
-  if (
-    (record.blockType === 'IMAGE' || record.blockType === 'DIAGRAM')
-    && record.payload
-    && typeof record.payload === 'object'
-    && (record.payload as Record<string, unknown>).mediaPath === mediaPath
-  ) return true;
-  return Object.values(record).some((entry) => includesMediaPath(entry, mediaPath));
-}
 
 async function canReadMedia(slug: string, mediaPath: string, revisionId: string | null) {
   if (revisionId) {
@@ -37,7 +24,7 @@ async function canReadMedia(slug: string, mediaPath: string, revisionId: string 
   const { content } = await requireContentSlugAccess('BANKING_JOURNEY', slug);
   const published = await JourneyCmsRepository.getPublishedContentJson(content.id);
   if (!published?.publishedRevision || !isJourneyMediaPathForSlug(mediaPath, slug)) return false;
-  return includesMediaPath(parseJourneyContentJson(published.publishedRevision.contentJson), mediaPath);
+  return publishedJourneyIncludesMediaPath(parseJourneyContentJson(published.publishedRevision.contentJson), mediaPath);
 }
 
 export async function GET(request: NextRequest) {
