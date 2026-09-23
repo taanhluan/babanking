@@ -262,7 +262,16 @@ async function journeyMediaAlreadyExists(
     contentHash,
   });
   const response = await fetch(`/api/journey-media/upload?${params.toString()}`);
-  if (!response.ok) throw new Error("Media lookup failed.");
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { code?: unknown } | null;
+    if (body?.code === "media_upload_not_permitted") {
+      throw new Error("Your session or editable draft has changed. Refresh the page and try again.");
+    }
+    if (body?.code === "media_storage_unavailable") {
+      throw new Error("Media storage is temporarily unavailable. Try again shortly.");
+    }
+    throw new Error("Media lookup failed. Refresh the page and try again.");
+  }
   return (await response.json() as { exists?: boolean }).exists === true;
 }
 
@@ -332,8 +341,8 @@ function ImageBlockEditor({
           },
         );
         onChange({ ...rest, mediaPath: blob.pathname, fileName: file.name, mimeType: file.type, bytes: file.size });
-      } catch {
-        setUploadError("Upload failed. Check your access and try again.");
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : "Upload failed. Check your access and try again.");
       } finally {
         setUploading(false);
         uploadInFlightRef.current = false;
@@ -590,8 +599,8 @@ function DiagramBlockEditor({
           },
         );
         onChange({ ...rest, mediaPath: blob.pathname, fileName: file.name, mimeType: file.type, bytes: file.size });
-      } catch {
-        setUploadError("Upload failed. Check your access and try again.");
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : "Upload failed. Check your access and try again.");
       } finally {
         setUploading(false);
         uploadInFlightRef.current = false;

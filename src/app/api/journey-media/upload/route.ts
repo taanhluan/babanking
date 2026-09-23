@@ -1,6 +1,7 @@
 import { BlobNotFoundError, head } from '@vercel/blob';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { canEditRevision } from '@/lib/permissions';
 import { requireJourneyCmsAccess } from '@/server/cms/journey-cms-authorization';
 import { JourneyCmsRepository } from '@/server/cms/journey-cms-repository';
@@ -13,6 +14,8 @@ import {
 
 export const runtime = 'nodejs';
 
+class MediaUploadAuthorizationError extends Error {}
+
 function parseClientPayload(value: string | null) {
   try {
     return journeyMediaUploadPayloadSchema.parse(JSON.parse(value ?? ''));
@@ -22,15 +25,34 @@ function parseClientPayload(value: string | null) {
 }
 
 async function authorizeEditableMedia(input: ReturnType<typeof parseClientPayload>) {
-  const { user, content } = await requireJourneyCmsAccess(input.slug, 'EDIT');
+  let user: Awaited<ReturnType<typeof requireJourneyCmsAccess>>['user'];
+  let content: Awaited<ReturnType<typeof requireJourneyCmsAccess>>['content'];
+  try {
+    ({ user, content } = await requireJourneyCmsAccess(input.slug, 'EDIT'));
+  } catch {
+    // Do not let Next's navigation errors be flattened into a misleading 400.
+    // The route deliberately returns no content existence information here.
+    throw new MediaUploadAuthorizationError();
+  }
   const revision = await JourneyCmsRepository.getEditableRevision(content.id);
   if (
     !revision
     || revision.id !== input.revisionId
     || !canEditRevision(user.role, user.id, revision.authorId, revision.status)
   ) {
-    throw new Error('Media upload is not permitted for this draft.');
+    throw new MediaUploadAuthorizationError();
   }
+}
+
+function uploadErrorResponse(error: unknown) {
+  if (error instanceof ZodError || error instanceof SyntaxError || error instanceof Error && error.message === 'Invalid media upload request.') {
+    return NextResponse.json({ code: 'invalid_media_request', error: 'The media upload request is invalid.' }, { status: 400 });
+  }
+  if (error instanceof MediaUploadAuthorizationError) {
+    return NextResponse.json({ code: 'media_upload_not_permitted', error: 'Your session or editable draft is no longer available. Refresh and try again.' }, { status: 403 });
+  }
+  // Do not reveal provider responses, storage identifiers, or stack traces.
+  return NextResponse.json({ code: 'media_storage_unavailable', error: 'Media storage is temporarily unavailable. Try again shortly.' }, { status: 502 });
 }
 
 export async function GET(request: Request) {
@@ -53,7 +75,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ exists: true });
   } catch (error) {
     if (error instanceof BlobNotFoundError) return NextResponse.json({ exists: false });
-    return NextResponse.json({ error: 'Media upload could not be authorized.' }, { status: 400 });
+    return uploadErrorResponse(error);
   }
 }
 
@@ -75,7 +97,7 @@ export async function POST(request: Request) {
         if (
           pathname !== expectedJourneyMediaUploadPath(input)
         ) {
-          throw new Error('Media upload is not permitted for this draft.');
+          throw new MediaUploadAuthorizationError();
         }
 
         return {
@@ -89,7 +111,7 @@ export async function POST(request: Request) {
       },
     });
     return NextResponse.json(response);
-  } catch {
-    return NextResponse.json({ error: 'Media upload could not be authorized.' }, { status: 400 });
+  } catch (error) {
+    return uploadErrorResponse(error);
   }
 }
