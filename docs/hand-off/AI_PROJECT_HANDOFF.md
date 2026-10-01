@@ -76,6 +76,14 @@
   symbolic `origin/HEAD`). This stops future Git Preview deployments for the
   removed branches; it did not change any database, Blob store, CMS content,
   Vercel environment variable, or Production deployment.
+- Preview-retention cleanup (2026-10-01): after listing all available Vercel
+  deployments, Product Owner explicitly approved removal of every historical
+  Preview deployment while retaining the latest `develop` deployment. Nine
+  exact Preview deployment URLs were deleted. The retained deployment
+  `dpl_DE1A8PdnX3GaG7cMJSjuC2qwj5tc` is `Ready` and retains the branch alias
+  `babanking-git-develop-taanhluans-projects.vercel.app`. No Production
+  deployment, Production alias, database, Blob store, CMS record, or Vercel
+  environment variable was deleted or changed.
 
 ## Payments business flow reader compatibility (2026-09-11)
 
