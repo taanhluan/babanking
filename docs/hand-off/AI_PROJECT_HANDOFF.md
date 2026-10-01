@@ -1,5 +1,32 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Lending editor recovery fix (2026-10-01)
+
+- Opening the `lending` editor failed with "Journey editor recovery" (ZodError
+  `modules.12.sections` too_big): the published revision's "Business Analysis"
+  module has 26 sections (see `docs/hand-off/lending-full-business-journey.json`)
+  but the schema capped sections per module at 20, so cloning a draft failed.
+- Raised the per-module sections cap to 50 in `journey-content-schema.ts`;
+  subsection (20) and module (100) caps unchanged. Test updated accordingly.
+- Local `node_modules` had been copied from another platform (missing
+  darwin-arm64 esbuild for `tsx`; Chrome quarantine blocked Next SWC). Repaired
+  with `rm -rf node_modules && npm ci` at the user's request; `db:check-env`
+  passes again (Development app / Development database).
+- Read-only Development verification after the fix: `lending` has four
+  revisions, all valid under the new schema; the current published revision and
+  an existing DRAFT each have a 26-section module. The Section 5 snapshot
+  (`lending` v1) is stale. No database data was changed.
+- `npm ci` reports 10 dependency vulnerabilities (1 critical, 5 high); not
+  addressed. Schema/test change moved from `main` onto
+  `develop` (fast-forwarded to `149e6aa`) at the user's request — work only on `develop`.
+- `CLAUDE.md` now imports this handoff so every Claude Code session loads it.
+- Validation on `develop`: 48/49 test files pass, ESLint, TypeScript and local
+  build pass. One pre-existing failure, unrelated to this change and present on
+  `origin/develop` without it: `ba-document-cms-foundation.test.ts:96` expects
+  `assertGovernedRevisionPublishable` to reject an ADMIN publishing their own
+  revision, but it does not throw. This may be an editorial-independence
+  regression and needs investigation before any `main` release.
+
 ## Material change-record principle (2026-10-01)
 
 - Project policy now requires a concise hand-off record for every material

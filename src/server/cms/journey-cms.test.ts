@@ -283,7 +283,9 @@ describe('Journey CMS validation and workflow policy', () => {
     const v2 = journeyContentSchema.parse({ title: 'Structured Journey', summary: 'A sufficiently detailed structured Journey summary for validation.', schemaVersion: 2, modules: [{ title: 'Module', sections: [{ title: 'Section', blocks: [], subsections: [{ title: 'Subsection', blocks: [] }] }] }] });
     expect(v2.schemaVersion).toBe(2);
     expect(v2.modules?.[0].sections[0].subsections).toHaveLength(1);
-    const tooMany = Array.from({ length: 21 }, (_, index) => ({ title: `Section ${index}`, blocks: [] }));
+    const sections = (length: number) => Array.from({ length }, (_, index) => ({ title: `Section ${index}`, blocks: [] }));
+    expect(journeyContentSchema.safeParse({ title: 'Many sections', summary: 'A sufficiently detailed structured Journey summary for validation.', schemaVersion: 1, modules: [{ title: 'Business Analysis', sections: sections(26) }] }).success).toBe(true);
+    const tooMany = sections(51);
     expect(journeyContentSchema.safeParse({ title: 'Too many', summary: 'A sufficiently detailed structured Journey summary for validation.', schemaVersion: 2, modules: [{ title: 'Module', sections: tooMany }] }).success).toBe(false);
   });
 

@@ -83,7 +83,7 @@ const journeyModuleSchema = z.object({
   key: z.string().trim().min(1).max(100).optional(),
   title: z.string().trim().min(1).max(180),
   order: z.number().int().min(0).optional(),
-  sections: z.array(journeySectionSchema).max(20),
+  sections: z.array(journeySectionSchema).max(50),
   media: journeyMediaAssetSchema.optional(),
 }).passthrough();
 
