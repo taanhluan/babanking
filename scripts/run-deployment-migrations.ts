@@ -8,7 +8,11 @@ if (process.env.VERCEL !== '1') {
 }
 
 const environment = parseServerEnvironment(process.env, { requireAuthSecret: false });
-if (!['preview', 'production'].includes(environment.APP_ENV)) {
+// A hosted Development target uses Vercel Preview infrastructure while keeping
+// its application and database labels at development. Deployment permission is
+// therefore based on the provider environment; database safety still requires
+// matching application/database labels in run-safe-prisma-command.
+if (!['preview', 'production'].includes(environment.VERCEL_ENV ?? '')) {
   throw new Error('Deployment migrations are permitted only for Vercel Preview or Production.');
 }
 

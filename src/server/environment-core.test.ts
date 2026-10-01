@@ -140,6 +140,22 @@ describe('database safety guard', () => {
       DATABASE_ENVIRONMENT: 'preview',
     }))).toThrow(/development/);
   });
+
+  it('allows migrate deploy for a hosted Development target on Preview infrastructure', () => {
+    expect(() => assertDatabaseOperationAllowed('migrate-deploy', environment({
+      APP_ENV: 'development',
+      DATABASE_ENVIRONMENT: 'development',
+      VERCEL_ENV: 'preview',
+      VERCEL_TARGET_ENV: 'development',
+    }))).not.toThrow();
+  });
+
+  it('blocks migrate deploy outside Vercel Preview or Production infrastructure', () => {
+    expect(() => assertDatabaseOperationAllowed('migrate-deploy', environment({
+      APP_ENV: 'development',
+      DATABASE_ENVIRONMENT: 'development',
+    }))).toThrow(/Vercel Preview or Production infrastructure/);
+  });
 });
 
 describe('safe database diagnostics', () => {

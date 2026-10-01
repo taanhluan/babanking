@@ -84,6 +84,22 @@
   `babanking-git-develop-taanhluans-projects.vercel.app`. No Production
   deployment, Production alias, database, Blob store, CMS record, or Vercel
   environment variable was deleted or changed.
+- Hosted Development CMS enablement (2026-10-01): Product Owner authorized
+  copying existing Development credentials only into Vercel `Preview`
+  variables scoped exclusively to Git branch `develop`. The configuration
+  includes Development database labels/URLs, auth secret, required CMS media
+  Blob identifiers/token, access-control mode, safety flags, the branch URL,
+  and `VERCEL_TARGET_ENV=development`; no Production variable was read,
+  modified, or assigned. Secret values were never logged or committed.
+- The first redeploy correctly failed during the build migration gate because
+  the old implementation treated hosted Development as a non-deployable app
+  environment. The generic fix now authorizes `migrate-deploy` from the
+  provider-level `VERCEL_ENV` (`preview` or `production`) while preserving the
+  application/database matching-label guard. This permits only a Development
+  database on Vercel Preview infrastructure, not arbitrary local development
+  migration deployment. Focused tests (20), ESLint, TypeScript, local build,
+  and diff check passed. Redeployment and authenticated CMS route verification
+  remain the next action.
 
 ## Payments business flow reader compatibility (2026-09-11)
 

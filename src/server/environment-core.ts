@@ -163,8 +163,9 @@ export function assertDatabaseOperationAllowed(
     return;
   }
   if (operation === 'migrate-deploy') {
-    if (!['preview', 'production'].includes(environment.APP_ENV)) {
-      throw new Error('migrate-deploy is allowed only for matching preview or production environments.');
+    const deploymentEnvironment = environment.VERCEL_ENV ?? environment.APP_ENV;
+    if (!['preview', 'production'].includes(deploymentEnvironment)) {
+      throw new Error('migrate-deploy is allowed only on Vercel Preview or Production infrastructure.');
     }
     return;
   }
