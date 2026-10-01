@@ -20,12 +20,19 @@
   addressed. Schema/test change moved from `main` onto
   `develop` (fast-forwarded to `149e6aa`) at the user's request — work only on `develop`.
 - `CLAUDE.md` now imports this handoff so every Claude Code session loads it.
-- Validation on `develop`: 48/49 test files pass, ESLint, TypeScript and local
-  build pass. One pre-existing failure, unrelated to this change and present on
-  `origin/develop` without it: `ba-document-cms-foundation.test.ts:96` expects
-  `assertGovernedRevisionPublishable` to reject an ADMIN publishing their own
-  revision, but it does not throw. This may be an editorial-independence
-  regression and needs investigation before any `main` release.
+- Validation on `develop`: ESLint, TypeScript and local build pass. Commit
+  `ec71983` pushed to `origin/develop`.
+
+## ADMIN self-publish policy confirmed (2026-10-01)
+
+- Checkpoint commit `eb46fe6` (2026-09-22) had relaxed `canReviewRevision`
+  (`src/lib/permissions.ts`) and `assertGovernedRevisionPublishable`
+  (`src/server/cms/governed-content-lifecycle.ts`) so ADMIN may review and
+  publish their own revision for every governed type; the handoff did not record
+  it and `ba-document-cms-foundation.test.ts` still expected rejection.
+- Owner decision: keep ADMIN self-review/self-publish. Non-admin authors
+  (CONTRIBUTOR/REVIEWER) remain blocked. Test and invariants updated to match;
+  no runtime code changed.
 
 ## Material change-record principle (2026-10-01)
 
@@ -372,7 +379,8 @@ Never print, copy, or commit database URLs, credentials, auth secrets, activatio
 4. Do not run `prisma migrate reset`, `prisma db push`, destructive SQL, or development seeds outside Development.
 5. Do not hard-code user emails, request IDs, payment IDs, Journey slugs, plan IDs, or roles into authorization logic.
 6. Continue using the existing Role Matrix and Knowledge Access Matrix.
-7. ADMIN does not bypass editorial independence: authors cannot review or publish their own revision.
+7. Editorial independence: non-admin authors cannot review or publish their own
+   revision. ADMIN self-review/self-publish is permitted (owner decision 2026-10-01).
 8. Public Journey content must continue to load through:
 
    ```text
@@ -457,7 +465,8 @@ Completed:
 - Drafts are created from the current published revision.
 - Save Draft, Submit for Review, Review, Reject, Publish, history, rollback, and archive flows exist.
 - Existing Role Matrix and Knowledge Access Matrix are reused.
-- Self-review and self-publish are prohibited for all roles, including ADMIN.
+- Self-review and self-publish are prohibited for non-admin roles (ADMIN exempt since
+  2026-09-22, confirmed by the owner 2026-10-01).
 - Publish transactionally updates `ContentItem.publishedRevisionId`.
 - Publish synchronizes `ContentItem.previewJson`.
 - Publish and rollback write AuditLog records.

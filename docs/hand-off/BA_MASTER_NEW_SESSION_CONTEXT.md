@@ -81,7 +81,7 @@ npm run db:studio
 - Public content must be read through `ContentItem.publishedRevisionId → ContentRevision.contentJson`.
 - Draft editing must never mutate a published revision.
 - Lifecycle is Draft → Review → Published → Archived; no hard deletion of revision history.
-- Author cannot review or publish their own revision, including an `ADMIN` author.
+- A non-admin author cannot review or publish their own revision; `ADMIN` may (owner decision 2026-10-01).
 - Create a draft from the current published revision; first detect/reuse a legitimate active revision. Stop on unexpected active-revision conflict or a changed baseline.
 - Publish/rollback must be conditional, transactional, audited, revision-preserving, and refresh public cache. Never directly change a revision status or `publishedRevisionId`.
 - CMS access must continue through the real authorization path (`requireJourneyCmsAccess()`); do not fabricate actors, bypass auth, or direct-write revision tables.

@@ -90,10 +90,11 @@ describe('BA Document lifecycle service', () => {
 });
 
 describe('shared governed content lifecycle', () => {
-  it('enforces ownership, permissions and independent publish review for every governed type', () => {
+  it('enforces ownership, permissions and independent publish review for non-admin roles', () => {
     expect(() => assertGovernedDraftEditable({ role: 'CONTRIBUTOR', actorId: 'author', authorId: 'author', status: 'DRAFT' }, 'BA Document')).not.toThrow();
     expect(() => assertGovernedDraftEditable({ role: 'MEMBER', actorId: 'author', authorId: 'author', status: 'DRAFT' }, 'BA Document')).toThrow(/permission/);
-    expect(() => assertGovernedRevisionPublishable({ role: 'ADMIN', actorId: 'author', authorId: 'author', status: 'IN_REVIEW' }, 'BA Document')).toThrow(/author/);
+    expect(() => assertGovernedRevisionPublishable({ role: 'REVIEWER', actorId: 'author', authorId: 'author', status: 'IN_REVIEW' }, 'BA Document')).toThrow(/author/);
+    expect(() => assertGovernedRevisionPublishable({ role: 'ADMIN', actorId: 'author', authorId: 'author', status: 'IN_REVIEW' }, 'BA Document')).not.toThrow();
     expect(() => assertGovernedRevisionPublishable({ role: 'REVIEWER', actorId: 'reviewer', authorId: 'author', status: 'IN_REVIEW' }, 'BA Document')).not.toThrow();
   });
 

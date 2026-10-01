@@ -60,7 +60,7 @@ Reuse the existing services and policy matrices; do not add parallel permission 
 
 **Governed content and editorial workflow.**
 - Model chain: `ContentItem` (stable immutable `slug`, `publishedRevisionId`) → `ContentRevision.contentJson` → renderer. Per-locale state lives in `ContentTranslation`/`TranslationRevision`.
-- Workflow: create a Draft cloned from the published revision → save → `IN_REVIEW` → independent review/publish. Author and reviewer/publisher must differ, and ADMIN does not bypass this.
+- Workflow: create a Draft cloned from the published revision → save → `IN_REVIEW` → independent review/publish. Author and reviewer/publisher must differ for non-admin roles; ADMIN may review/publish their own revision (owner decision 2026-10-01).
 - Never mutate a published revision or replace a `ContentItem`.
 - Publish transactionally updates the pointer, syncs `previewJson`, writes `AuditLog`, and revalidates caches. Rollback repoints the published revision.
 - The Journey content schema is `src/server/cms/journey-content-schema.ts`.
