@@ -19,6 +19,12 @@
   granted VIEW to the three active packages; re-run reports nothing to apply.
 - Glossary entries are wired into the global search, member nav (`/glossary`)
   and type maps. Member reader, Journey panel and CMS UI follow in later commits.
+- Member reader: `/glossary` (search, kind/domain/jurisdiction filters, A–Z)
+  and `/glossary/[slug]` (page-level `requireContentSlugAccess`). Linked entries
+  and Journeys render only when independently authorized for the reader. The
+  Journey reader shows a "Terms & regulations" panel from published, authorized
+  entries. Robots disallows `/glossary`; e2e anonymous checks include it. Local
+  anonymous requests to `/en|vi/glossary[/kyc]` return 307 to login.
 
 ## Lending editor recovery fix (2026-10-01)
 
