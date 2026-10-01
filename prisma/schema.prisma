@@ -22,6 +22,7 @@ enum ContentType {
   CAREER_LEVEL
   BA_DOCUMENT
   CUSTOMER_SEGMENT
+  GLOSSARY_ENTRY
 }
 
 enum RevisionStatus {

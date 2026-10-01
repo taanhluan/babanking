@@ -1,5 +1,25 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Banking Glossary & Regulations — foundation (2026-10-01, `develop`)
+
+- Owner-approved feature: members-only glossary of banking terms and VN +
+  international regulations, governed through the CMS (Draft → In Review →
+  Publish), EN/VI, with A–Z/domain/kind search and term↔regulation and
+  term↔Journey links. Plan: `~/.claude/plans/b-y-gi-t-i-mu-n-zazzy-sunrise.md`.
+- New `ContentType.GLOSSARY_ENTRY`; migration `20261001090000_add_glossary_entry`
+  (enum value only) applied to Development via `db:migrate:dev`.
+- `src/server/glossary/`: strict Zod v1 schema (`glossary-domain.ts`),
+  repository restricted by Knowledge Access VIEW ids, and a governed service
+  (create/draft/save/submit/review/publish/rollback/archive) with conditional
+  status/pointer updates, read-back hashes and `GLOSSARY_ENTRY_*` audits.
+  Publish rejects placeholders and links to unpublished entries/Journeys.
+- Each entry gets a required PRIMARY mapping to Knowledge Scope
+  `BANKING_GLOSSARY`. `npm run db:seed:glossary-scope -- --apply` (Development
+  only, idempotent, audited `GLOSSARY_SCOPE_CONFIGURED`) created the scope and
+  granted VIEW to the three active packages; re-run reports nothing to apply.
+- Glossary entries are wired into the global search, member nav (`/glossary`)
+  and type maps. Member reader, Journey panel and CMS UI follow in later commits.
+
 ## Lending editor recovery fix (2026-10-01)
 
 - Opening the `lending` editor failed with "Journey editor recovery" (ZodError

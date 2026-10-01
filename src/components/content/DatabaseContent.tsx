@@ -9,11 +9,11 @@ import { JourneyReadingProgress } from '@/components/journeys/JourneyReadingProg
 import { isCanonicalStructuredJourneyContent, mapStructuredJourneyToCanonical } from '@/components/journeys/structured-journey-mapper';
 
 const routeFor = (type: PublishedContent['type']) => ({
-  BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap', BA_DOCUMENT: 'ba-documents', CUSTOMER_SEGMENT: 'banking-journeys',
+  BANKING_JOURNEY: 'banking-journeys', BA_PRACTICE: 'ba-practice', CASE_STUDY: 'case-studies', CAREER_LEVEL: 'career-roadmap', BA_DOCUMENT: 'ba-documents', CUSTOMER_SEGMENT: 'banking-journeys', GLOSSARY_ENTRY: 'glossary',
 }[type]);
 
 const labelFor = (type: PublishedContent['type']) => ({
-  BANKING_JOURNEY: 'Banking Journeys', BA_PRACTICE: 'BA Practice', CASE_STUDY: 'Case Studies', CAREER_LEVEL: 'Career Roadmap', BA_DOCUMENT: 'BA Documents', CUSTOMER_SEGMENT: 'Customer Segment',
+  BANKING_JOURNEY: 'Banking Journeys', BA_PRACTICE: 'BA Practice', CASE_STUDY: 'Case Studies', CAREER_LEVEL: 'Career Roadmap', BA_DOCUMENT: 'BA Documents', CUSTOMER_SEGMENT: 'Customer Segment', GLOSSARY_ENTRY: 'Glossary',
 }[type]);
 
 export function DatabaseContentLibrary({ items }: { items: ContentPreview[] }) {

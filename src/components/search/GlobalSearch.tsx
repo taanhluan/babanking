@@ -8,7 +8,8 @@ type SearchContentType =
   | "Case Study"
   | "Career Level"
   | "BA Document"
-  | "Customer Segment";
+  | "Customer Segment"
+  | "Glossary Entry";
 type SearchRecord = {
   type: SearchContentType;
   title: string;
@@ -75,6 +76,7 @@ export function GlobalSearch({
               <option>Case Study</option>
               <option>Career Level</option>
               <option>BA Document</option>
+              <option>Glossary Entry</option>
             </select>
           </label>
           <button

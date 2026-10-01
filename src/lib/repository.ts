@@ -6,6 +6,7 @@ import { getAccessibleContentIds } from "@/server/access-control/knowledge-acces
 import { requireContentSlugAccess } from "@/server/access-control/require-knowledge-access";
 import { parseBaDocumentContent } from "@/server/ba-document/ba-document-domain";
 import { extractBaDocumentSearchText } from "@/server/ba-document/ba-document-authoring";
+import { parseGlossaryEntryContent } from "@/server/glossary/glossary-domain";
 
 export type PublishedContent = {
   id: string;
@@ -33,17 +34,19 @@ const routes: Record<ContentType, string> = {
   CAREER_LEVEL: "career-roadmap",
   BA_DOCUMENT: "ba-documents",
   CUSTOMER_SEGMENT: "banking-journeys",
+  GLOSSARY_ENTRY: "glossary",
 };
 
 const labels: Record<
   Exclude<ContentType, "BA_DOCUMENT">,
-  "Banking Journey" | "BA Practice" | "Case Study" | "Career Level" | "Customer Segment"
+  "Banking Journey" | "BA Practice" | "Case Study" | "Career Level" | "Customer Segment" | "Glossary Entry"
 > = {
   BANKING_JOURNEY: "Banking Journey",
   BA_PRACTICE: "BA Practice",
   CASE_STUDY: "Case Study",
   CAREER_LEVEL: "Career Level",
   CUSTOMER_SEGMENT: "Customer Segment",
+  GLOSSARY_ENTRY: "Glossary Entry",
 };
 
 function parseBody(value: string): Record<string, unknown> | null {
@@ -215,11 +218,11 @@ export const ContentRepository = {
       type: "BANKING_JOURNEY",
       permission: "VIEW",
     });
-    const [items, baDocuments] = await Promise.all([
+    const [items, baDocuments, glossaryEntries] = await Promise.all([
       db.contentItem.findMany({
         where: {
           id: { in: accessibleIds },
-          type: { notIn: ["BA_DOCUMENT", "CUSTOMER_SEGMENT"] },
+          type: { notIn: ["BA_DOCUMENT", "CUSTOMER_SEGMENT", "GLOSSARY_ENTRY"] },
           isArchived: false,
           publishedRevisionId: { not: null },
         },
@@ -242,6 +245,19 @@ export const ContentRepository = {
         select: {
           slug: true,
           primaryJourney: { select: { slug: true } },
+          publishedRevision: { select: { contentJson: true } },
+        },
+        orderBy: { slug: "asc" },
+      }),
+      db.contentItem.findMany({
+        where: {
+          id: { in: accessibleIds },
+          type: "GLOSSARY_ENTRY",
+          isArchived: false,
+          publishedRevisionId: { not: null },
+        },
+        select: {
+          slug: true,
           publishedRevision: { select: { contentJson: true } },
         },
         orderBy: { slug: "asc" },
@@ -292,7 +308,31 @@ export const ContentRepository = {
         return [];
       }
     });
-    return [...standard, ...documents];
+    const glossary = glossaryEntries.flatMap((item) => {
+      const content =
+        item.publishedRevision &&
+        parseGlossaryEntryContent(item.publishedRevision.contentJson);
+      if (!content) return [];
+      return [
+        {
+          type: "Glossary Entry" as const,
+          title: content.en.name,
+          summary: content.en.shortDefinition,
+          keywords: [
+            content.vi.name,
+            content.abbreviation ?? "",
+            ...content.aliases,
+            content.regulation?.documentNumber ?? "",
+          ].filter(Boolean),
+          context:
+            content.kind === "REGULATION"
+              ? `Regulation · ${content.regulation?.issuer ?? ""}`
+              : "Term",
+          url: `/glossary/${item.slug}`,
+        },
+      ];
+    });
+    return [...standard, ...documents, ...glossary];
   },
 };
 
