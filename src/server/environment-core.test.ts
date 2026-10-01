@@ -43,6 +43,22 @@ describe('application environment resolution', () => {
     })).toThrow(/conflicts/);
   });
 
+  it('accepts a hosted Development target running on Vercel Preview infrastructure', () => {
+    expect(resolveApplicationEnvironment({
+      APP_ENV: 'development',
+      VERCEL_ENV: 'preview',
+      VERCEL_TARGET_ENV: 'development',
+    })).toBe('development');
+  });
+
+  it('blocks a mismatched Vercel target even when the provider environment is Preview', () => {
+    expect(() => resolveApplicationEnvironment({
+      APP_ENV: 'development',
+      VERCEL_ENV: 'preview',
+      VERCEL_TARGET_ENV: 'production',
+    })).toThrow(/VERCEL_TARGET_ENV/);
+  });
+
   it('blocks unknown environments', () => {
     expect(() => resolveApplicationEnvironment({ APP_ENV: 'staging' })).toThrow();
     expect(() => resolveApplicationEnvironment({ NODE_ENV: 'production' })).toThrow(/required/);
@@ -58,6 +74,18 @@ describe('application environment resolution', () => {
       VERCEL_BRANCH_URL: 'preview.example.vercel.app',
     });
     expect(parsed.APP_BASE_URL).toBe('https://preview.example.vercel.app');
+  });
+
+  it('parses an explicitly configured hosted Development environment safely', () => {
+    const parsed = parseServerEnvironment({
+      ...baseSource,
+      APP_BASE_URL: 'https://dev.babanking.example.test',
+      VERCEL_ENV: 'preview',
+      VERCEL_TARGET_ENV: 'development',
+    });
+    expect(parsed.APP_ENV).toBe('development');
+    expect(parsed.DATABASE_ENVIRONMENT).toBe('development');
+    expect(parsed.VERCEL_TARGET_ENV).toBe('development');
   });
 });
 

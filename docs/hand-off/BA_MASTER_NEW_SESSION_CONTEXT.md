@@ -130,6 +130,11 @@ For BA Documentation, `BA_DOCUMENT` is first-class governed content. Each docume
 8. **Database/environment identity can be shadowed by local `.env.local`.** For a Production investigation/release, prove target identity from clean Vercel scope, project binding, deployment SHA/status, and canonical alias—not from local values.
 9. **Never relax authentication to make a release easier.** If no legitimate CMS actor/session exists, stop at the authentication boundary and let a human operator perform the UI action; continue with read-only verification afterward.
 10. **Business quality matters as much as JSON validity.** A Journey needs domain-specific actors, rules, validations, state model, systems, risks/controls, cross-Journey boundaries, and BPMN where it materially clarifies the flow.
+11. **Material decisions and changes are traceable.** Record each scope-changing
+    instruction, implementation, data mutation, security finding, release,
+    rollback, blocker, and next step in the hand-off with scope, environment,
+    evidence and remaining risk. Use application `AuditLog` for governed
+    writes. Do not store raw prompts/chat transcripts or secrets.
 
 ## 7. Reusable Journey delivery playbook
 
@@ -175,6 +180,6 @@ Read the minimum relevant material below after the core project skill.
 
 ## 10. Completion/reporting standard
 
-For any change, report: behavior/root cause, files changed, authorization and transaction implications, records/environments touched, focused validation results, remaining gaps, and the exact stopping point. Update `AI_PROJECT_HANDOFF.md` whenever architecture, database state, blockers, or next steps materially change.
+For any change, report: behavior/root cause, files changed, authorization and transaction implications, records/environments touched, focused validation results, remaining gaps, and the exact stopping point. Update `AI_PROJECT_HANDOFF.md` whenever architecture, database state, blockers, material decisions, implementation, or next steps change. Do not record raw prompts, credentials, tokens, hashes, or private PII.
 
 Do not commit, branch, push, deploy, publish, migrate, or alter data unless the user explicitly asks and the environment scope is unambiguous.

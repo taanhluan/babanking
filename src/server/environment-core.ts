@@ -11,6 +11,7 @@ export type ApplicationEnvironment = z.infer<typeof applicationEnvironmentSchema
 export type EnvironmentSource = Record<string, string | undefined>;
 
 const vercelEnvironmentSchema = z.enum(['development', 'preview', 'production']);
+const vercelTargetEnvironmentSchema = z.enum(['development', 'preview', 'production']);
 const postgresUrlSchema = z
   .string()
   .min(1)
@@ -48,6 +49,7 @@ export interface ServerEnvironment {
   ENABLE_STATIC_CONTENT_FALLBACK: boolean;
   KNOWLEDGE_ACCESS_MATRIX_MODE: 'disabled' | 'shadow' | 'enforced';
   VERCEL_ENV?: 'development' | 'preview' | 'production';
+  VERCEL_TARGET_ENV?: 'development' | 'preview' | 'production';
 }
 
 export type DatabaseOperation =
@@ -68,9 +70,20 @@ export function resolveApplicationEnvironment(source: EnvironmentSource): Applic
     ? vercelEnvironmentSchema.parse(source.VERCEL_ENV)
     : undefined;
 
-  if (explicit && vercel && explicit !== vercel) {
+  // Vercel Custom Environments run on the provider's Preview infrastructure
+  // while exposing their product target through VERCEL_TARGET_ENV. Only an
+  // explicit known target may override the provider-level Preview label.
+  const vercelTarget = source.VERCEL_TARGET_ENV
+    ? vercelTargetEnvironmentSchema.parse(source.VERCEL_TARGET_ENV)
+    : undefined;
+
+  if (explicit && vercelTarget && explicit !== vercelTarget) {
+    throw new Error('APP_ENV conflicts with VERCEL_TARGET_ENV. Database operations have been blocked.');
+  }
+  if (!vercelTarget && explicit && vercel && explicit !== vercel) {
     throw new Error('APP_ENV conflicts with VERCEL_ENV. Database operations have been blocked.');
   }
+  if (vercelTarget) return vercelTarget;
   if (explicit) return explicit;
   if (vercel) return vercel;
   if (source.NODE_ENV === 'test') return 'test';
@@ -101,6 +114,7 @@ export function parseServerEnvironment(
     ENABLE_STATIC_CONTENT_FALLBACK: booleanEnvironmentSchema,
     KNOWLEDGE_ACCESS_MATRIX_MODE: z.enum(['disabled', 'shadow', 'enforced']),
     VERCEL_ENV: vercelEnvironmentSchema.optional(),
+    VERCEL_TARGET_ENV: vercelTargetEnvironmentSchema.optional(),
   });
   const parsed = schema.parse(normalizedSource);
   if (appEnvironment === 'production' && parsed.ENABLE_STATIC_CONTENT_FALLBACK) {

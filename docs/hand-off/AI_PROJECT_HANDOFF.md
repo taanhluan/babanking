@@ -1,5 +1,59 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Material change-record principle (2026-10-01)
+
+- Project policy now requires a concise hand-off record for every material
+  instruction or decision that changes scope, and for every implementation,
+  data mutation, security finding, release, rollback, blocker, or next step.
+- Each record identifies intent, scope, files/records, environment, validation,
+  remaining risk and next action; commit, revision, deployment and hash IDs are
+  included where applicable.
+- Governed writes still require their transactional `AuditLog`; hand-off notes
+  complement and never replace that audit trail.
+- Do not store raw prompt/chat transcripts, credentials, raw tokens, password
+  hashes, secret-bearing URLs, or private PII in hand-off material.
+
+## Environment isolation audit — read-only (2026-10-01)
+
+- Local `npm run db:check-env` verified the Development application label and
+  Development database label match; the configured Development Neon endpoint is
+  distinct from Production.
+- Read-only Vercel configuration inspection for project `babanking` confirmed
+  Production has `APP_ENV=production` and `DATABASE_ENVIRONMENT=production`,
+  while Development has matching `development` labels. Safe fingerprints of the
+  two `DATABASE_URL` values and their Neon hosts differ.
+- Production and Development each have separately scoped `BLOB_STORE_ID` and
+  `BLOB_READ_WRITE_TOKEN`; safe store fingerprints differ. This isolates the
+  Journey CMS media capability as well as Postgres-backed CMS revisions.
+- Runtime rejects mismatched app/database labels before Prisma construction.
+  Journey CMS availability and writes also require the same matching labels;
+  media upload/read routes then enforce the normal CMS/content authorization.
+- No business-data query, CMS mutation, migration, publication, deployment, or
+  secret value disclosure occurred. Temporary Vercel environment files were
+  deleted after fingerprint comparison.
+
+## Shared hosted Development preparation (2026-10-01)
+
+- Product Owner selected the existing `develop` branch as the single shared
+  review branch: developers work locally, push directly to `develop`, review
+  the shared Development deployment, then promote `develop` to `main` only for
+  an approved Production release. No feature/review branch is required.
+- `develop` was a non-divergent ancestor of `main`; it was fast-forwarded
+  atomically to `60b9acc` and pushed as `origin/develop`. Production was not
+  changed.
+- The environment guard now accepts a hosted Vercel Custom Environment only
+  when `APP_ENV` matches the explicit `VERCEL_TARGET_ENV`. This safely permits
+  `APP_ENV=development`, `DATABASE_ENVIRONMENT=development`,
+  `VERCEL_TARGET_ENV=development`, and provider `VERCEL_ENV=preview` without
+  relaxing the existing mismatch guard for ordinary Preview deployments.
+- Focused environment tests (18), ESLint, TypeScript and local production-style
+  build passed. No DB/CMS data, migration, publication, deployment or secret
+  was changed.
+- Remaining operator action: create Vercel Custom Environment `development`,
+  track branch `develop`, assign a protected persistent Development URL, and
+  configure Development-only DB, Blob and secret variables before deploying
+  this source change.
+
 ## Payments business flow reader compatibility (2026-09-11)
 
 - Incoming published flows use CODE blocks with payload.code/language=mermaid;

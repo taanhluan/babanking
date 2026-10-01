@@ -30,6 +30,20 @@ Operate as the project’s senior engineering workflow. Preserve production safe
 - Report only material findings, changes, validation, risks, and the exact stopping point.
 - Token saving never overrides correctness, security, environment safety, authorization, or required validation.
 
+## Material Change Record
+
+- Record every material request, decision, implementation, code change, data
+  mutation, release action, security finding, rollback, or blocker in the
+  appropriate hand-off before closing the work.
+- A record must state the intent, scope, affected files/records, environment,
+  validation evidence, remaining risk, and exact next step. Include commit,
+  revision, deployment, and content-hash identifiers when they exist.
+- CMS and other governed database writes also require their normal transactional
+  `AuditLog`; a hand-off entry does not replace an application audit record.
+- Do not retain full chat transcripts or raw prompts. Record only the material
+  decision or instruction that changed scope or execution, and never record
+  secrets, credentials, raw tokens, password hashes, or private PII.
+
 ## Enforce Safety
 
 - Default to Development only.
