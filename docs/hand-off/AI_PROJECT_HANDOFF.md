@@ -66,6 +66,16 @@
   record, or Production deployment was changed. Next action: the account
   owner upgrades the team to Pro, after which create the custom environment
   and import only the already-audited Development variables.
+- Branch-retention cleanup (2026-10-01): Product Owner explicitly approved
+  removal of every remote branch other than `main` and `develop` to enforce
+  the two-environment workflow. After a read-only merge/divergence audit,
+  13 explicit legacy `backup/`, `chore/`, `feat/`, `feature/`, and `release/`
+  branches were deleted from `origin`; four had commits not reachable from
+  either retained branch and were included in the approved deletion. Remote
+  verification now lists only `origin/main` and `origin/develop` (plus the
+  symbolic `origin/HEAD`). This stops future Git Preview deployments for the
+  removed branches; it did not change any database, Blob store, CMS content,
+  Vercel environment variable, or Production deployment.
 
 ## Payments business flow reader compatibility (2026-09-11)
 
