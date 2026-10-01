@@ -56,6 +56,16 @@
   track branch `develop`, assign a protected persistent Development URL, and
   configure Development-only DB, Blob and secret variables before deploying
   this source change.
+- Configuration attempt blocker (2026-10-01): direct Vercel Dashboard
+  inspection verified team `taanhluans-projects` is on the Hobby plan. The
+  `develop` branch does receive the normal Preview alias
+  `babanking-git-develop-taanhluans-projects.vercel.app`, but Hobby does not
+  provide Custom Environments, so it cannot safely receive the required
+  Development-only environment variables and `VERCEL_TARGET_ENV=development`.
+  No Vercel setting, domain, environment variable, database, Blob store, CMS
+  record, or Production deployment was changed. Next action: the account
+  owner upgrades the team to Pro, after which create the custom environment
+  and import only the already-audited Development variables.
 
 ## Payments business flow reader compatibility (2026-09-11)
 
