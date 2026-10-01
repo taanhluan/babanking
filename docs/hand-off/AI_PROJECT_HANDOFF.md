@@ -49,6 +49,9 @@
 - Focused environment tests (18), ESLint, TypeScript and local production-style
   build passed. No DB/CMS data, migration, publication, deployment or secret
   was changed.
+- Source implementation commit `bbd04cc` (`feat: prepare shared hosted
+  development environment`) was pushed to `origin/develop` only; `main` and
+  Production remain unchanged.
 - Remaining operator action: create Vercel Custom Environment `development`,
   track branch `develop`, assign a protected persistent Development URL, and
   configure Development-only DB, Blob and secret variables before deploying
