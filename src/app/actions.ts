@@ -141,6 +141,14 @@ export async function reviewRevisionAction(formData: FormData) {
     else { if (action !== 'changes' && action !== 'reject') throw new Error('Invalid review action.'); if (note.length < 10) throw new Error('A review note is required.'); await reviewCustomerSegment(revision.contentItemId, revisionId, action, note, user); }
     revalidatePath('/review'); revalidatePath('/banking-journeys'); revalidatePath(`/banking-journeys/segments/${revision.contentItem.slug}`); redirect('/review');
   }
+  if (securityIdentity?.contentItem.type === 'GLOSSARY_ENTRY') {
+    const { publishGlossaryEntry, reviewGlossaryEntry } = await import('@/server/glossary/glossary-service');
+    const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, select: { contentItemId: true, contentItem: { select: { slug: true } } } });
+    if (!revision) throw new Error('Glossary revision cannot be reviewed.');
+    if (action === 'publish') await publishGlossaryEntry(revision.contentItemId, revisionId, user);
+    else { if (action !== 'changes' && action !== 'reject') throw new Error('Invalid review action.'); await reviewGlossaryEntry(revision.contentItemId, revisionId, action, note, user); }
+    revalidatePath('/review'); revalidatePath('/glossary'); revalidatePath(`/glossary/${revision.contentItem.slug}`); revalidatePath('/search'); redirect('/review');
+  }
   if (!securityIdentity) throw new Error('Revision cannot be reviewed.');
   assertGenericReviewContentType(securityIdentity.contentItem.type);
   const revision = await db.contentRevision.findUnique({ where: { id: revisionId }, include: { contentItem: true } }); if (!revision || !canReviewRevision(user.role, user.id, revision.authorId) || revision.status !== 'IN_REVIEW') throw new Error('Revision cannot be reviewed.');

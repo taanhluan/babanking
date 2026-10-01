@@ -23,8 +23,9 @@ export const genericReviewContentTypeList = [...genericReviewContentTypes];
 export const reviewQueueContentTypeList: ContentType[] = [
   ...genericReviewContentTypeList,
   "BANKING_JOURNEY",
+  "GLOSSARY_ENTRY",
 ];
 
 export function isReviewDetailContentType(contentType: ContentType) {
-  return contentType === "BANKING_JOURNEY" || isGenericReviewContentType(contentType);
+  return contentType === "BANKING_JOURNEY" || contentType === "GLOSSARY_ENTRY" || isGenericReviewContentType(contentType);
 }

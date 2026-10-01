@@ -25,6 +25,14 @@
   Journey reader shows a "Terms & regulations" panel from published, authorized
   entries. Robots disallows `/glossary`; e2e anonymous checks include it. Local
   anonymous requests to `/en|vi/glossary[/kyc]` return 307 to login.
+- CMS: `/admin/contributor/glossary` (ADMIN; list, filters, create draft) and
+  `/admin/contributor/glossary/[slug]` (structured EN/VI form, Advanced JSON,
+  submit, review/publish, history with rollback, archive/restore). Glossary
+  revisions also appear in `/review` and dispatch to the glossary service.
+  `previewJson` is set on create and on publish only, never on draft save.
+- Not yet done: signed-in manual smoke test (create → submit → publish →
+  member view → Journey panel) and any starter content. No glossary entries
+  exist in Development yet.
 
 ## Lending editor recovery fix (2026-10-01)
 

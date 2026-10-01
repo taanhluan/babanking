@@ -69,7 +69,7 @@ export async function createGlossaryEntry(input: { slug: string; kind: GlossaryK
     if (await tx.contentItem.findUnique({ where: { type_slug: { type: 'GLOSSARY_ENTRY', slug: input.slug } }, select: { id: true } })) throw new Error('A glossary entry with this slug already exists.');
     const item = await tx.contentItem.create({
       data: {
-        type: 'GLOSSARY_ENTRY', slug: input.slug, stableKey: `glossary:${input.slug}`, ownerId: actor.id,
+        type: 'GLOSSARY_ENTRY', slug: input.slug, stableKey: `glossary:${input.slug}`, ownerId: actor.id, previewJson: glossaryPreviewJson(content),
         knowledgeScopes: { create: { knowledgeScopeId: scope.id, relationshipType: 'PRIMARY', isRequired: true } },
       },
     });
