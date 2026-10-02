@@ -1,0 +1,2064 @@
+{
+  "releaseId": "glossary-starter-v1",
+  "note": "Starter terms and regulations imported as DRAFT. English text is shown on /en pages, Vietnamese text on /vi pages. Every regulation's number, dates and status must be verified against the official text before publication; lastVerifiedAt is intentionally empty.",
+  "entries": [
+    {
+      "slug": "kyc",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "KYC",
+        "aliases": [
+          "Know Your Customer"
+        ],
+        "domains": [
+          "AML_KYC"
+        ],
+        "en": {
+          "name": "Know Your Customer",
+          "shortDefinition": "The process a bank uses to identify a customer, verify that identity and understand the purpose of the relationship before and while serving them.",
+          "body": "KYC combines identification (collecting identity data), verification (checking it against reliable documents or sources) and understanding the customer's profile, such as occupation, source of funds and expected activity.\n\nKYC is not a one-off step: customer information must be kept up to date and reviewed when risk changes.",
+          "baNotes": "Specify for each channel which identity evidence is accepted, which fields are mandatory, how verification results are stored, and what triggers a KYC refresh. Map every KYC field to its source system and retention rule."
+        },
+        "vi": {
+          "name": "Nhận biết khách hàng",
+          "shortDefinition": "Quy trình ngân hàng nhận diện khách hàng, xác minh danh tính và hiểu mục đích quan hệ trước và trong suốt quá trình phục vụ.",
+          "body": "KYC gồm nhận dạng (thu thập thông tin định danh), xác minh (đối chiếu với giấy tờ hoặc nguồn tin cậy) và tìm hiểu hồ sơ khách hàng như nghề nghiệp, nguồn tiền, giao dịch dự kiến.\n\nKYC không chỉ làm một lần: thông tin khách hàng phải được cập nhật và rà soát lại khi mức độ rủi ro thay đổi.",
+          "baNotes": "Đặc tả cho từng kênh: giấy tờ định danh được chấp nhận, trường bắt buộc, cách lưu kết quả xác minh và điều kiện kích hoạt cập nhật KYC. Ánh xạ từng trường KYC tới hệ thống nguồn và quy tắc lưu trữ."
+        },
+        "relatedEntrySlugs": [
+          "ekyc",
+          "cdd",
+          "aml",
+          "luat-phong-chong-rua-tien-2022"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "ekyc",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "eKYC",
+        "aliases": [
+          "Electronic KYC"
+        ],
+        "domains": [
+          "AML_KYC",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Electronic Know Your Customer",
+          "shortDefinition": "KYC performed remotely through digital channels, typically using ID document capture, chip or database checks, facial biometrics and liveness detection.",
+          "body": "A typical eKYC flow captures the identity document, reads or validates its data, matches the customer's face against the document or an authoritative source, checks liveness to prevent spoofing, and screens the customer before the account is opened.",
+          "baNotes": "Define retry limits, fallback to assisted onboarding, liveness and face-match thresholds owned by Risk, which limits apply to remotely opened accounts, and the evidence that must be retained for audit."
+        },
+        "vi": {
+          "name": "Định danh khách hàng điện tử",
+          "shortDefinition": "KYC thực hiện từ xa qua kênh số, thường gồm chụp giấy tờ tùy thân, đọc chip hoặc đối chiếu cơ sở dữ liệu, so khớp khuôn mặt và kiểm tra người thật (liveness).",
+          "body": "Luồng eKYC điển hình: chụp giấy tờ, đọc hoặc xác thực dữ liệu, so khớp khuôn mặt với giấy tờ hoặc nguồn chính thống, kiểm tra liveness chống giả mạo, sàng lọc khách hàng rồi mới mở tài khoản.",
+          "baNotes": "Xác định số lần thử lại, phương án chuyển sang quầy, ngưỡng liveness/so khớp khuôn mặt do bộ phận Rủi ro quyết định, hạn mức áp dụng cho tài khoản mở từ xa và bằng chứng cần lưu phục vụ kiểm toán."
+        },
+        "relatedEntrySlugs": [
+          "kyc",
+          "biometric-authentication",
+          "thong-tu-17-2024-tai-khoan-thanh-toan"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "cdd",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "CDD",
+        "aliases": [
+          "Customer Due Diligence"
+        ],
+        "domains": [
+          "AML_KYC"
+        ],
+        "en": {
+          "name": "Customer Due Diligence",
+          "shortDefinition": "Risk-based measures to identify and verify a customer and beneficial owner, understand the relationship and monitor it on an ongoing basis.",
+          "body": "CDD is applied at onboarding, for certain occasional transactions and whenever there is suspicion or doubt about previously obtained information. The depth of CDD follows the customer's risk rating.",
+          "baNotes": "Capture the risk-rating model inputs, which customer types need beneficial-owner data, and the periodic review frequency per risk level."
+        },
+        "vi": {
+          "name": "Thẩm định khách hàng",
+          "shortDefinition": "Các biện pháp dựa trên rủi ro để nhận biết, xác minh khách hàng và chủ sở hữu hưởng lợi, hiểu mối quan hệ và giám sát liên tục.",
+          "body": "CDD áp dụng khi thiết lập quan hệ, với một số giao dịch vãng lai và khi có nghi ngờ về thông tin đã thu thập. Mức độ CDD phụ thuộc xếp hạng rủi ro khách hàng.",
+          "baNotes": "Ghi nhận đầu vào mô hình xếp hạng rủi ro, loại khách hàng cần thông tin chủ sở hữu hưởng lợi và tần suất rà soát định kỳ theo từng mức rủi ro."
+        },
+        "relatedEntrySlugs": [
+          "kyc",
+          "edd",
+          "pep"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "edd",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "EDD",
+        "aliases": [
+          "Enhanced Due Diligence"
+        ],
+        "domains": [
+          "AML_KYC",
+          "RISK"
+        ],
+        "en": {
+          "name": "Enhanced Due Diligence",
+          "shortDefinition": "Additional due-diligence measures applied to higher-risk customers or transactions, such as source-of-wealth checks and senior management approval.",
+          "body": "",
+          "baNotes": "Define the triggers (high risk score, PEP, high-risk country, unusual products), the extra data and documents required, the approver role and the impact on onboarding SLA."
+        },
+        "vi": {
+          "name": "Thẩm định tăng cường",
+          "shortDefinition": "Biện pháp thẩm định bổ sung cho khách hàng hoặc giao dịch rủi ro cao, như xác minh nguồn gốc tài sản và yêu cầu cấp quản lý cao phê duyệt.",
+          "body": "",
+          "baNotes": "Xác định điều kiện kích hoạt (điểm rủi ro cao, PEP, quốc gia rủi ro cao, sản phẩm bất thường), dữ liệu và chứng từ bổ sung, vai trò phê duyệt và ảnh hưởng tới SLA mở tài khoản."
+        },
+        "relatedEntrySlugs": [
+          "cdd",
+          "pep"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "aml",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "AML",
+        "aliases": [
+          "Anti-Money Laundering"
+        ],
+        "domains": [
+          "AML_KYC",
+          "RISK"
+        ],
+        "en": {
+          "name": "Anti-Money Laundering",
+          "shortDefinition": "The laws, controls and processes that prevent, detect and report attempts to disguise the illegal origin of funds.",
+          "body": "An AML programme usually covers customer due diligence, sanctions screening, transaction monitoring, reporting to the financial intelligence unit, record keeping, training and independent testing.",
+          "baNotes": "Identify which journeys generate monitoring events, the data each monitoring rule needs, alert handling workflow and record-retention periods."
+        },
+        "vi": {
+          "name": "Phòng, chống rửa tiền",
+          "shortDefinition": "Hệ thống quy định, kiểm soát và quy trình nhằm ngăn chặn, phát hiện và báo cáo hành vi che giấu nguồn gốc bất hợp pháp của tiền.",
+          "body": "Chương trình PCRT thường gồm thẩm định khách hàng, sàng lọc cấm vận, giám sát giao dịch, báo cáo cho cơ quan tình báo tài chính, lưu trữ hồ sơ, đào tạo và kiểm tra độc lập.",
+          "baNotes": "Xác định hành trình nào phát sinh sự kiện giám sát, dữ liệu mỗi quy tắc giám sát cần, quy trình xử lý cảnh báo và thời hạn lưu trữ hồ sơ."
+        },
+        "relatedEntrySlugs": [
+          "cft",
+          "str",
+          "sanctions-screening",
+          "luat-phong-chong-rua-tien-2022",
+          "fatf-recommendations"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers",
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "cft",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "CFT",
+        "aliases": [
+          "Countering the Financing of Terrorism"
+        ],
+        "domains": [
+          "AML_KYC",
+          "RISK"
+        ],
+        "en": {
+          "name": "Countering the Financing of Terrorism",
+          "shortDefinition": "Measures to detect and stop funds, even small or legitimate ones, from reaching terrorists or terrorist organisations.",
+          "body": "",
+          "baNotes": "CFT relies heavily on real-time sanctions and watch-list screening; specify screening points, list sources and how payments are held while alerts are reviewed."
+        },
+        "vi": {
+          "name": "Chống tài trợ khủng bố",
+          "shortDefinition": "Các biện pháp phát hiện và ngăn chặn dòng tiền, kể cả số tiền nhỏ hoặc có nguồn gốc hợp pháp, đến tay cá nhân hoặc tổ chức khủng bố.",
+          "body": "",
+          "baNotes": "CFT phụ thuộc nhiều vào sàng lọc danh sách cấm vận theo thời gian thực; đặc tả điểm sàng lọc, nguồn danh sách và cách tạm giữ thanh toán khi đang xử lý cảnh báo."
+        },
+        "relatedEntrySlugs": [
+          "aml",
+          "sanctions-screening"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "pep",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "PEP",
+        "aliases": [
+          "Politically Exposed Person"
+        ],
+        "domains": [
+          "AML_KYC"
+        ],
+        "en": {
+          "name": "Politically Exposed Person",
+          "shortDefinition": "An individual who holds or has held a prominent public function, together with their family members and close associates, who present higher corruption and money-laundering risk.",
+          "body": "",
+          "baNotes": "Specify the PEP data source, when screening runs (onboarding, periodic, list updates), the EDD steps and approver, and how PEP status is shown to front-line staff."
+        },
+        "vi": {
+          "name": "Người có ảnh hưởng chính trị",
+          "shortDefinition": "Cá nhân đang hoặc đã giữ chức vụ quan trọng trong cơ quan, tổ chức, cùng thành viên gia đình và người có quan hệ mật thiết, có rủi ro tham nhũng và rửa tiền cao hơn.",
+          "body": "",
+          "baNotes": "Đặc tả nguồn dữ liệu PEP, thời điểm sàng lọc (mở tài khoản, định kỳ, khi danh sách cập nhật), các bước EDD, người phê duyệt và cách hiển thị trạng thái PEP cho nhân viên."
+        },
+        "relatedEntrySlugs": [
+          "edd",
+          "cdd"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "str",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "STR",
+        "aliases": [
+          "Suspicious Transaction Report"
+        ],
+        "domains": [
+          "AML_KYC",
+          "DATA_REPORTING"
+        ],
+        "en": {
+          "name": "Suspicious Transaction Report",
+          "shortDefinition": "A report a bank must file with the financial intelligence unit when it suspects a transaction or activity is linked to money laundering or terrorist financing.",
+          "body": "The customer must not be told that a report has been filed (no tipping-off).",
+          "baNotes": "Model the case-management flow from alert to STR, required data fields, deadlines, approval roles and controls that hide STR status from customer-facing channels."
+        },
+        "vi": {
+          "name": "Báo cáo giao dịch đáng ngờ",
+          "shortDefinition": "Báo cáo ngân hàng phải gửi cơ quan tình báo tài chính khi nghi ngờ giao dịch hoặc hoạt động liên quan đến rửa tiền hoặc tài trợ khủng bố.",
+          "body": "Không được tiết lộ cho khách hàng việc đã báo cáo.",
+          "baNotes": "Mô hình hóa luồng xử lý từ cảnh báo đến STR, trường dữ liệu bắt buộc, thời hạn, vai trò phê duyệt và kiểm soát ẩn trạng thái STR khỏi kênh tiếp xúc khách hàng."
+        },
+        "relatedEntrySlugs": [
+          "aml",
+          "luat-phong-chong-rua-tien-2022"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": []
+      }
+    },
+    {
+      "slug": "sanctions-screening",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Watch-list screening"
+        ],
+        "domains": [
+          "AML_KYC",
+          "PAYMENTS"
+        ],
+        "en": {
+          "name": "Sanctions Screening",
+          "shortDefinition": "Checking customers, counterparties and payment data against sanctions and watch lists before onboarding or processing a transaction.",
+          "body": "Screening uses fuzzy name matching, so it produces false positives that must be reviewed and cleared by trained staff.",
+          "baNotes": "Define which fields are screened (names, addresses, banks, free text), matching thresholds, hold-and-release behaviour, SLA for alert review and audit trail."
+        },
+        "vi": {
+          "name": "Sàng lọc cấm vận",
+          "shortDefinition": "Đối chiếu khách hàng, đối tác và dữ liệu thanh toán với danh sách cấm vận, danh sách theo dõi trước khi mở quan hệ hoặc xử lý giao dịch.",
+          "body": "Sàng lọc dùng so khớp tên gần đúng nên phát sinh cảnh báo sai cần nhân viên được đào tạo rà soát và giải tỏa.",
+          "baNotes": "Xác định trường được sàng lọc (tên, địa chỉ, ngân hàng, nội dung tự do), ngưỡng so khớp, cơ chế tạm giữ/giải phóng, SLA xử lý cảnh báo và nhật ký kiểm toán."
+        },
+        "relatedEntrySlugs": [
+          "aml",
+          "cft"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers",
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "casa",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "CASA",
+        "aliases": [
+          "Current Account and Savings Account"
+        ],
+        "domains": [
+          "DEPOSITS"
+        ],
+        "en": {
+          "name": "Current Account and Savings Account",
+          "shortDefinition": "Low-cost, on-demand deposits held in payment (current) and non-term savings accounts; a key funding source for banks.",
+          "body": "A high CASA ratio lowers a bank's cost of funds because these balances earn little or no interest.",
+          "baNotes": "Typical requirements cover account opening, interest accrual and capitalisation, fees, dormancy rules and statement generation."
+        },
+        "vi": {
+          "name": "Tiền gửi không kỳ hạn (CASA)",
+          "shortDefinition": "Tiền gửi thanh toán và tiết kiệm không kỳ hạn, rút bất cứ lúc nào, chi phí thấp và là nguồn vốn quan trọng của ngân hàng.",
+          "body": "Tỷ lệ CASA cao giúp giảm chi phí vốn vì các số dư này hưởng lãi rất thấp hoặc không hưởng lãi.",
+          "baNotes": "Yêu cầu thường gồm mở tài khoản, tính và nhập lãi, phí, quy tắc tài khoản ngủ và in sao kê."
+        },
+        "relatedEntrySlugs": [
+          "term-deposit",
+          "overdraft"
+        ],
+        "relatedJourneySlugs": [
+          "deposits"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "term-deposit",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Fixed deposit",
+          "Time deposit"
+        ],
+        "domains": [
+          "DEPOSITS"
+        ],
+        "en": {
+          "name": "Term Deposit",
+          "shortDefinition": "A deposit placed for an agreed period at an agreed rate, usually with a lower rate or penalty if withdrawn before maturity.",
+          "body": "",
+          "baNotes": "Specify tenor options, rate tables, maturity instructions (roll over principal, principal plus interest, or pay out), early-withdrawal rules and partial withdrawal behaviour."
+        },
+        "vi": {
+          "name": "Tiền gửi có kỳ hạn",
+          "shortDefinition": "Khoản tiền gửi theo kỳ hạn và lãi suất thỏa thuận, thường áp dụng lãi suất thấp hơn hoặc phí nếu rút trước hạn.",
+          "body": "",
+          "baNotes": "Đặc tả các kỳ hạn, biểu lãi suất, chỉ dẫn khi đáo hạn (tái tục gốc, gốc và lãi, hoặc tất toán), quy tắc rút trước hạn và rút một phần."
+        },
+        "relatedEntrySlugs": [
+          "casa"
+        ],
+        "relatedJourneySlugs": [
+          "deposits"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "overdraft",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [],
+        "domains": [
+          "LENDING",
+          "DEPOSITS"
+        ],
+        "en": {
+          "name": "Overdraft",
+          "shortDefinition": "A credit facility that lets a customer withdraw more than the balance of their payment account, up to an approved limit.",
+          "body": "",
+          "baNotes": "Clarify limit approval, interest calculation on the overdrawn balance, repayment from incoming credits, review/renewal dates and what happens when the limit is exceeded."
+        },
+        "vi": {
+          "name": "Thấu chi",
+          "shortDefinition": "Hình thức cấp tín dụng cho phép khách hàng chi vượt số dư tài khoản thanh toán trong hạn mức được duyệt.",
+          "body": "",
+          "baNotes": "Làm rõ phê duyệt hạn mức, cách tính lãi trên số dư thấu chi, tự động thu nợ khi có tiền về, ngày rà soát/gia hạn và xử lý khi vượt hạn mức."
+        },
+        "relatedEntrySlugs": [
+          "casa"
+        ],
+        "relatedJourneySlugs": [
+          "lending",
+          "deposits"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "collateral",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Security"
+        ],
+        "domains": [
+          "LENDING",
+          "RISK"
+        ],
+        "en": {
+          "name": "Collateral",
+          "shortDefinition": "An asset pledged or mortgaged by the borrower or a third party to secure repayment of a credit facility.",
+          "body": "Common collateral includes real estate, vehicles, deposits and valuable papers. Collateral is valued at origination and revalued periodically.",
+          "baNotes": "Model collateral types, valuation and revaluation rules, registration of security interests, links between one collateral and many facilities, and release on repayment."
+        },
+        "vi": {
+          "name": "Tài sản bảo đảm",
+          "shortDefinition": "Tài sản bên vay hoặc bên thứ ba cầm cố, thế chấp để bảo đảm việc trả nợ khoản cấp tín dụng.",
+          "body": "Tài sản bảo đảm phổ biến gồm bất động sản, phương tiện, tiền gửi và giấy tờ có giá; được định giá khi cấp tín dụng và định giá lại định kỳ.",
+          "baNotes": "Mô hình hóa loại tài sản, quy tắc định giá và định giá lại, đăng ký biện pháp bảo đảm, quan hệ một tài sản – nhiều khoản vay và giải chấp khi tất toán."
+        },
+        "relatedEntrySlugs": [
+          "ltv"
+        ],
+        "relatedJourneySlugs": [
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "ltv",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "LTV",
+        "aliases": [
+          "Loan-to-Value ratio"
+        ],
+        "domains": [
+          "LENDING",
+          "RISK"
+        ],
+        "en": {
+          "name": "Loan-to-Value Ratio",
+          "shortDefinition": "The loan amount divided by the appraised value of the collateral, used to cap lending and measure collateral risk.",
+          "body": "Example: a loan of 700 against collateral valued at 1,000 has an LTV of 70%.",
+          "baNotes": "Specify maximum LTV by product and collateral type (set by the bank's credit policy), which valuation is used, and how LTV is recalculated after revaluation or partial repayment."
+        },
+        "vi": {
+          "name": "Tỷ lệ cho vay trên giá trị tài sản",
+          "shortDefinition": "Số tiền vay chia cho giá trị định giá của tài sản bảo đảm, dùng để giới hạn mức cho vay và đo rủi ro tài sản.",
+          "body": "Ví dụ: khoản vay 700 với tài sản định giá 1.000 có LTV là 70%.",
+          "baNotes": "Đặc tả LTV tối đa theo sản phẩm và loại tài sản (theo chính sách tín dụng của ngân hàng), giá trị định giá được dùng và cách tính lại LTV sau định giá lại hoặc trả nợ một phần."
+        },
+        "relatedEntrySlugs": [
+          "collateral",
+          "dti"
+        ],
+        "relatedJourneySlugs": [
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "dti",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "DTI",
+        "aliases": [
+          "Debt-to-Income ratio"
+        ],
+        "domains": [
+          "LENDING",
+          "RISK"
+        ],
+        "en": {
+          "name": "Debt-to-Income Ratio",
+          "shortDefinition": "A borrower's total periodic debt payments divided by their income for the same period, used to assess repayment capacity.",
+          "body": "",
+          "baNotes": "Define which incomes are accepted and how they are verified, which obligations are included (including credit bureau data), and the DTI thresholds in the credit policy."
+        },
+        "vi": {
+          "name": "Tỷ lệ nợ trên thu nhập",
+          "shortDefinition": "Tổng nghĩa vụ trả nợ định kỳ của người vay chia cho thu nhập cùng kỳ, dùng để đánh giá khả năng trả nợ.",
+          "body": "",
+          "baNotes": "Xác định nguồn thu nhập được chấp nhận và cách xác minh, các nghĩa vụ nợ được tính (bao gồm dữ liệu CIC) và ngưỡng DTI trong chính sách tín dụng."
+        },
+        "relatedEntrySlugs": [
+          "ltv",
+          "credit-scoring"
+        ],
+        "relatedJourneySlugs": [
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "credit-scoring",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Credit score"
+        ],
+        "domains": [
+          "LENDING",
+          "RISK"
+        ],
+        "en": {
+          "name": "Credit Scoring",
+          "shortDefinition": "A statistical or rules-based model that estimates a borrower's likelihood of default from application, bureau and behavioural data.",
+          "body": "",
+          "baNotes": "Document model inputs and their sources, score bands and the decision each band drives (approve, refer, decline), override rules and how decisions are explained to customers."
+        },
+        "vi": {
+          "name": "Chấm điểm tín dụng",
+          "shortDefinition": "Mô hình thống kê hoặc theo quy tắc ước lượng khả năng vỡ nợ của người vay từ dữ liệu hồ sơ, dữ liệu tín dụng (CIC) và hành vi.",
+          "body": "",
+          "baNotes": "Ghi nhận các biến đầu vào và nguồn dữ liệu, các dải điểm và quyết định tương ứng (duyệt, chuyển thẩm định, từ chối), quy tắc ghi đè và cách giải thích quyết định cho khách hàng."
+        },
+        "relatedEntrySlugs": [
+          "dti",
+          "npl"
+        ],
+        "relatedJourneySlugs": [
+          "lending",
+          "cards"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "npl",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "NPL",
+        "aliases": [
+          "Non-performing loan"
+        ],
+        "domains": [
+          "LENDING",
+          "RISK",
+          "ACCOUNTING"
+        ],
+        "en": {
+          "name": "Non-Performing Loan",
+          "shortDefinition": "A loan on which the borrower is significantly overdue or unlikely to repay; in Vietnam, debt classified in groups 3 to 5.",
+          "body": "Debt classification depends on days past due and qualitative factors set by State Bank of Vietnam regulations; the NPL ratio is a key asset-quality indicator.",
+          "baNotes": "Capture days-past-due calculation, classification rules and their regulatory source, provisioning impact and reporting outputs."
+        },
+        "vi": {
+          "name": "Nợ xấu",
+          "shortDefinition": "Khoản vay quá hạn đáng kể hoặc có khả năng không thu hồi được; tại Việt Nam là nợ được phân loại vào nhóm 3 đến nhóm 5.",
+          "body": "Việc phân loại nợ dựa trên số ngày quá hạn và các yếu tố định tính theo quy định của NHNN; tỷ lệ nợ xấu là chỉ số chính về chất lượng tài sản.",
+          "baNotes": "Ghi nhận cách tính số ngày quá hạn, quy tắc phân loại nợ và văn bản quy định, ảnh hưởng đến trích lập dự phòng và các báo cáo đầu ra."
+        },
+        "relatedEntrySlugs": [
+          "ecl",
+          "credit-scoring"
+        ],
+        "relatedJourneySlugs": [
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "ecl",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "ECL",
+        "aliases": [
+          "Expected Credit Loss"
+        ],
+        "domains": [
+          "ACCOUNTING",
+          "RISK"
+        ],
+        "en": {
+          "name": "Expected Credit Loss",
+          "shortDefinition": "A forward-looking estimate of credit losses, weighted by probability of default, used for impairment under IFRS 9.",
+          "body": "Exposures are allocated to three stages: 12-month ECL for performing exposures, lifetime ECL after a significant increase in credit risk, and lifetime ECL for credit-impaired exposures.",
+          "baNotes": "Data requirements typically include PD, LGD, EAD, staging criteria and macroeconomic scenarios; trace each input to its source and calculation period."
+        },
+        "vi": {
+          "name": "Tổn thất tín dụng dự kiến",
+          "shortDefinition": "Ước tính tổn thất tín dụng mang tính dự phóng, có trọng số theo xác suất vỡ nợ, dùng để tính suy giảm giá trị theo IFRS 9.",
+          "body": "Các khoản phơi nhiễm được chia ba giai đoạn: ECL 12 tháng cho khoản bình thường, ECL toàn thời hạn khi rủi ro tín dụng tăng đáng kể, và ECL toàn thời hạn cho khoản đã suy giảm.",
+          "baNotes": "Dữ liệu cần thường gồm PD, LGD, EAD, tiêu chí phân giai đoạn và kịch bản kinh tế vĩ mô; truy vết từng đầu vào tới nguồn và kỳ tính toán."
+        },
+        "relatedEntrySlugs": [
+          "ifrs-9",
+          "npl"
+        ],
+        "relatedJourneySlugs": [
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "car",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "CAR",
+        "aliases": [
+          "Capital Adequacy Ratio"
+        ],
+        "domains": [
+          "RISK",
+          "DATA_REPORTING"
+        ],
+        "en": {
+          "name": "Capital Adequacy Ratio",
+          "shortDefinition": "A bank's regulatory capital divided by its risk-weighted assets, showing its ability to absorb losses.",
+          "body": "",
+          "baNotes": "BA work usually involves risk-weight mapping of products and collateral, data lineage for regulatory reports and reconciliation with the general ledger."
+        },
+        "vi": {
+          "name": "Tỷ lệ an toàn vốn",
+          "shortDefinition": "Vốn tự có theo quy định chia cho tài sản có rủi ro, thể hiện khả năng hấp thụ tổn thất của ngân hàng.",
+          "body": "",
+          "baNotes": "Công việc BA thường gồm ánh xạ hệ số rủi ro theo sản phẩm và tài sản bảo đảm, truy vết dữ liệu cho báo cáo quản lý và đối chiếu với sổ cái."
+        },
+        "relatedEntrySlugs": [
+          "basel-iii",
+          "lcr"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": []
+      }
+    },
+    {
+      "slug": "lcr",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "LCR",
+        "aliases": [
+          "Liquidity Coverage Ratio"
+        ],
+        "domains": [
+          "RISK",
+          "TREASURY"
+        ],
+        "en": {
+          "name": "Liquidity Coverage Ratio",
+          "shortDefinition": "Basel III ratio requiring enough high-quality liquid assets to cover net cash outflows over a 30-day stress period.",
+          "body": "",
+          "baNotes": "Requires classification of assets and liabilities by liquidity, behavioural assumptions for deposits, and daily data feeds from Treasury and core banking."
+        },
+        "vi": {
+          "name": "Tỷ lệ bao phủ thanh khoản",
+          "shortDefinition": "Chỉ tiêu Basel III yêu cầu ngân hàng giữ đủ tài sản thanh khoản chất lượng cao để bù đắp dòng tiền ra ròng trong 30 ngày căng thẳng.",
+          "body": "",
+          "baNotes": "Cần phân loại tài sản và nợ theo tính thanh khoản, giả định hành vi của tiền gửi và luồng dữ liệu hằng ngày từ Nguồn vốn và core banking."
+        },
+        "relatedEntrySlugs": [
+          "nsfr",
+          "basel-iii"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": []
+      }
+    },
+    {
+      "slug": "nsfr",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "NSFR",
+        "aliases": [
+          "Net Stable Funding Ratio"
+        ],
+        "domains": [
+          "RISK",
+          "TREASURY"
+        ],
+        "en": {
+          "name": "Net Stable Funding Ratio",
+          "shortDefinition": "Basel III ratio comparing available stable funding with required stable funding over a one-year horizon.",
+          "body": "",
+          "baNotes": "Similar data needs to LCR but focused on funding tenor and stability; agree the mapping of each balance-sheet item with Treasury and Risk."
+        },
+        "vi": {
+          "name": "Tỷ lệ nguồn vốn ổn định ròng",
+          "shortDefinition": "Chỉ tiêu Basel III so sánh nguồn vốn ổn định sẵn có với nguồn vốn ổn định cần thiết trong một năm.",
+          "body": "",
+          "baNotes": "Nhu cầu dữ liệu tương tự LCR nhưng tập trung vào kỳ hạn và độ ổn định nguồn vốn; thống nhất ánh xạ từng khoản mục bảng cân đối với Nguồn vốn và Rủi ro."
+        },
+        "relatedEntrySlugs": [
+          "lcr",
+          "basel-iii"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": []
+      }
+    },
+    {
+      "slug": "core-banking-system",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "CBS",
+        "aliases": [
+          "Core banking"
+        ],
+        "domains": [
+          "GENERAL",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Core Banking System",
+          "shortDefinition": "The central system of record for customers, accounts, balances, transactions, interest and fees across a bank's products.",
+          "body": "",
+          "baNotes": "Most journeys end with a posting in core banking; identify the core APIs used, end-of-day dependencies, cut-off times and how failures are reversed."
+        },
+        "vi": {
+          "name": "Hệ thống ngân hàng lõi",
+          "shortDefinition": "Hệ thống ghi nhận trung tâm về khách hàng, tài khoản, số dư, giao dịch, lãi và phí cho các sản phẩm của ngân hàng.",
+          "body": "",
+          "baNotes": "Hầu hết hành trình kết thúc bằng một bút toán trên core banking; xác định API core được dùng, phụ thuộc vào xử lý cuối ngày, giờ chốt và cách hoàn trả khi lỗi."
+        },
+        "relatedEntrySlugs": [
+          "cut-off-time",
+          "reconciliation",
+          "stp"
+        ],
+        "relatedJourneySlugs": [
+          "deposits",
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "maker-checker",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Four-eyes principle",
+          "Dual control"
+        ],
+        "domains": [
+          "RISK",
+          "SECURITY"
+        ],
+        "en": {
+          "name": "Maker-Checker",
+          "shortDefinition": "A control where one person creates or changes a record and a different authorised person must approve it before it takes effect.",
+          "body": "",
+          "baNotes": "For every sensitive action, specify the maker role, checker role, what the checker sees, whether the maker can cancel, expiry of pending items and the audit trail."
+        },
+        "vi": {
+          "name": "Nguyên tắc người lập – người duyệt",
+          "shortDefinition": "Kiểm soát trong đó một người tạo hoặc sửa dữ liệu và một người khác có thẩm quyền phải duyệt thì thay đổi mới có hiệu lực.",
+          "body": "",
+          "baNotes": "Với mỗi thao tác nhạy cảm, đặc tả vai trò lập, vai trò duyệt, thông tin người duyệt thấy, người lập có được hủy không, thời hạn chờ duyệt và nhật ký kiểm toán."
+        },
+        "relatedEntrySlugs": [],
+        "relatedJourneySlugs": [
+          "security-and-access"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "reconciliation",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Recon"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "ACCOUNTING"
+        ],
+        "en": {
+          "name": "Reconciliation",
+          "shortDefinition": "Matching records between two systems or parties, such as a bank and a payment switch, to confirm they agree and to resolve breaks.",
+          "body": "",
+          "baNotes": "Define matching keys, tolerance, timing, the break categories and owners, and the adjustment or refund process for each break type."
+        },
+        "vi": {
+          "name": "Đối soát",
+          "shortDefinition": "So khớp dữ liệu giữa hai hệ thống hoặc hai bên, như ngân hàng và trung gian thanh toán, để xác nhận khớp đúng và xử lý chênh lệch.",
+          "body": "",
+          "baNotes": "Xác định khóa so khớp, ngưỡng sai lệch, thời điểm đối soát, phân loại chênh lệch và người chịu trách nhiệm, quy trình điều chỉnh hoặc hoàn tiền cho từng loại."
+        },
+        "relatedEntrySlugs": [
+          "clearing-and-settlement",
+          "napas"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers",
+          "cards"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "clearing-and-settlement",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Clearing",
+          "Settlement"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "TREASURY"
+        ],
+        "en": {
+          "name": "Clearing and Settlement",
+          "shortDefinition": "Clearing calculates what each participant owes after exchanging payment instructions; settlement is the actual transfer of funds that discharges those obligations.",
+          "body": "Settlement can be gross and real-time (each payment individually) or deferred net (positions netted and settled at set times).",
+          "baNotes": "Clarify when the customer is debited and credited relative to settlement, settlement windows, liquidity checks and failure handling."
+        },
+        "vi": {
+          "name": "Bù trừ và quyết toán",
+          "shortDefinition": "Bù trừ là tính nghĩa vụ của từng bên sau khi trao đổi lệnh thanh toán; quyết toán là việc chuyển tiền thực tế để hoàn tất các nghĩa vụ đó.",
+          "body": "Quyết toán có thể theo tổng tức thời (từng giao dịch) hoặc bù trừ ròng hoãn lại (tính ròng và quyết toán theo phiên).",
+          "baNotes": "Làm rõ thời điểm ghi nợ/ghi có khách hàng so với quyết toán, các phiên quyết toán, kiểm tra thanh khoản và xử lý khi thất bại."
+        },
+        "relatedEntrySlugs": [
+          "napas",
+          "reconciliation",
+          "swift"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "napas",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "NAPAS",
+        "aliases": [
+          "National Payment Corporation of Vietnam",
+          "Napas 247"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "CARDS"
+        ],
+        "en": {
+          "name": "NAPAS",
+          "shortDefinition": "Vietnam's national payment switch that connects banks for card transactions, ATM/POS networks and 24/7 fast interbank transfers.",
+          "body": "",
+          "baNotes": "Interbank transfer journeys need beneficiary name inquiry, NAPAS message mapping, timeout and pending-status handling, and daily reconciliation with NAPAS files."
+        },
+        "vi": {
+          "name": "NAPAS",
+          "shortDefinition": "Trung gian chuyển mạch thanh toán quốc gia kết nối các ngân hàng cho giao dịch thẻ, mạng ATM/POS và chuyển tiền nhanh liên ngân hàng 24/7.",
+          "body": "",
+          "baNotes": "Hành trình chuyển tiền liên ngân hàng cần truy vấn tên người thụ hưởng, ánh xạ thông điệp NAPAS, xử lý timeout và trạng thái chờ, đối soát hằng ngày với file NAPAS."
+        },
+        "relatedEntrySlugs": [
+          "vietqr",
+          "clearing-and-settlement",
+          "reconciliation"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers",
+          "cards"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "vietqr",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "QR transfer"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "VietQR",
+          "shortDefinition": "Vietnam's common QR code standard for payments and transfers, operated by NAPAS and based on the EMVCo QR specification.",
+          "body": "A VietQR code can carry the beneficiary bank, account or card number, and optionally a fixed amount and description.",
+          "baNotes": "Specify static versus dynamic QR handling, which fields are editable after scanning, validation of the payload, and how the description is passed through to the beneficiary."
+        },
+        "vi": {
+          "name": "VietQR",
+          "shortDefinition": "Chuẩn mã QR dùng chung tại Việt Nam cho thanh toán và chuyển tiền, do NAPAS vận hành, dựa trên đặc tả QR của EMVCo.",
+          "body": "Mã VietQR có thể chứa ngân hàng thụ hưởng, số tài khoản hoặc số thẻ, và tùy chọn số tiền, nội dung cố định.",
+          "baNotes": "Đặc tả xử lý QR tĩnh và QR động, trường nào được sửa sau khi quét, kiểm tra hợp lệ payload và cách truyền nội dung chuyển tiền tới người nhận."
+        },
+        "relatedEntrySlugs": [
+          "napas"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "swift",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "SWIFT",
+        "aliases": [
+          "Society for Worldwide Interbank Financial Telecommunication",
+          "SWIFT code",
+          "BIC"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "TRADE_FINANCE"
+        ],
+        "en": {
+          "name": "SWIFT",
+          "shortDefinition": "The global messaging network banks use to send standardised instructions for cross-border payments, trade finance and securities.",
+          "body": "Each bank is identified by a Business Identifier Code (BIC). Cross-border payment messages are migrating from MT formats to ISO 20022 (MX).",
+          "baNotes": "International transfer requirements include BIC and account validation, charge options (OUR/SHA/BEN), purpose codes, sanctions screening, FX and tracking of the payment status."
+        },
+        "vi": {
+          "name": "SWIFT",
+          "shortDefinition": "Mạng điện văn toàn cầu ngân hàng dùng để gửi lệnh chuẩn hóa cho thanh toán quốc tế, tài trợ thương mại và chứng khoán.",
+          "body": "Mỗi ngân hàng được định danh bằng mã BIC. Điện thanh toán quốc tế đang chuyển từ định dạng MT sang ISO 20022 (MX).",
+          "baNotes": "Yêu cầu chuyển tiền quốc tế gồm kiểm tra BIC và tài khoản, phương án phí (OUR/SHA/BEN), mã mục đích, sàng lọc cấm vận, tỷ giá và theo dõi trạng thái thanh toán."
+        },
+        "relatedEntrySlugs": [
+          "iso-20022",
+          "sanctions-screening",
+          "clearing-and-settlement"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "stp",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "STP",
+        "aliases": [
+          "Straight-Through Processing"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Straight-Through Processing",
+          "shortDefinition": "End-to-end automated processing of a transaction or application without manual intervention.",
+          "body": "",
+          "baNotes": "Measure the STP rate, list every condition that sends a case to manual handling, and design the repair queue for those exceptions."
+        },
+        "vi": {
+          "name": "Xử lý thẳng tự động",
+          "shortDefinition": "Xử lý giao dịch hoặc hồ sơ tự động từ đầu đến cuối, không cần thao tác thủ công.",
+          "body": "",
+          "baNotes": "Đo tỷ lệ STP, liệt kê mọi điều kiện đẩy hồ sơ sang xử lý thủ công và thiết kế hàng đợi sửa lỗi cho các ngoại lệ đó."
+        },
+        "relatedEntrySlugs": [
+          "core-banking-system"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers",
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "cut-off-time",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Cut-off"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "GENERAL"
+        ],
+        "en": {
+          "name": "Cut-off Time",
+          "shortDefinition": "The latest time a transaction can be received to be processed with the current business date; later instructions move to the next processing window or day.",
+          "body": "",
+          "baNotes": "Document cut-off per product and channel, holiday calendars, how the customer is informed of the value date, and behaviour for scheduled payments falling after cut-off."
+        },
+        "vi": {
+          "name": "Giờ chốt giao dịch",
+          "shortDefinition": "Thời điểm muộn nhất nhận giao dịch để xử lý trong ngày làm việc hiện tại; lệnh đến sau sẽ chuyển sang phiên hoặc ngày xử lý tiếp theo.",
+          "body": "",
+          "baNotes": "Ghi nhận giờ chốt theo sản phẩm và kênh, lịch ngày nghỉ, cách thông báo ngày hiệu lực cho khách hàng và xử lý lệnh định kỳ rơi sau giờ chốt."
+        },
+        "relatedEntrySlugs": [
+          "core-banking-system",
+          "standing-order"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "standing-order",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Recurring payment"
+        ],
+        "domains": [
+          "PAYMENTS"
+        ],
+        "en": {
+          "name": "Standing Order",
+          "shortDefinition": "A customer instruction for the bank to make a fixed payment to the same beneficiary on a regular schedule.",
+          "body": "",
+          "baNotes": "Specify frequency options, start/end rules, retry on insufficient funds, notifications, and how holidays and month-end dates are handled."
+        },
+        "vi": {
+          "name": "Lệnh chuyển tiền định kỳ",
+          "shortDefinition": "Chỉ thị của khách hàng để ngân hàng chuyển một số tiền cố định cho cùng người nhận theo lịch định kỳ.",
+          "body": "",
+          "baNotes": "Đặc tả tần suất, quy tắc bắt đầu/kết thúc, thử lại khi không đủ số dư, thông báo và cách xử lý ngày nghỉ, ngày cuối tháng."
+        },
+        "relatedEntrySlugs": [
+          "cut-off-time"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "escrow",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Escrow account"
+        ],
+        "domains": [
+          "DEPOSITS",
+          "PAYMENTS"
+        ],
+        "en": {
+          "name": "Escrow",
+          "shortDefinition": "An arrangement in which the bank holds funds on behalf of parties to a transaction and releases them only when agreed conditions are met.",
+          "body": "",
+          "baNotes": "Capture the parties, release conditions and evidence, who can instruct release, interest treatment and dispute handling."
+        },
+        "vi": {
+          "name": "Ký quỹ (Escrow)",
+          "shortDefinition": "Thỏa thuận trong đó ngân hàng giữ tiền thay các bên của một giao dịch và chỉ giải ngân khi đáp ứng điều kiện đã thống nhất.",
+          "body": "",
+          "baNotes": "Ghi nhận các bên tham gia, điều kiện và chứng từ giải ngân, người có quyền yêu cầu giải ngân, cách tính lãi và xử lý tranh chấp."
+        },
+        "relatedEntrySlugs": [],
+        "relatedJourneySlugs": [
+          "deposits"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "chargeback",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Card dispute"
+        ],
+        "domains": [
+          "CARDS",
+          "PAYMENTS"
+        ],
+        "en": {
+          "name": "Chargeback",
+          "shortDefinition": "A card-scheme process that reverses a card transaction after the cardholder disputes it, with the issuer reclaiming funds from the acquirer.",
+          "body": "Chargebacks follow the card scheme's reason codes, evidence rules and time limits.",
+          "baNotes": "Model dispute intake, provisional credit rules, scheme reason codes, deadlines, evidence exchange and the customer communication at each stage."
+        },
+        "vi": {
+          "name": "Tra soát hoàn tiền (Chargeback)",
+          "shortDefinition": "Quy trình của tổ chức thẻ để hoàn lại giao dịch thẻ khi chủ thẻ khiếu nại, ngân hàng phát hành đòi lại tiền từ ngân hàng thanh toán.",
+          "body": "Chargeback tuân theo mã lý do, quy tắc chứng từ và thời hạn của tổ chức thẻ.",
+          "baNotes": "Mô hình hóa tiếp nhận khiếu nại, quy tắc ghi có tạm thời, mã lý do của tổ chức thẻ, thời hạn, trao đổi chứng từ và thông báo khách hàng ở từng bước."
+        },
+        "relatedEntrySlugs": [
+          "three-d-secure"
+        ],
+        "relatedJourneySlugs": [
+          "cards",
+          "customer-service"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "three-d-secure",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "3DS",
+        "aliases": [
+          "3-D Secure",
+          "EMV 3DS"
+        ],
+        "domains": [
+          "CARDS",
+          "SECURITY"
+        ],
+        "en": {
+          "name": "3-D Secure",
+          "shortDefinition": "A protocol that adds cardholder authentication by the issuer to online card payments, using risk-based checks and challenges such as OTP or app approval.",
+          "body": "",
+          "baNotes": "Define frictionless versus challenge rules, supported authentication methods, fallback when the app is unavailable and how 3DS results affect liability."
+        },
+        "vi": {
+          "name": "3-D Secure",
+          "shortDefinition": "Giao thức bổ sung bước xác thực chủ thẻ bởi ngân hàng phát hành cho thanh toán thẻ trực tuyến, dùng đánh giá rủi ro và thử thách như OTP hoặc xác nhận trên ứng dụng.",
+          "body": "",
+          "baNotes": "Xác định quy tắc không cần thử thách và có thử thách, phương thức xác thực hỗ trợ, phương án dự phòng khi ứng dụng không dùng được và ảnh hưởng của kết quả 3DS tới trách nhiệm tổn thất."
+        },
+        "relatedEntrySlugs": [
+          "otp",
+          "tokenization",
+          "chargeback"
+        ],
+        "relatedJourneySlugs": [
+          "cards",
+          "security-and-access"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "tokenization",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Card tokenization"
+        ],
+        "domains": [
+          "CARDS",
+          "SECURITY"
+        ],
+        "en": {
+          "name": "Tokenization",
+          "shortDefinition": "Replacing a sensitive value such as a card number with a surrogate token that is useless if stolen and can be restricted to a device, merchant or channel.",
+          "body": "",
+          "baNotes": "Clarify token lifecycle events (provision, suspend, resume, delete), synchronisation when the card is replaced, and which systems may still store the real card number."
+        },
+        "vi": {
+          "name": "Token hóa",
+          "shortDefinition": "Thay giá trị nhạy cảm như số thẻ bằng một mã token thay thế, vô dụng nếu bị đánh cắp và có thể giới hạn theo thiết bị, đơn vị chấp nhận thẻ hoặc kênh.",
+          "body": "",
+          "baNotes": "Làm rõ vòng đời token (cấp, tạm khóa, mở lại, xóa), đồng bộ khi thay thẻ và hệ thống nào còn được lưu số thẻ thật."
+        },
+        "relatedEntrySlugs": [
+          "pci-dss",
+          "three-d-secure"
+        ],
+        "relatedJourneySlugs": [
+          "cards"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "otp",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "abbreviation": "OTP",
+        "aliases": [
+          "One-Time Password",
+          "Smart OTP"
+        ],
+        "domains": [
+          "SECURITY",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "One-Time Password",
+          "shortDefinition": "A code valid for a single use and a short time, sent by SMS or generated by a token or app, used to authenticate a login or confirm a transaction.",
+          "body": "App-based (Smart) OTP bound to a registered device is generally stronger than SMS OTP, which is exposed to SIM-swap and interception.",
+          "baNotes": "Specify validity period, maximum attempts, lockout and unlock, transaction details shown with the OTP, and the step-up rules that decide when OTP or biometrics is required."
+        },
+        "vi": {
+          "name": "Mật khẩu dùng một lần",
+          "shortDefinition": "Mã chỉ dùng một lần trong thời gian ngắn, gửi qua SMS hoặc sinh từ thiết bị/ứng dụng, để xác thực đăng nhập hoặc xác nhận giao dịch.",
+          "body": "Smart OTP gắn với thiết bị đã đăng ký thường an toàn hơn SMS OTP vốn có rủi ro chiếm đoạt SIM và bị đánh chặn.",
+          "baNotes": "Đặc tả thời gian hiệu lực, số lần nhập tối đa, khóa và mở khóa, thông tin giao dịch hiển thị kèm OTP và quy tắc tăng cường xác thực quyết định khi nào dùng OTP hoặc sinh trắc học."
+        },
+        "relatedEntrySlugs": [
+          "biometric-authentication",
+          "three-d-secure"
+        ],
+        "relatedJourneySlugs": [
+          "security-and-access",
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "biometric-authentication",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Biometrics"
+        ],
+        "domains": [
+          "SECURITY",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Biometric Authentication",
+          "shortDefinition": "Verifying a person by physical traits such as face or fingerprint, often matched against a reference captured at onboarding or held on the chip of a national ID card.",
+          "body": "",
+          "baNotes": "Distinguish device biometrics (unlocking the app) from server-side biometric matching against a reference; define enrolment, re-enrolment on device change, and transaction types or thresholds that require it."
+        },
+        "vi": {
+          "name": "Xác thực sinh trắc học",
+          "shortDefinition": "Xác minh một người bằng đặc điểm sinh học như khuôn mặt, vân tay, thường đối chiếu với dữ liệu mẫu thu lúc mở tài khoản hoặc lưu trong chip căn cước.",
+          "body": "",
+          "baNotes": "Phân biệt sinh trắc học trên thiết bị (mở khóa ứng dụng) với đối chiếu sinh trắc phía máy chủ; xác định đăng ký, đăng ký lại khi đổi thiết bị và loại/ngưỡng giao dịch bắt buộc áp dụng."
+        },
+        "relatedEntrySlugs": [
+          "otp",
+          "ekyc",
+          "quyet-dinh-2345-2023-xac-thuc-sinh-trac-hoc"
+        ],
+        "relatedJourneySlugs": [
+          "security-and-access",
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "open-banking",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "TERM",
+        "aliases": [
+          "Open API"
+        ],
+        "domains": [
+          "DIGITAL_BANKING",
+          "SECURITY"
+        ],
+        "en": {
+          "name": "Open Banking",
+          "shortDefinition": "Sharing customer-permitted banking data and services with third parties through secure, standardised APIs.",
+          "body": "",
+          "baNotes": "Specify consent capture and revocation, scopes of data shared, third-party onboarding, API security (OAuth, mutual TLS), rate limits and audit of every data access."
+        },
+        "vi": {
+          "name": "Ngân hàng mở",
+          "shortDefinition": "Chia sẻ dữ liệu và dịch vụ ngân hàng cho bên thứ ba khi được khách hàng đồng ý, thông qua API chuẩn hóa và an toàn.",
+          "body": "",
+          "baNotes": "Đặc tả thu thập và thu hồi đồng ý, phạm vi dữ liệu chia sẻ, kết nạp bên thứ ba, bảo mật API (OAuth, mutual TLS), giới hạn tần suất và kiểm toán mọi lần truy cập dữ liệu."
+        },
+        "relatedEntrySlugs": [
+          "nghi-dinh-13-2023-bao-ve-du-lieu-ca-nhan"
+        ],
+        "relatedJourneySlugs": [
+          "personal-finance-management",
+          "security-and-access"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "luat-cac-to-chuc-tin-dung-2024",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Law on Credit Institutions 2024"
+        ],
+        "domains": [
+          "GENERAL",
+          "LENDING",
+          "DEPOSITS"
+        ],
+        "en": {
+          "name": "Law on Credit Institutions 2024",
+          "shortDefinition": "Vietnam's main law governing the establishment, organisation, operation, special control and restructuring of credit institutions and foreign bank branches.",
+          "body": "",
+          "baNotes": "Use as the legal basis when a requirement concerns permitted banking activities, credit-granting restrictions, customer information confidentiality or internal control obligations; detailed rules are in State Bank of Vietnam circulars."
+        },
+        "vi": {
+          "name": "Luật Các tổ chức tín dụng 2024",
+          "shortDefinition": "Luật chính quy định việc thành lập, tổ chức, hoạt động, kiểm soát đặc biệt và cơ cấu lại tổ chức tín dụng, chi nhánh ngân hàng nước ngoài tại Việt Nam.",
+          "body": "",
+          "baNotes": "Dùng làm căn cứ pháp lý khi yêu cầu liên quan đến hoạt động ngân hàng được phép, hạn chế cấp tín dụng, bảo mật thông tin khách hàng hoặc nghĩa vụ kiểm soát nội bộ; quy định chi tiết nằm trong các thông tư của NHNN."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "National Assembly of Vietnam",
+          "documentNumber": "32/2024/QH15",
+          "issuedDate": "2024-01-18",
+          "effectiveDate": "2024-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "car",
+          "npl"
+        ],
+        "relatedJourneySlugs": [
+          "lending",
+          "deposits"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "luat-phong-chong-rua-tien-2022",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Law on Anti-Money Laundering 2022"
+        ],
+        "domains": [
+          "AML_KYC"
+        ],
+        "en": {
+          "name": "Law on Anti-Money Laundering 2022",
+          "shortDefinition": "Vietnam's law on preventing, detecting and handling money laundering, covering customer identification, reporting obligations, record keeping and state management.",
+          "body": "",
+          "baNotes": "Drives KYC/CDD fields, high-value and suspicious transaction reporting, risk assessment and record retention requirements in onboarding and payment journeys."
+        },
+        "vi": {
+          "name": "Luật Phòng, chống rửa tiền 2022",
+          "shortDefinition": "Luật về phòng ngừa, phát hiện, xử lý hành vi rửa tiền, gồm nhận biết khách hàng, nghĩa vụ báo cáo, lưu trữ hồ sơ và quản lý nhà nước.",
+          "body": "",
+          "baNotes": "Là căn cứ cho các trường KYC/CDD, báo cáo giao dịch giá trị lớn và giao dịch đáng ngờ, đánh giá rủi ro và lưu trữ hồ sơ trong hành trình mở tài khoản và thanh toán."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "National Assembly of Vietnam",
+          "documentNumber": "14/2022/QH15",
+          "issuedDate": "2022-11-15",
+          "effectiveDate": "2023-08-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "aml",
+          "kyc",
+          "str",
+          "fatf-recommendations"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding",
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "luat-giao-dich-dien-tu-2023",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Law on Electronic Transactions 2023"
+        ],
+        "domains": [
+          "DIGITAL_BANKING",
+          "SECURITY"
+        ],
+        "en": {
+          "name": "Law on Electronic Transactions 2023",
+          "shortDefinition": "Vietnam's law on the legal validity of data messages, electronic signatures, electronic contracts and trust services in electronic transactions.",
+          "body": "",
+          "baNotes": "Relevant when digital journeys rely on electronic contracts, e-signatures or electronic records as legal evidence; agree with Legal which signature type each document requires."
+        },
+        "vi": {
+          "name": "Luật Giao dịch điện tử 2023",
+          "shortDefinition": "Luật về giá trị pháp lý của thông điệp dữ liệu, chữ ký điện tử, hợp đồng điện tử và dịch vụ tin cậy trong giao dịch điện tử.",
+          "body": "",
+          "baNotes": "Liên quan khi hành trình số dùng hợp đồng điện tử, chữ ký điện tử hoặc hồ sơ điện tử làm chứng cứ; thống nhất với Pháp chế loại chữ ký cần cho từng chứng từ."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "National Assembly of Vietnam",
+          "documentNumber": "20/2023/QH15",
+          "issuedDate": "2023-06-22",
+          "effectiveDate": "2024-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "ekyc"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding",
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "nghi-dinh-52-2024-thanh-toan-khong-dung-tien-mat",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Decree 52/2024 on non-cash payments"
+        ],
+        "domains": [
+          "PAYMENTS"
+        ],
+        "en": {
+          "name": "Decree on Non-Cash Payments",
+          "shortDefinition": "Government decree regulating non-cash payment services, payment intermediary services, payment and settlement systems in Vietnam.",
+          "body": "",
+          "baNotes": "Reference for payment service scope, intermediary (e-wallet, switching) rules and obligations of payment service providers in transfer and wallet journeys."
+        },
+        "vi": {
+          "name": "Nghị định về thanh toán không dùng tiền mặt",
+          "shortDefinition": "Nghị định của Chính phủ quy định dịch vụ thanh toán không dùng tiền mặt, dịch vụ trung gian thanh toán, hệ thống thanh toán và quyết toán tại Việt Nam.",
+          "body": "",
+          "baNotes": "Tham chiếu về phạm vi dịch vụ thanh toán, quy định trung gian thanh toán (ví điện tử, chuyển mạch) và nghĩa vụ của tổ chức cung ứng dịch vụ trong hành trình chuyển tiền, ví."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "Government of Vietnam",
+          "documentNumber": "52/2024/NĐ-CP",
+          "issuedDate": "2024-05-15",
+          "effectiveDate": "2024-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "napas",
+          "clearing-and-settlement"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "nghi-dinh-13-2023-bao-ve-du-lieu-ca-nhan",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Decree 13/2023 on personal data protection",
+          "PDPD"
+        ],
+        "domains": [
+          "SECURITY",
+          "DATA_REPORTING"
+        ],
+        "en": {
+          "name": "Decree on Personal Data Protection",
+          "shortDefinition": "Government decree setting rules on processing personal data, data subject consent and rights, sensitive data and cross-border transfer in Vietnam.",
+          "body": "",
+          "baNotes": "Drives consent capture and withdrawal, purpose limitation, handling of sensitive data such as biometrics, and impact assessments; confirm with Legal which data-protection instrument currently applies."
+        },
+        "vi": {
+          "name": "Nghị định về bảo vệ dữ liệu cá nhân",
+          "shortDefinition": "Nghị định của Chính phủ quy định xử lý dữ liệu cá nhân, sự đồng ý và quyền của chủ thể dữ liệu, dữ liệu nhạy cảm và chuyển dữ liệu ra nước ngoài.",
+          "body": "",
+          "baNotes": "Chi phối việc thu thập và rút lại sự đồng ý, giới hạn mục đích, xử lý dữ liệu nhạy cảm như sinh trắc học và đánh giá tác động; xác nhận với Pháp chế văn bản bảo vệ dữ liệu đang áp dụng."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "Government of Vietnam",
+          "documentNumber": "13/2023/NĐ-CP",
+          "issuedDate": "2023-04-17",
+          "effectiveDate": "2023-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "open-banking",
+          "gdpr"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding",
+          "security-and-access"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "thong-tu-17-2024-tai-khoan-thanh-toan",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Circular 17/2024 on payment accounts"
+        ],
+        "domains": [
+          "DEPOSITS",
+          "AML_KYC",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Circular on Opening and Using Payment Accounts",
+          "shortDefinition": "State Bank of Vietnam circular on opening and using payment accounts at payment service providers, including electronic account opening.",
+          "body": "",
+          "baNotes": "Primary reference for account-opening data, identity verification (including eKYC and biometric matching), account holder obligations and account closure/suspension rules."
+        },
+        "vi": {
+          "name": "Thông tư về mở và sử dụng tài khoản thanh toán",
+          "shortDefinition": "Thông tư của NHNN quy định việc mở và sử dụng tài khoản thanh toán tại tổ chức cung ứng dịch vụ thanh toán, bao gồm mở tài khoản bằng phương thức điện tử.",
+          "body": "",
+          "baNotes": "Căn cứ chính cho dữ liệu mở tài khoản, xác minh danh tính (gồm eKYC và đối chiếu sinh trắc học), nghĩa vụ chủ tài khoản và quy tắc phong tỏa, đóng tài khoản."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "State Bank of Vietnam (SBV)",
+          "documentNumber": "17/2024/TT-NHNN",
+          "issuedDate": "2024-06-28",
+          "effectiveDate": "2024-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "ekyc",
+          "casa",
+          "thong-tu-16-2020-ekyc"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding",
+          "deposits"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "thong-tu-16-2020-ekyc",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Circular 16/2020 (eKYC)"
+        ],
+        "domains": [
+          "AML_KYC",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Circular 16/2020 on electronic payment account opening",
+          "shortDefinition": "State Bank of Vietnam circular amending the earlier payment-account rules to allow opening payment accounts by electronic means (eKYC) for individuals.",
+          "body": "",
+          "baNotes": "Historical reference for first-generation eKYC journeys; check current requirements in the circular that replaced it."
+        },
+        "vi": {
+          "name": "Thông tư 16/2020 về mở tài khoản thanh toán bằng phương thức điện tử",
+          "shortDefinition": "Thông tư của NHNN sửa đổi quy định tài khoản thanh toán trước đó, cho phép cá nhân mở tài khoản thanh toán bằng phương thức điện tử (eKYC).",
+          "body": "",
+          "baNotes": "Tham khảo lịch sử cho hành trình eKYC thế hệ đầu; kiểm tra yêu cầu hiện hành tại thông tư thay thế."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "State Bank of Vietnam (SBV)",
+          "documentNumber": "16/2020/TT-NHNN",
+          "issuedDate": "2020-12-04",
+          "effectiveDate": "2021-03-05",
+          "status": "SUPERSEDED",
+          "supersededBySlug": "thong-tu-17-2024-tai-khoan-thanh-toan"
+        },
+        "relatedEntrySlugs": [
+          "ekyc"
+        ],
+        "relatedJourneySlugs": [
+          "customer-onboarding"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "thong-tu-18-2024-the-ngan-hang",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Circular 18/2024 on bank cards"
+        ],
+        "domains": [
+          "CARDS"
+        ],
+        "en": {
+          "name": "Circular on Bank Card Operations",
+          "shortDefinition": "State Bank of Vietnam circular regulating bank card issuance, use, acceptance and related card operations.",
+          "body": "",
+          "baNotes": "Reference for card application data, card issuance by electronic means, limits, card acceptance and cardholder dispute handling requirements."
+        },
+        "vi": {
+          "name": "Thông tư về hoạt động thẻ ngân hàng",
+          "shortDefinition": "Thông tư của NHNN quy định phát hành, sử dụng, thanh toán thẻ ngân hàng và các hoạt động liên quan.",
+          "body": "",
+          "baNotes": "Tham chiếu cho dữ liệu đăng ký thẻ, phát hành thẻ bằng phương thức điện tử, hạn mức, chấp nhận thẻ và yêu cầu xử lý khiếu nại của chủ thẻ."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "State Bank of Vietnam (SBV)",
+          "documentNumber": "18/2024/TT-NHNN",
+          "issuedDate": "2024-06-28",
+          "effectiveDate": "2024-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "chargeback",
+          "tokenization"
+        ],
+        "relatedJourneySlugs": [
+          "cards"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "thong-tu-09-2020-an-toan-he-thong-thong-tin",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Circular 09/2020 on information system security"
+        ],
+        "domains": [
+          "SECURITY"
+        ],
+        "en": {
+          "name": "Circular on Information System Security in Banking",
+          "shortDefinition": "State Bank of Vietnam circular on ensuring the safety of information systems in banking operations, including classification, access control and incident management.",
+          "body": "",
+          "baNotes": "Use for non-functional requirements: access management, logging and monitoring, change management, backup and incident handling for systems in scope."
+        },
+        "vi": {
+          "name": "Thông tư về an toàn hệ thống thông tin trong hoạt động ngân hàng",
+          "shortDefinition": "Thông tư của NHNN quy định bảo đảm an toàn hệ thống thông tin trong hoạt động ngân hàng, gồm phân loại hệ thống, quản lý truy cập và xử lý sự cố.",
+          "body": "",
+          "baNotes": "Dùng cho yêu cầu phi chức năng: quản lý truy cập, ghi log và giám sát, quản lý thay đổi, sao lưu và xử lý sự cố cho hệ thống thuộc phạm vi."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "State Bank of Vietnam (SBV)",
+          "documentNumber": "09/2020/TT-NHNN",
+          "issuedDate": "2020-10-21",
+          "effectiveDate": "2021-01-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "maker-checker"
+        ],
+        "relatedJourneySlugs": [
+          "security-and-access"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "thong-tu-50-2024-an-toan-dich-vu-truc-tuyen",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Circular 50/2024 on online service security"
+        ],
+        "domains": [
+          "SECURITY",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Circular on Security of Online Banking Services",
+          "shortDefinition": "State Bank of Vietnam circular on safety and security requirements for providing online services in the banking sector, such as internet and mobile banking.",
+          "body": "",
+          "baNotes": "Reference for authentication strength by transaction type, device binding, application security testing and customer notification requirements in digital channels."
+        },
+        "vi": {
+          "name": "Thông tư về an toàn, bảo mật cung cấp dịch vụ trực tuyến",
+          "shortDefinition": "Thông tư của NHNN quy định yêu cầu an toàn, bảo mật khi cung cấp dịch vụ trực tuyến trong ngành ngân hàng như internet banking, mobile banking.",
+          "body": "",
+          "baNotes": "Tham chiếu về mức độ xác thực theo loại giao dịch, gắn thiết bị, kiểm thử bảo mật ứng dụng và yêu cầu thông báo khách hàng trên kênh số."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "State Bank of Vietnam (SBV)",
+          "documentNumber": "50/2024/TT-NHNN",
+          "issuedDate": "2024-12-31",
+          "effectiveDate": "2025-01-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "otp",
+          "biometric-authentication",
+          "thong-tu-09-2020-an-toan-he-thong-thong-tin"
+        ],
+        "relatedJourneySlugs": [
+          "security-and-access",
+          "payments-and-transfers"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "quyet-dinh-2345-2023-xac-thuc-sinh-trac-hoc",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [],
+        "domains": [
+          "SECURITY",
+          "PAYMENTS",
+          "DIGITAL_BANKING"
+        ],
+        "en": {
+          "name": "Decision 2345 on online payment and card security solutions",
+          "shortDefinition": "State Bank of Vietnam decision requiring security solutions for online payments and bank cards, including biometric authentication for certain online transfers.",
+          "body": "",
+          "baNotes": "Drives biometric step-up rules for online transfers by amount or cumulative value, biometric enrolment against the chip-based ID, and device-change controls; confirm current thresholds against the official text."
+        },
+        "vi": {
+          "name": "Quyết định 2345 về giải pháp an toàn bảo mật thanh toán trực tuyến và thẻ",
+          "shortDefinition": "Quyết định của NHNN về triển khai giải pháp an toàn, bảo mật trong thanh toán trực tuyến và thanh toán thẻ, gồm xác thực sinh trắc học cho một số giao dịch chuyển tiền trực tuyến.",
+          "body": "",
+          "baNotes": "Chi phối quy tắc xác thực sinh trắc học theo giá trị giao dịch hoặc lũy kế, đăng ký sinh trắc học đối chiếu căn cước gắn chip và kiểm soát khi đổi thiết bị; xác nhận ngưỡng hiện hành theo văn bản gốc."
+        },
+        "regulation": {
+          "jurisdiction": "VN",
+          "issuer": "State Bank of Vietnam (SBV)",
+          "documentNumber": "2345/QĐ-NHNN",
+          "issuedDate": "2023-12-18",
+          "effectiveDate": "2024-07-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "biometric-authentication",
+          "thong-tu-50-2024-an-toan-dich-vu-truc-tuyen"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers",
+          "security-and-access"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "basel-iii",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "Basel 3"
+        ],
+        "domains": [
+          "RISK",
+          "TREASURY"
+        ],
+        "en": {
+          "name": "Basel III",
+          "shortDefinition": "The Basel Committee's international framework for bank capital, leverage and liquidity, adopted by national regulators into local rules.",
+          "body": "Basel III raised the quality and quantity of capital, added capital buffers and a leverage ratio, and introduced the LCR and NSFR liquidity standards.",
+          "baNotes": "Basel standards apply only through national regulation; always trace a requirement to the local rule that adopts it."
+        },
+        "vi": {
+          "name": "Basel III",
+          "shortDefinition": "Khung chuẩn mực quốc tế của Ủy ban Basel về vốn, đòn bẩy và thanh khoản ngân hàng, được cơ quan quản lý mỗi nước chuyển hóa thành quy định nội địa.",
+          "body": "Basel III nâng chất lượng và quy mô vốn, bổ sung các đệm vốn, tỷ lệ đòn bẩy và đưa ra chuẩn thanh khoản LCR, NSFR.",
+          "baNotes": "Chuẩn Basel chỉ có hiệu lực qua quy định của từng quốc gia; luôn truy vết yêu cầu về văn bản nội địa áp dụng nó."
+        },
+        "regulation": {
+          "jurisdiction": "INTERNATIONAL",
+          "issuer": "Basel Committee on Banking Supervision (BCBS)",
+          "documentNumber": "Basel III framework",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "car",
+          "lcr",
+          "nsfr"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": [
+          {
+            "title": "Basel Framework",
+            "publisher": "Bank for International Settlements",
+            "url": "https://www.bis.org/basel_framework/"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "fatf-recommendations",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "FATF 40 Recommendations"
+        ],
+        "domains": [
+          "AML_KYC"
+        ],
+        "en": {
+          "name": "FATF Recommendations",
+          "shortDefinition": "The Financial Action Task Force's international standards on combating money laundering, terrorist financing and proliferation financing.",
+          "body": "",
+          "baNotes": "Useful to explain the intent behind local AML rules such as the risk-based approach, beneficial ownership and wire-transfer information requirements."
+        },
+        "vi": {
+          "name": "Các khuyến nghị của FATF",
+          "shortDefinition": "Chuẩn mực quốc tế của Lực lượng đặc nhiệm tài chính (FATF) về chống rửa tiền, tài trợ khủng bố và tài trợ phổ biến vũ khí.",
+          "body": "",
+          "baNotes": "Hữu ích để giải thích mục đích của quy định PCRT trong nước như tiếp cận dựa trên rủi ro, chủ sở hữu hưởng lợi và yêu cầu thông tin trong điện chuyển tiền."
+        },
+        "regulation": {
+          "jurisdiction": "INTERNATIONAL",
+          "issuer": "Financial Action Task Force (FATF)",
+          "documentNumber": "FATF Recommendations",
+          "status": "AMENDED"
+        },
+        "relatedEntrySlugs": [
+          "aml",
+          "cft",
+          "luat-phong-chong-rua-tien-2022"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": [
+          {
+            "title": "FATF Recommendations",
+            "publisher": "FATF",
+            "url": "https://www.fatf-gafi.org/en/publications/Fatfrecommendations/Fatf-recommendations.html"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "pci-dss",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "abbreviation": "PCI DSS",
+        "aliases": [
+          "Payment Card Industry Data Security Standard"
+        ],
+        "domains": [
+          "CARDS",
+          "SECURITY"
+        ],
+        "en": {
+          "name": "PCI DSS",
+          "shortDefinition": "The card industry's security standard for any organisation that stores, processes or transmits cardholder data.",
+          "body": "",
+          "baNotes": "Minimise PCI scope: avoid storing full card numbers, mask PAN on screens and logs, and use tokenization; record which systems and flows are in scope."
+        },
+        "vi": {
+          "name": "PCI DSS",
+          "shortDefinition": "Chuẩn bảo mật của ngành thẻ áp dụng cho mọi tổ chức lưu trữ, xử lý hoặc truyền dữ liệu chủ thẻ.",
+          "body": "",
+          "baNotes": "Thu hẹp phạm vi PCI: tránh lưu số thẻ đầy đủ, che PAN trên màn hình và log, dùng token hóa; ghi nhận hệ thống và luồng thuộc phạm vi."
+        },
+        "regulation": {
+          "jurisdiction": "INTERNATIONAL",
+          "issuer": "PCI Security Standards Council",
+          "documentNumber": "PCI DSS v4.0.1",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "tokenization",
+          "three-d-secure"
+        ],
+        "relatedJourneySlugs": [
+          "cards"
+        ],
+        "sources": [
+          {
+            "title": "PCI DSS document library",
+            "publisher": "PCI Security Standards Council",
+            "url": "https://www.pcisecuritystandards.org/"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "iso-20022",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "aliases": [
+          "MX messages"
+        ],
+        "domains": [
+          "PAYMENTS",
+          "DATA_REPORTING"
+        ],
+        "en": {
+          "name": "ISO 20022",
+          "shortDefinition": "The international standard for financial messaging that defines a common data dictionary and rich, structured message formats for payments, securities and trade.",
+          "body": "Payment market infrastructures and cross-border payments are moving to ISO 20022, which carries more structured data than legacy formats.",
+          "baNotes": "Map every field between internal models and ISO 20022 messages (for example pacs.008, pain.001, camt.053), including structured addresses and remittance information, and define truncation rules for legacy channels."
+        },
+        "vi": {
+          "name": "ISO 20022",
+          "shortDefinition": "Chuẩn quốc tế về điện văn tài chính, định nghĩa từ điển dữ liệu chung và định dạng điện có cấu trúc, giàu dữ liệu cho thanh toán, chứng khoán và thương mại.",
+          "body": "Các hạ tầng thanh toán và thanh toán quốc tế đang chuyển sang ISO 20022, mang nhiều dữ liệu có cấu trúc hơn định dạng cũ.",
+          "baNotes": "Ánh xạ từng trường giữa mô hình nội bộ và điện ISO 20022 (ví dụ pacs.008, pain.001, camt.053), gồm địa chỉ có cấu trúc và thông tin chuyển tiền, và quy tắc cắt ngắn cho kênh cũ."
+        },
+        "regulation": {
+          "jurisdiction": "INTERNATIONAL",
+          "issuer": "International Organization for Standardization (ISO)",
+          "documentNumber": "ISO 20022",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "swift"
+        ],
+        "relatedJourneySlugs": [
+          "payments-and-transfers"
+        ],
+        "sources": [
+          {
+            "title": "ISO 20022",
+            "publisher": "ISO 20022 Registration Authority",
+            "url": "https://www.iso20022.org/"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "ifrs-9",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "abbreviation": "IFRS 9",
+        "aliases": [
+          "IFRS 9 Financial Instruments"
+        ],
+        "domains": [
+          "ACCOUNTING",
+          "RISK"
+        ],
+        "en": {
+          "name": "IFRS 9 Financial Instruments",
+          "shortDefinition": "International accounting standard for classifying and measuring financial instruments, impairment using expected credit losses, and hedge accounting.",
+          "body": "",
+          "baNotes": "Impacts loan data requirements for staging, ECL inputs and disclosures; confirm whether the bank reports under IFRS, local accounting standards or both."
+        },
+        "vi": {
+          "name": "IFRS 9 Công cụ tài chính",
+          "shortDefinition": "Chuẩn mực kế toán quốc tế về phân loại, đo lường công cụ tài chính, suy giảm giá trị theo tổn thất tín dụng dự kiến và kế toán phòng ngừa rủi ro.",
+          "body": "",
+          "baNotes": "Ảnh hưởng đến yêu cầu dữ liệu khoản vay cho phân giai đoạn, đầu vào ECL và thuyết minh; xác nhận ngân hàng báo cáo theo IFRS, chuẩn mực kế toán Việt Nam hay cả hai."
+        },
+        "regulation": {
+          "jurisdiction": "INTERNATIONAL",
+          "issuer": "International Accounting Standards Board (IASB)",
+          "documentNumber": "IFRS 9",
+          "issuedDate": "2014-07-24",
+          "effectiveDate": "2018-01-01",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "ecl",
+          "npl"
+        ],
+        "relatedJourneySlugs": [
+          "lending"
+        ],
+        "sources": []
+      }
+    },
+    {
+      "slug": "gdpr",
+      "content": {
+        "schemaVersion": 1,
+        "kind": "REGULATION",
+        "abbreviation": "GDPR",
+        "aliases": [
+          "General Data Protection Regulation"
+        ],
+        "domains": [
+          "SECURITY",
+          "DATA_REPORTING"
+        ],
+        "en": {
+          "name": "General Data Protection Regulation",
+          "shortDefinition": "The European Union's regulation on protecting personal data and the free movement of such data, with extraterritorial reach to organisations serving people in the EU.",
+          "body": "",
+          "baNotes": "Relevant for banks serving EU residents or processing their data; often used as a benchmark for consent, data subject rights and breach notification design."
+        },
+        "vi": {
+          "name": "Quy định chung về bảo vệ dữ liệu (GDPR)",
+          "shortDefinition": "Quy định của Liên minh châu Âu về bảo vệ dữ liệu cá nhân và lưu chuyển dữ liệu, có hiệu lực ngoài lãnh thổ với tổ chức phục vụ người ở EU.",
+          "body": "",
+          "baNotes": "Liên quan khi ngân hàng phục vụ hoặc xử lý dữ liệu của người cư trú tại EU; thường được dùng làm chuẩn tham chiếu khi thiết kế đồng ý, quyền chủ thể dữ liệu và thông báo vi phạm."
+        },
+        "regulation": {
+          "jurisdiction": "EU",
+          "issuer": "European Parliament and Council of the European Union",
+          "documentNumber": "Regulation (EU) 2016/679",
+          "issuedDate": "2016-04-27",
+          "effectiveDate": "2018-05-25",
+          "status": "IN_FORCE"
+        },
+        "relatedEntrySlugs": [
+          "nghi-dinh-13-2023-bao-ve-du-lieu-ca-nhan"
+        ],
+        "relatedJourneySlugs": [],
+        "sources": [
+          {
+            "title": "Regulation (EU) 2016/679",
+            "publisher": "EUR-Lex",
+            "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+          }
+        ]
+      }
+    }
+  ]
+}

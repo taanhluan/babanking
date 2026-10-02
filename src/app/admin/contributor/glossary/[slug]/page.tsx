@@ -61,13 +61,13 @@ export default async function GlossaryEditorPage({ params, searchParams }: { par
         </div>
         <label className={field}>Aliases (comma or new line)<textarea name="aliases" rows={2} defaultValue={content.aliases.join('\n')} className={area}/></label>
         <fieldset><legend className="text-sm font-semibold text-navy">Domains</legend><div className="mt-2 flex flex-wrap gap-3">{glossaryDomains.map((domain) => <label key={domain} className="flex items-center gap-2 text-sm"><input type="checkbox" name="domains" value={domain} defaultChecked={content.domains.includes(domain)}/>{glossaryDomainLabels.en[domain]}</label>)}</div></fieldset>
-        <div className="grid gap-5 lg:grid-cols-2">{(['en', 'vi'] as const).map((locale) => <fieldset key={locale} className="grid gap-3 rounded-xl border p-4">
-          <legend className="px-1 text-sm font-semibold uppercase text-royalBlue">{locale === 'en' ? 'English' : 'Tiếng Việt'}</legend>
-          <label className={field}>Name<input name={`${locale}.name`} required defaultValue={content[locale].name} maxLength={200} className={input}/></label>
-          <label className={field}>Short definition<textarea name={`${locale}.shortDefinition`} required rows={3} defaultValue={content[locale].shortDefinition} maxLength={600} className={area}/></label>
-          <label className={field}>Details (blank line between paragraphs)<textarea name={`${locale}.body`} rows={8} defaultValue={content[locale].body} maxLength={20000} className={area}/></label>
-          <label className={field}>BA notes<textarea name={`${locale}.baNotes`} rows={4} defaultValue={content[locale].baNotes} maxLength={5000} className={area}/></label>
-        </fieldset>)}</div>
+        <div className="grid gap-5 lg:grid-cols-2">{(['en', 'vi'] as const).map((locale) => { const value = locale === 'en' ? content.en : content.vi; const required = locale === 'en'; return <fieldset key={locale} className="grid gap-3 rounded-xl border p-4">
+          <legend className="px-1 text-sm font-semibold uppercase text-royalBlue">{locale === 'en' ? 'English (required, shown on /en)' : 'Tiếng Việt (optional, shown on /vi)'}</legend>
+          <label className={field}>Name<input name={`${locale}.name`} required={required} defaultValue={value?.name ?? ''} maxLength={200} className={input}/></label>
+          <label className={field}>Short definition<textarea name={`${locale}.shortDefinition`} required={required} rows={3} defaultValue={value?.shortDefinition ?? ''} maxLength={600} className={area}/></label>
+          <label className={field}>Details (blank line between paragraphs)<textarea name={`${locale}.body`} rows={8} defaultValue={value?.body ?? ''} maxLength={20000} className={area}/></label>
+          <label className={field}>BA notes<textarea name={`${locale}.baNotes`} rows={4} defaultValue={value?.baNotes ?? ''} maxLength={5000} className={area}/></label>
+        </fieldset>; })}</div>
         <fieldset className="grid gap-3 rounded-xl border p-4 md:grid-cols-3">
           <legend className="px-1 text-sm font-semibold text-navy">Regulation details (used only when Type is Regulation)</legend>
           <label className={field}>Jurisdiction (VN, INTERNATIONAL, ISO code)<input name="regulation.jurisdiction" defaultValue={content.regulation?.jurisdiction ?? 'VN'} className={input}/></label>

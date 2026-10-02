@@ -21,15 +21,13 @@ export function formatGlossarySourceLines(sources: Array<{ title: string; publis
   return sources.map((source) => [source.title, source.publisher ?? '', source.url ?? ''].join(' | ').replace(/( \| )+$/, '')).join('\n');
 }
 
+function localeFields(form: FormLike, key: 'en' | 'vi') {
+  return { name: text(form, `${key}.name`), shortDefinition: text(form, `${key}.shortDefinition`), body: text(form, `${key}.body`), baNotes: text(form, `${key}.baNotes`) };
+}
+
 /** Maps the structured editor form to an unvalidated content object; the service schema remains authoritative. */
 export function glossaryContentFromForm(form: FormLike) {
   const kind = text(form, 'kind');
-  const locale = (key: 'en' | 'vi') => ({
-    name: text(form, `${key}.name`),
-    shortDefinition: text(form, `${key}.shortDefinition`),
-    body: text(form, `${key}.body`),
-    baNotes: text(form, `${key}.baNotes`),
-  });
   const status = text(form, 'regulation.status');
   return {
     schemaVersion: 1,
@@ -37,8 +35,9 @@ export function glossaryContentFromForm(form: FormLike) {
     abbreviation: optional(form, 'abbreviation'),
     aliases: list(form, 'aliases'),
     domains: form.getAll('domains').filter((value): value is string => typeof value === 'string' && (glossaryDomains as readonly string[]).includes(value)),
-    en: locale('en'),
-    vi: locale('vi'),
+    en: localeFields(form, 'en'),
+    // Vietnamese is optional: omitted entirely when every Vietnamese field is blank.
+    ...(['name', 'shortDefinition', 'body', 'baNotes'].some((key) => text(form, `vi.${key}`)) ? { vi: localeFields(form, 'vi') } : {}),
     ...(kind === 'REGULATION' ? {
       regulation: {
         jurisdiction: text(form, 'regulation.jurisdiction').toUpperCase(),

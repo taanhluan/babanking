@@ -4,10 +4,10 @@ import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
 import { PageHero } from '@/components/layout/PageHero';
 import { Container } from '@/components/ui/Container';
-import { glossaryCopy, glossaryDomainLabels, glossaryKindLabels, jurisdictionLabel, regulationStatusLabels, regulationStatusTone } from '@/components/glossary/glossary-copy';
+import { glossaryCopy, glossaryDomainLabels, glossaryKindLabels, issuerLabel, jurisdictionLabel, regulationStatusLabels, regulationStatusTone } from '@/components/glossary/glossary-copy';
 import { getCurrentLocale } from '@/i18n/server';
 import { requirePremiumAccess } from '@/lib/membership';
-import { filterGlossaryEntries, glossaryDisplayName, glossaryDomains, glossaryInitial, glossaryKinds, type GlossaryFilters } from '@/server/glossary/glossary-domain';
+import { filterGlossaryEntries, glossaryDisplayName, glossaryText, glossaryDomains, glossaryInitial, glossaryKinds, type GlossaryFilters } from '@/server/glossary/glossary-domain';
 import { GlossaryRepository } from '@/server/glossary/glossary-repository';
 
 const letters = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#'];
@@ -52,8 +52,8 @@ export default async function GlossaryPage({ searchParams }: { searchParams: Pro
       {results.length ? <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{results.map(({ slug, content }) => <Link key={slug} href={`/glossary/${slug}` as Route} className="flex min-w-0 flex-col rounded-2xl border bg-white p-5 hover:border-royalBlue">
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-royalBlue"><span>{glossaryKindLabels[locale][content.kind]}</span>{content.abbreviation ? <span className="text-slate-500">· {content.abbreviation}</span> : null}{content.regulation ? <span className={`rounded-full border px-2 py-0.5 normal-case ${regulationStatusTone[content.regulation.status]}`}>{regulationStatusLabels[locale][content.regulation.status]}</span> : null}</div>
         <h2 className="mt-2 break-words text-lg font-semibold text-navy">{glossaryDisplayName(content, locale)}</h2>
-        {content.regulation ? <p className="mt-1 text-sm font-semibold text-slate-600">{content.regulation.documentNumber} · {content.regulation.issuer}</p> : null}
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-textSecondary">{content[locale].shortDefinition}</p>
+        {content.regulation ? <p className="mt-1 text-sm font-semibold text-slate-600">{content.regulation.documentNumber} · {issuerLabel(content.regulation.issuer, locale)}</p> : null}
+        <p className="mt-3 line-clamp-3 text-sm leading-6 text-textSecondary">{glossaryText(content, locale).shortDefinition}</p>
         <p className="mt-auto pt-3 text-xs text-slate-500">{content.domains.map((domain) => glossaryDomainLabels[locale][domain]).join(' · ')}</p>
       </Link>)}</div> : <p className="mt-6 rounded-2xl border border-dashed bg-white p-8 text-center text-textSecondary">{copy.empty}</p>}
     </Container></section>

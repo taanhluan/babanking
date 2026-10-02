@@ -52,3 +52,14 @@ export function jurisdictionLabel(value: string, locale: 'en' | 'vi') {
   if (value === 'VN') return 'Việt Nam';
   return value;
 }
+
+const vietnameseIssuers: Record<string, string> = {
+  'State Bank of Vietnam (SBV)': 'Ngân hàng Nhà nước Việt Nam (NHNN)',
+  'Government of Vietnam': 'Chính phủ',
+  'National Assembly of Vietnam': 'Quốc hội',
+};
+
+/** Issuers are stored in English; /vi pages show the Vietnamese name for known Vietnamese issuers. */
+export function issuerLabel(issuer: string, locale: 'en' | 'vi') {
+  return locale === 'vi' ? vietnameseIssuers[issuer] ?? issuer : issuer;
+}

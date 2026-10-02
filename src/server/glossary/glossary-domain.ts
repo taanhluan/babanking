@@ -54,7 +54,8 @@ export const glossaryEntryContentSchema = z.object({
   aliases: uniqueList(z.string().trim().min(1).max(120), 20, 'Aliases'),
   domains: uniqueList(z.enum(glossaryDomains), glossaryDomains.length, 'Domains').refine((values) => values.length > 0, 'Select at least one domain.'),
   en: localeContent,
-  vi: localeContent,
+  /** Optional Vietnamese text shown only on /vi pages; English is always required and used as the fallback. */
+  vi: localeContent.optional(),
   regulation: regulation.optional(),
   relatedEntrySlugs: uniqueList(slug, 30, 'Related entries'),
   relatedJourneySlugs: uniqueList(slug, 30, 'Related Journeys'),
@@ -99,7 +100,6 @@ export function glossaryInitialContent(kind: GlossaryKind, name: string): Glossa
     aliases: [],
     domains: ['GENERAL'],
     en: { name, shortDefinition: placeholder, body: '', baNotes: '' },
-    vi: { name, shortDefinition: 'Định nghĩa đang chờ tác giả bổ sung trước khi review.', body: '', baNotes: '' },
     ...(kind === 'REGULATION' ? { regulation: { jurisdiction: 'VN', issuer: 'TBD', documentNumber: 'TBD', status: 'IN_FORCE' as const } } : {}),
     relatedEntrySlugs: [],
     relatedJourneySlugs: [],
@@ -109,8 +109,13 @@ export function glossaryInitialContent(kind: GlossaryKind, name: string): Glossa
 
 export type GlossaryListEntry = { slug: string; content: GlossaryEntryContent };
 
-export function glossaryDisplayName(content: GlossaryEntryContent, locale: 'en' | 'vi') {
-  return content[locale].name || content.en.name;
+/** Text for a page locale: /en is always English; /vi uses the Vietnamese text when present, else English. */
+export function glossaryText(content: GlossaryEntryContent, locale: 'en' | 'vi') {
+  return locale === 'vi' && content.vi ? { ...content.vi, lang: 'vi' as const } : { ...content.en, lang: 'en' as const };
+}
+
+export function glossaryDisplayName(content: GlossaryEntryContent, locale: 'en' | 'vi' = 'en') {
+  return glossaryText(content, locale).name;
 }
 
 /** First letter used by the A–Z index; non A–Z initials (digits, Vietnamese diacritics stripped) fall back sensibly. */
@@ -121,7 +126,7 @@ export function glossaryInitial(name: string) {
 
 export type GlossaryFilters = { q?: string; kind?: string; domain?: string; jurisdiction?: string; letter?: string };
 
-export function filterGlossaryEntries(entries: GlossaryListEntry[], filters: GlossaryFilters, locale: 'en' | 'vi') {
+export function filterGlossaryEntries(entries: GlossaryListEntry[], filters: GlossaryFilters, locale: 'en' | 'vi' = 'en') {
   const fold = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
   const q = fold(filters.q?.trim() ?? '');
   return entries
@@ -129,6 +134,6 @@ export function filterGlossaryEntries(entries: GlossaryListEntry[], filters: Glo
     .filter(({ content }) => !filters.domain || content.domains.includes(filters.domain as GlossaryDomain))
     .filter(({ content }) => !filters.jurisdiction || content.regulation?.jurisdiction === filters.jurisdiction)
     .filter(({ content }) => !filters.letter || glossaryInitial(glossaryDisplayName(content, locale)) === filters.letter)
-    .filter(({ content }) => !q || fold([content.en.name, content.vi.name, content.abbreviation ?? '', ...content.aliases, content.regulation?.documentNumber ?? '', content.en.shortDefinition, content.vi.shortDefinition].join(' ')).includes(q))
+    .filter(({ content }) => !q || fold([content.en.name, content.abbreviation ?? '', ...content.aliases, content.regulation?.documentNumber ?? '', content.en.shortDefinition, ...(locale === 'vi' && content.vi ? [content.vi.name, content.vi.shortDefinition] : [])].join(' ')).includes(q))
     .sort((a, b) => glossaryDisplayName(a.content, locale).localeCompare(glossaryDisplayName(b.content, locale), locale));
 }

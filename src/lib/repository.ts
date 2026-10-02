@@ -319,7 +319,6 @@ export const ContentRepository = {
           title: content.en.name,
           summary: content.en.shortDefinition,
           keywords: [
-            content.vi.name,
             content.abbreviation ?? "",
             ...content.aliases,
             content.regulation?.documentNumber ?? "",

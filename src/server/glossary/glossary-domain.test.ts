@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterGlossaryEntries, glossaryEntryContentSchema, glossaryInitial, glossaryInitialContent, glossarySelfReferences, parseGlossaryEntryContent, type GlossaryEntryContent } from './glossary-domain';
+import { filterGlossaryEntries, glossaryEntryContentSchema, glossaryText, glossaryInitial, glossaryInitialContent, glossarySelfReferences, parseGlossaryEntryContent, type GlossaryEntryContent } from './glossary-domain';
 
 const term = (overrides: Partial<GlossaryEntryContent> = {}): GlossaryEntryContent => glossaryEntryContentSchema.parse({
   schemaVersion: 1,
@@ -43,6 +43,16 @@ describe('glossary entry content schema', () => {
     expect(glossaryEntryContentSchema.safeParse({ ...term(), domains: [] }).success).toBe(false);
   });
 
+  it('requires English, keeps Vietnamese optional and falls back to English on /vi', () => {
+    const englishOnly: Partial<GlossaryEntryContent> = { ...term() };
+    delete englishOnly.vi;
+    expect(glossaryEntryContentSchema.safeParse(englishOnly).success).toBe(true);
+    expect(glossaryText(term(), 'vi')).toMatchObject({ name: 'Định danh khách hàng', lang: 'vi' });
+    expect(glossaryText(term(), 'en')).toMatchObject({ name: 'Know Your Customer', lang: 'en' });
+    expect(glossaryText(glossaryEntryContentSchema.parse(englishOnly), 'vi')).toMatchObject({ name: 'Know Your Customer', lang: 'en' });
+    expect(glossaryInitialContent('TERM', 'Escrow')).not.toHaveProperty('vi');
+  });
+
   it('parses JSON safely and detects self references', () => {
     expect(parseGlossaryEntryContent('{bad')).toBeNull();
     expect(parseGlossaryEntryContent(JSON.stringify(term()))?.kind).toBe('TERM');
@@ -61,17 +71,19 @@ describe('glossary filtering', () => {
     { slug: 'ekyc-circular', content: term({ kind: 'REGULATION', abbreviation: undefined, aliases: [], domains: ['DIGITAL_BANKING'], regulation: { ...regulation, status: 'AMENDED' }, en: { name: 'eKYC Circular', shortDefinition: 'Rules for electronic customer identification.', body: '', baNotes: '' }, vi: { name: 'Thông tư eKYC', shortDefinition: 'Quy định định danh khách hàng điện tử.', body: '', baNotes: '' } }) },
   ];
 
-  it('searches across names, aliases, document numbers and Vietnamese without diacritics', () => {
-    expect(filterGlossaryEntries(entries, { q: 'know your' }, 'en').map((entry) => entry.slug)).toEqual(['kyc']);
-    expect(filterGlossaryEntries(entries, { q: '16/2020' }, 'en').map((entry) => entry.slug)).toEqual(['ekyc-circular']);
+  it('searches English text on /en and adds Vietnamese text on /vi', () => {
+    expect(filterGlossaryEntries(entries, { q: 'know your' }).map((entry) => entry.slug)).toEqual(['kyc']);
+    expect(filterGlossaryEntries(entries, { q: '16/2020' }).map((entry) => entry.slug)).toEqual(['ekyc-circular']);
+    expect(filterGlossaryEntries(entries, { q: 'electronic customer' }).map((entry) => entry.slug)).toEqual(['ekyc-circular']);
+    expect(filterGlossaryEntries(entries, { q: 'dinh danh' })).toHaveLength(0);
     expect(filterGlossaryEntries(entries, { q: 'dinh danh' }, 'vi')).toHaveLength(2);
   });
 
   it('filters by kind, domain, jurisdiction and initial letter', () => {
-    expect(filterGlossaryEntries(entries, { kind: 'REGULATION' }, 'en').map((entry) => entry.slug)).toEqual(['ekyc-circular']);
-    expect(filterGlossaryEntries(entries, { domain: 'AML_KYC' }, 'en').map((entry) => entry.slug)).toEqual(['kyc']);
-    expect(filterGlossaryEntries(entries, { jurisdiction: 'VN' }, 'en').map((entry) => entry.slug)).toEqual(['ekyc-circular']);
-    expect(filterGlossaryEntries(entries, { letter: 'K' }, 'en').map((entry) => entry.slug)).toEqual(['kyc']);
+    expect(filterGlossaryEntries(entries, { kind: 'REGULATION' }).map((entry) => entry.slug)).toEqual(['ekyc-circular']);
+    expect(filterGlossaryEntries(entries, { domain: 'AML_KYC' }).map((entry) => entry.slug)).toEqual(['kyc']);
+    expect(filterGlossaryEntries(entries, { jurisdiction: 'VN' }).map((entry) => entry.slug)).toEqual(['ekyc-circular']);
+    expect(filterGlossaryEntries(entries, { letter: 'K' }).map((entry) => entry.slug)).toEqual(['kyc']);
     expect(glossaryInitial('Định danh')).toBe('D');
     expect(glossaryInitial('3-D Secure')).toBe('#');
   });

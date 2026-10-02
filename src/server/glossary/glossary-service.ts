@@ -38,21 +38,25 @@ function parseForSave(value: unknown, slug: string) {
   return content;
 }
 
-/** Publish gate: placeholders are not allowed and every linked entry/Journey must already be published. */
+/**
+ * Publish gate: no placeholders; linked glossary entries must exist and not be archived (they may still be
+ * drafts, so reciprocal links can be published in any order; readers only see published, authorized links);
+ * linked Journeys must be published.
+ */
 export async function assertGlossaryPublishReady(content: GlossaryEntryContent, slug: string) {
   if (glossarySelfReferences(content, slug).length) throw new Error('A glossary entry cannot link to itself.');
   const initial = glossaryInitialContent(content.kind, content.en.name);
-  if (content.en.shortDefinition === initial.en.shortDefinition || content.vi.shortDefinition === initial.vi.shortDefinition) throw new Error('Replace the placeholder definitions before publishing.');
+  if (content.en.shortDefinition === initial.en.shortDefinition) throw new Error('Replace the placeholder definitions before publishing.');
   if (content.regulation && [content.regulation.issuer, content.regulation.documentNumber].includes('TBD')) throw new Error('Replace the placeholder regulation details before publishing.');
   const entrySlugs = glossaryEntryLinkedSlugs(content);
   const [entries, journeys] = await Promise.all([
-    entrySlugs.length ? db.contentItem.findMany({ where: { type: 'GLOSSARY_ENTRY', slug: { in: entrySlugs }, isArchived: false, publishedRevisionId: { not: null } }, select: { slug: true } }) : [],
+    entrySlugs.length ? db.contentItem.findMany({ where: { type: 'GLOSSARY_ENTRY', slug: { in: entrySlugs }, isArchived: false }, select: { slug: true } }) : [],
     content.relatedJourneySlugs.length ? db.contentItem.findMany({ where: { type: 'BANKING_JOURNEY', slug: { in: content.relatedJourneySlugs }, isArchived: false, publishedRevisionId: { not: null } }, select: { slug: true } }) : [],
   ]);
   const missingEntries = entrySlugs.filter((value) => !entries.some((entry) => entry.slug === value));
   const missingJourneys = content.relatedJourneySlugs.filter((value) => !journeys.some((journey) => journey.slug === value));
   if (missingEntries.length || missingJourneys.length) {
-    throw new Error(`Linked content is not published: ${[...missingEntries.map((value) => `entry ${value}`), ...missingJourneys.map((value) => `journey ${value}`)].join(', ')}.`);
+    throw new Error(`Linked content is unavailable: ${[...missingEntries.map((value) => `entry ${value} (missing or archived)`), ...missingJourneys.map((value) => `journey ${value} (not published)`)].join(', ')}.`);
   }
 }
 

@@ -4,10 +4,10 @@ import { notFound } from 'next/navigation';
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
 import { Container } from '@/components/ui/Container';
-import { glossaryCopy, glossaryDomainLabels, glossaryKindLabels, jurisdictionLabel, regulationStatusLabels, regulationStatusTone } from '@/components/glossary/glossary-copy';
+import { glossaryCopy, glossaryDomainLabels, glossaryKindLabels, issuerLabel, jurisdictionLabel, regulationStatusLabels, regulationStatusTone } from '@/components/glossary/glossary-copy';
 import { getCurrentLocale } from '@/i18n/server';
 import { requireContentSlugAccess } from '@/server/access-control/require-knowledge-access';
-import { glossaryDisplayName, glossaryEntryLinkedSlugs, glossarySlugPattern } from '@/server/glossary/glossary-domain';
+import { glossaryDisplayName, glossaryEntryLinkedSlugs, glossaryText, glossarySlugPattern } from '@/server/glossary/glossary-domain';
 import { GlossaryRepository } from '@/server/glossary/glossary-repository';
 
 function Paragraphs({ text }: { text: string }) {
@@ -22,7 +22,7 @@ export default async function GlossaryEntryPage({ params }: { params: Promise<{ 
   if (!entry) notFound();
   const { content } = entry;
   const copy = glossaryCopy[locale];
-  const text = content[locale];
+  const text = glossaryText(content, locale);
 
   // Linked entries and Journeys are shown only when the reader is independently authorized for them.
   const linked = glossaryEntryLinkedSlugs(content);
@@ -38,14 +38,12 @@ export default async function GlossaryEntryPage({ params }: { params: Promise<{ 
     <header className="border-b bg-bgLight px-4 py-8 sm:px-6"><Container>
       <Link href="/glossary" className="text-sm font-semibold text-royalBlue">← {copy.back}</Link>
       <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-royalBlue">{glossaryKindLabels[locale][content.kind]}{content.abbreviation ? ` · ${content.abbreviation}` : ''}</p>
-      <h1 className="mt-2 break-words text-3xl font-semibold text-navy sm:text-4xl">{glossaryDisplayName(content, locale)}</h1>
-      {locale === 'vi' && content.en.name !== content.vi.name ? <p className="mt-1 text-slate-600">{content.en.name}</p> : null}
-      {locale === 'en' && content.en.name !== content.vi.name ? <p className="mt-1 text-slate-600" lang="vi">{content.vi.name}</p> : null}
-      <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-700">{text.shortDefinition}</p>
+      <h1 lang={text.lang} className="mt-2 break-words text-3xl font-semibold text-navy sm:text-4xl">{text.name}</h1>
+      <p lang={text.lang} className="mt-4 max-w-3xl text-lg leading-8 text-slate-700">{text.shortDefinition}</p>
       <div className="mt-4 flex flex-wrap gap-2">{content.domains.map((domain) => <span key={domain} className="rounded-full border bg-white px-3 py-1 text-xs font-semibold text-navy">{glossaryDomainLabels[locale][domain]}</span>)}</div>
     </Container></header>
     <section className="px-4 py-10 sm:px-6"><Container><div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <article className="min-w-0">
+      <article lang={text.lang} className="min-w-0">
         {content.aliases.length ? <p className="text-sm text-slate-600"><span className="font-semibold">{copy.aliases}:</span> {content.aliases.join(', ')}</p> : null}
         {text.body ? <section className="mt-6"><h2 className="text-xl font-semibold text-navy">{copy.details}</h2><Paragraphs text={text.body}/></section> : null}
         {text.baNotes ? <section className="mt-8 rounded-2xl border-l-4 border-royalBlue bg-blue-50/60 p-5"><h2 className="text-lg font-semibold text-navy">{copy.baNotes}</h2><Paragraphs text={text.baNotes}/></section> : null}
@@ -56,7 +54,7 @@ export default async function GlossaryEntryPage({ params }: { params: Promise<{ 
         {regulation ? <div className="rounded-2xl border bg-white p-5">
           <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${regulationStatusTone[regulation.status]}`}>{regulationStatusLabels[locale][regulation.status]}</span>
           <dl className="mt-4 space-y-3 text-sm">
-            {([[copy.documentNumber, regulation.documentNumber], [copy.issuer, regulation.issuer], [copy.jurisdiction, jurisdictionLabel(regulation.jurisdiction, locale)], [copy.issued, regulation.issuedDate], [copy.effective, regulation.effectiveDate]] as const).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt className="text-xs font-semibold uppercase text-slate-500">{label}</dt><dd className="mt-0.5 break-words font-semibold text-navy">{value}</dd></div>)}
+            {([[copy.documentNumber, regulation.documentNumber], [copy.issuer, issuerLabel(regulation.issuer, locale)], [copy.jurisdiction, jurisdictionLabel(regulation.jurisdiction, locale)], [copy.issued, regulation.issuedDate], [copy.effective, regulation.effectiveDate]] as const).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt className="text-xs font-semibold uppercase text-slate-500">{label}</dt><dd className="mt-0.5 break-words font-semibold text-navy">{value}</dd></div>)}
             {supersededBy ? <div><dt className="text-xs font-semibold uppercase text-slate-500">{copy.supersededBy}</dt><dd className="mt-0.5"><Link href={`/glossary/${supersededBy.slug}` as Route} className="font-semibold text-royalBlue underline">{glossaryDisplayName(supersededBy.content, locale)}</Link></dd></div> : null}
           </dl>
         </div> : null}

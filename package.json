@@ -20,6 +20,7 @@
     "db:seed:dev": "tsx scripts/run-safe-prisma-command.ts seed-development",
     "db:seed:knowledge-access": "tsx scripts/seed-knowledge-access.ts",
     "db:seed:glossary-scope": "tsx scripts/seed-glossary-scope.ts",
+    "db:import:glossary-drafts": "tsx scripts/import-glossary-drafts.ts",
     "db:seed:segment-journey-drafts": "tsx scripts/seed-segment-journey-drafts.ts",
     "db:enrich:segment-journey-drafts": "tsx scripts/enrich-segment-journey-drafts.ts",
     "db:submit:segment-journey-drafts": "tsx scripts/submit-segment-journey-drafts.ts",

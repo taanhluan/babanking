@@ -35,7 +35,6 @@ const ready = {
   ...glossaryInitialContent('TERM', 'Know Your Customer'),
   domains: ['AML_KYC'],
   en: { name: 'Know Your Customer', shortDefinition: 'Process to verify the identity of a customer.', body: '', baNotes: '' },
-  vi: { name: 'Định danh khách hàng', shortDefinition: 'Quy trình xác minh danh tính khách hàng.', body: '', baNotes: '' },
   relatedEntrySlugs: ['ekyc-circular'],
   relatedJourneySlugs: ['customer-onboarding'],
 };
@@ -91,12 +90,12 @@ describe('glossary publication', () => {
     await expect(publishGlossaryEntry('item-1', 'rev-2', { id: 'author-1', role: 'REVIEWER' })).rejects.toThrow(/author/);
   });
 
-  it('refuses placeholders and unpublished links', async () => {
+  it('refuses placeholders, missing entries and unpublished Journeys', async () => {
     mocks.revisionFindFirst.mockResolvedValue(revision({ contentJson: JSON.stringify(glossaryInitialContent('TERM', 'KYC')) }));
     await expect(publishGlossaryEntry('item-1', 'rev-2', reviewer)).rejects.toThrow(/placeholder/);
     mocks.revisionFindFirst.mockResolvedValue(revision());
     mocks.itemFindMany.mockResolvedValue([]);
-    await expect(publishGlossaryEntry('item-1', 'rev-2', reviewer)).rejects.toThrow(/entry ekyc-circular, journey customer-onboarding/);
+    await expect(publishGlossaryEntry('item-1', 'rev-2', reviewer)).rejects.toThrow(/entry ekyc-circular \(missing or archived\), journey customer-onboarding \(not published\)/);
     expect(mocks.tx.contentItem.updateMany).not.toHaveBeenCalled();
   });
 

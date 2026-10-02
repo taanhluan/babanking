@@ -33,6 +33,36 @@
 - Not yet done: signed-in manual smoke test (create → submit → publish →
   member view → Journey panel) and any starter content. No glossary entries
   exist in Development yet.
+- Feature, authoring and operations guide:
+  `docs/hand-off/GLOSSARY_AND_REGULATIONS_GUIDE.md`.
+- Publish rule relaxed: linked glossary entries must exist and not be archived
+  (drafts allowed) so reciprocal links can publish in any order; linked Journeys
+  must still be published. Readers only see published, authorized links.
+- Starter content `content/glossary/banking-glossary-starter-v1.json` (38 terms,
+  17 VN/international regulations, AI-drafted; EN required, VI optional) imported into Development as 55
+  version-1 DRAFTs authored by the owner's ADMIN account via
+  `npm run db:import:glossary-drafts -- --apply` (release `glossary-starter-v1`,
+  audit `GLOSSARY_ENTRY_IMPORTED_AS_DRAFT`); re-run reports `pending: 0`.
+  Nothing submitted or published. Every regulation's number, dates and status
+  must be verified against official texts (lastVerifiedAt left empty) before
+  publication.
+- End-to-end trial (owner request): `kyc` submitted and published as v1 by the
+  owner's ADMIN account through the glossary service; audits IMPORTED_AS_DRAFT,
+  SUBMITTED, PUBLISHED. Reader checks: listed, shown in the Customer Onboarding
+  panel, draft links hidden, anonymous 307. No active MEMBER accounts exist in
+  Development, so a real member session was not tested.
+- Owner decision: glossary content is English only. `vi` is now optional and
+  never displayed (`/vi` shows English content with localized labels); the CMS
+  form is English-only; the starter file dropped Vietnamese text, aliases and
+  issuer names. Development synced through the glossary service: 54 drafts
+  re-saved, `kyc` republished as v2 (English-only); 0 entries still carry `vi`.
+- Owner clarified: `/en` pages must be fully English, `/vi` pages keep the
+  Vietnamese content. `vi` is optional (fallback to English); readers, search,
+  A–Z and the Journey panel use the page locale; the CMS has an optional
+  Vietnamese column; issuers are stored in English with Vietnamese display names
+  for SBV/Government/National Assembly on `/vi`. Starter file Vietnamese text
+  restored (aliases stay English). Development re-synced through the service:
+  54 drafts re-saved, `kyc` published as v3 with both languages.
 
 ## Lending editor recovery fix (2026-10-01)
 
