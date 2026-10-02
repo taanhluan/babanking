@@ -63,6 +63,16 @@
   for SBV/Government/National Assembly on `/vi`. Starter file Vietnamese text
   restored (aliases stay English). Development re-synced through the service:
   54 drafts re-saved, `kyc` published as v3 with both languages.
+- Owner-approved publication (2026-10-02): commit `c3a9447` pushed to
+  `origin/develop`; the remaining 54 Development drafts were submitted and
+  published through the glossary service by the owner's ADMIN account (0
+  failures). Development now has 55 published entries (38 terms, 17
+  regulations). The 17 regulations were published **unverified** at the owner's
+  request: numbers, dates and statuses are AI-drafted and still need checking
+  against official texts (set sources and `lastVerifiedAt` via new drafts).
+  Reader checks: 55 readable, kyc's 4 links now visible, Journey panels populated
+  (e.g. payments-and-transfers 19, customer-onboarding 12), EN/VI search works,
+  anonymous 307. Production remains untouched.
 
 ## Lending editor recovery fix (2026-10-01)
 

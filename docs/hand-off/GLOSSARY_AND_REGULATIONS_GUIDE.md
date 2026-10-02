@@ -209,7 +209,7 @@ Reciprocal links can be published in any order; members only see a link once the
 
 ## 9. Current state, limitations and next steps
 
-- Development has 55 imported entries with English and Vietnamese text: `kyc` is published as v3 (v1 bilingual trial, v2 English-only, v3 bilingual — all on 2026-10-01); the other 54 are DRAFTs.
+- Development has 55 published entries (38 terms, 17 regulations) with English and Vietnamese text. `kyc` is at v3; the other 54 were published on 2026-10-02 at the owner's request. **The 17 regulations were published before verification** — check each against the official text and publish a corrected revision with sources and `lastVerifiedAt`.
 - Development has no active MEMBER accounts, so the member view was verified with repository checks and an ADMIN account, not with a real member session.
 - `body` and `baNotes` are plain text (no tables, diagrams or bold/italic).
 - Two-way links must be added on both entries.
