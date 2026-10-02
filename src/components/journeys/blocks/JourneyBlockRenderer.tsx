@@ -19,7 +19,7 @@ function normalizeDiagramData(block: PortalBlock) {
   }));
 }
 
-function TextBlock({ payload }: { payload: Record<string, unknown> }) { const value = payload.text ?? payload.content ?? payload.description ?? payload.value; return typeof value === 'string' && value.trim() ? <p className="w-full max-w-prose break-words whitespace-pre-wrap text-sm leading-7 text-textSecondary">{value}</p> : null; }
+function TextBlock({ payload }: { payload: Record<string, unknown> }) { const value = payload.text ?? payload.content ?? payload.description ?? payload.value; return typeof value === 'string' && value.trim() ? <p className="w-full max-w-none break-words whitespace-pre-wrap text-sm leading-7 text-textSecondary">{value}</p> : null; }
 function MediaBlock({ payload, journeySlug }: { payload: Record<string, unknown>; journeySlug?: string }) {
   const mediaPath = payload.mediaPath;
   const src = journeySlug && isJourneyMediaPathForSlug(mediaPath, journeySlug)

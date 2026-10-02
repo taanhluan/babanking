@@ -39,7 +39,7 @@ export default async function GlossaryEntryPage({ params }: { params: Promise<{ 
       <Link href="/glossary" className="text-sm font-semibold text-royalBlue">← {copy.back}</Link>
       <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-royalBlue">{glossaryKindLabels[locale][content.kind]}{content.abbreviation ? ` · ${content.abbreviation}` : ''}</p>
       <h1 lang={text.lang} className="mt-2 break-words text-3xl font-semibold text-navy sm:text-4xl">{text.name}</h1>
-      <p lang={text.lang} className="mt-4 max-w-3xl text-lg leading-8 text-slate-700">{text.shortDefinition}</p>
+      <p lang={text.lang} className="mt-4 w-full text-lg leading-8 text-slate-700">{text.shortDefinition}</p>
       <div className="mt-4 flex flex-wrap gap-2">{content.domains.map((domain) => <span key={domain} className="rounded-full border bg-white px-3 py-1 text-xs font-semibold text-navy">{glossaryDomainLabels[locale][domain]}</span>)}</div>
     </Container></header>
     <section className="px-4 py-10 sm:px-6"><Container><div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">

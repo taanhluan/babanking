@@ -38,11 +38,12 @@ describe('JourneyBlockRenderer width semantics', () => {
     expect(markup).toContain('flowchart TB');
   });
   it.each(['RICH_TEXT', 'TEXT', 'PARAGRAPH'])(
-    'uses a full-width card with readable inner text for %s prose',
+    'uses a full-width card with full-width inner text for %s prose',
     (blockType) => {
       const markup = renderBlock(blockType, { text: 'Readable banking journey prose.' });
       expect(markup).toContain('data-block-layout="readable"');
-      expect(markup).toContain('max-w-prose');
+      expect(markup).toContain('max-w-none');
+      expect(markup).not.toContain('max-w-prose');
       expect(markup).toMatch(/^<div[^>]*class="[^"]*w-full max-w-full/);
     },
   );
