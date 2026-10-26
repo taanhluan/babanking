@@ -1,5 +1,36 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Datum Bank onboarding mockup — Development integration (2026-10-26)
+
+- Owner authorized a **Mockup** button beside **Save knowledge** on the shared
+  Development Customer Onboarding reader, opening the reviewed Datum Bank concept.
+- Baseline: `origin/develop` = `6b0bac0149103e07be6319bcd2eace33ed1d5878`, live READY
+  deployment `dpl_6PHfmBBBtmidzjvuyKjFMNtZGvUd`, Vercel project `babanking`
+  (`prj_gZaFRjHKk3saktcFyg8X6EYiv4tc`). Target alias:
+  `babanking-git-develop-taanhluans-projects.vercel.app`. Branch-scoped cloud
+  APP_ENV/DATABASE_ENVIRONMENT/VERCEL_TARGET_ENV labels are development.
+- Copied the reviewed standalone package into `docs/mockups/customer-onboarding`.
+  `KnowledgeActions` obtains a localized Development-only link from the mockup
+  catalog. Native anchor opens the full mockup in a new tab without altering
+  bookmark or reading-progress actions.
+- Dynamic `/banking-journeys/[slug]/mockup/[[...asset]]` handler reuses
+  `requireContentSlugAccess('BANKING_JOURNEY', slug)` before each file read.
+  Only registered assets are served, with private/no-store, noindex and CSP;
+  no unauthenticated public copies or source-test/doc downloads. The handler
+  returns 404 outside matching Development labels.
+- Filesystem access is scoped to `docs/mockups` and output tracing packages the
+  reviewed artifact. A base URL resolves file assets correctly despite the
+  locale middleware excluding extension requests.
+- Validation before release: 363 Vitest tests (including 10 authorization/route
+  checks), 29 mockup behavioral tests, ESLint, TypeScript and optimized build pass.
+  Runtime trace contains all mockup resources. Development safety gate passed;
+  all eight database migrations are already applied. No new migration or CMS
+  mutation is part of this change.
+- Work uses the clean existing `BA Master-develop` checkout; original `BA Master`
+  dirty worktree is preserved. Deployment scope is `develop` only; `main` remains
+  `60b9accdd620956a1ee1c11e45bb93420876c69d`. Verify the hosted button, mockup
+  assets/interactions and anonymous access boundary after the Git deployment.
+
 ## Banking Glossary & Regulations — foundation (2026-10-01, `develop`)
 
 - Owner-approved feature: members-only glossary of banking terms and VN +

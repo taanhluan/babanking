@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingIncludes: {
+    '/banking-journeys/*/mockup/**': ['./docs/mockups/customer-onboarding/**/*'],
+  },
   experimental: {
     // Full Journey JSON drafts can exceed the default 1 MB request limit.
     // Image blocks allow up to 15 MB; base64 overhead (~33%) + JSON envelope requires 30 MB.

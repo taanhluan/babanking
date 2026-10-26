@@ -1,0 +1,96 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getDevelopmentMockupHref, getMockupResource } from './catalog';
+
+const mocks = vi.hoisted(() => ({
+  authorize: vi.fn(),
+  readFile: vi.fn(),
+  environment: { APP_ENV: 'development', DATABASE_ENVIRONMENT: 'development' },
+}));
+vi.mock('node:fs/promises', () => ({ readFile: mocks.readFile }));
+vi.mock('@/server/env', () => ({ getServerEnvironment: () => mocks.environment }));
+vi.mock('@/server/access-control/require-knowledge-access', () => ({ requireContentSlugAccess: mocks.authorize }));
+
+import { GET } from '@/app/banking-journeys/[slug]/mockup/[[...asset]]/route';
+
+const request = (asset?: string[], slug = 'customer-onboarding') => GET(
+  new Request(`https://example.test/en/banking-journeys/${slug}/mockup`),
+  { params: Promise.resolve({ slug, asset }) },
+);
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  Object.assign(mocks.environment, { APP_ENV: 'development', DATABASE_ENVIRONMENT: 'development' });
+  mocks.authorize.mockResolvedValue({});
+  mocks.readFile.mockResolvedValue(Buffer.from('<html><head></head><body>Datum Bank</body></html>'));
+});
+
+describe('Development-only Journey mockup', () => {
+  it('shows only registered Journey links and preserves the page locale', () => {
+    const dev = { APP_ENV: 'development', DATABASE_ENVIRONMENT: 'development' } as const;
+    expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'en', dev))
+      .toBe('/en/banking-journeys/customer-onboarding/mockup');
+    expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'vi', dev))
+      .toBe('/vi/banking-journeys/customer-onboarding/mockup');
+    expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'cards', 'en', dev)).toBeNull();
+    expect(getDevelopmentMockupHref('CASE_STUDY', 'customer-onboarding', 'en', dev)).toBeNull();
+    expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'en', {
+      APP_ENV: 'production', DATABASE_ENVIRONMENT: 'production',
+    })).toBeNull();
+  });
+
+  it('checks Journey VIEW access before reading the HTML', async () => {
+    const response = await request();
+    expect(mocks.authorize).toHaveBeenCalledWith('BANKING_JOURNEY', 'customer-onboarding');
+    expect(mocks.authorize.mock.invocationCallOrder[0]).toBeLessThan(mocks.readFile.mock.invocationCallOrder[0]);
+    expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect(await response.text()).toContain('<base href="/banking-journeys/customer-onboarding/mockup/">');
+  });
+
+  it('does not read files when access is denied', async () => {
+    mocks.authorize.mockRejectedValue(new Error('Journey access denied'));
+    await expect(request()).rejects.toThrow('Journey access denied');
+    expect(mocks.readFile).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [['app.mjs'], 'text/javascript; charset=utf-8'],
+    [['model.mjs'], 'text/javascript; charset=utf-8'],
+    [['assets', 'datum-logo-white.png'], 'image/png'],
+    [['assets', 'manrope-regular.ttf'], 'font/ttf'],
+  ])('authorizes direct resource requests %j', async (asset, contentType) => {
+    const response = await request(asset as string[]);
+    expect(mocks.authorize).toHaveBeenCalledTimes(1);
+    expect(response.headers.get('Content-Type')).toBe(contentType);
+    expect(response.headers.get('Cache-Control')).toContain('private, no-store');
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+  });
+
+  it('blocks direct requests outside Development before authorization or file access', async () => {
+    for (const env of ['production', 'preview', 'test']) {
+      mocks.environment.APP_ENV = env;
+      await expect(request()).rejects.toThrow('404');
+    }
+    Object.assign(mocks.environment, { APP_ENV: 'development', DATABASE_ENVIRONMENT: 'production' });
+    await expect(request()).rejects.toThrow('404');
+    expect(mocks.authorize).not.toHaveBeenCalled();
+    expect(mocks.readFile).not.toHaveBeenCalled();
+  });
+
+  it('does not serve unregistered Journeys, source tests, docs or traversed paths', async () => {
+    await expect(request(undefined, 'cards')).rejects.toThrow('404');
+    for (const asset of [['model.test.mjs'], ['README.md'], ['assets', '..', 'app.mjs'], ['toString']]) {
+      expect(getMockupResource(asset)).toBeNull();
+      await expect(request(asset)).rejects.toThrow('404');
+    }
+    expect(mocks.readFile).not.toHaveBeenCalled();
+  });
+
+  it('keeps the prototype disconnected from APIs, form submission and cross-origin embedding', async () => {
+    const response = await request();
+    const policy = response.headers.get('Content-Security-Policy');
+    expect(policy).toContain("connect-src 'none'");
+    expect(policy).toContain("form-action 'none'");
+    expect(policy).toContain("frame-ancestors 'self'");
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+});
