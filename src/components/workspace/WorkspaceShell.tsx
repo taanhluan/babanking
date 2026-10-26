@@ -4,9 +4,10 @@ import { logoutAction } from '@/app/actions';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { canContribute, canReview } from '@/lib/permissions';
 import {getCurrentLocale} from '@/i18n/server'; import {getLocalizedPath} from '@/i18n/routing';
-export async function WorkspaceShell({ user, children }: { user: { name: string; role: Role }; children: React.ReactNode }) {
+export async function WorkspaceShell({ user, children }: { user: { name: string; role: Role; isBaTeamMember?: boolean }; children: React.ReactNode }) {
   const locale=await getCurrentLocale(),v=locale==='vi';
   const links = [{ href: '/workspace', label: v?'Tổng quan':'Overview' }, { href: '/workspace/bookmarks', label: v?'Nội dung đã lưu':'Bookmarks' }, { href: '/workspace/history', label: v?'Lịch sử đọc':'History' }, { href: '/workspace/roadmap', label: v?'Định hướng nghề nghiệp':'Career Direction' }];
+  if (user.isBaTeamMember || user.role === 'ADMIN') links.push({ href: '/team', label: v?'Kế hoạch & KPI team BA':'BA Team KPI' });
   if (canContribute(user.role)) links.push({ href: '/contributor', label: v?'Người đóng góp nội dung':'Contributor' });
   if (user.role === 'ADMIN') links.push({ href: '/admin/contributor', label: v?'Quản lý CMS':'CMS Management' });
   if (canReview(user.role)) links.push({ href: '/review', label: v?'Hàng đợi kiểm duyệt':'Review Queue' });

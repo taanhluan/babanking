@@ -36,6 +36,16 @@ select:focus-visible {
   outline-offset: 3px;
 }
 
+/* Custom chevron so the arrow keeps a consistent inset from the select edge. */
+select:not([multiple]):not([size]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2364748b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.875rem center;
+  background-repeat: no-repeat;
+  background-size: 1.125rem;
+  padding-right: 2.75rem;
+}
+
 [id] {
   scroll-margin-top: 88px;
 }

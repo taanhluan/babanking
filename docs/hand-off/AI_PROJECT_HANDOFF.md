@@ -1,5 +1,71 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Team form layout and select chevron (2026-10-26, `develop`)
+
+- Fixed overflowing filter forms on `/team/allocation` (now a responsive grid:
+  1 / 2 / 3 columns, then 5 filters plus Apply at `xl`), `/team/allocation/report`
+  and `/team/overview`. The fixed width now sits on the label, not the input.
+- All `/team` form labels are `block min-w-0`, so label text sits above its
+  control and inputs cannot overflow their grid column.
+- `src/app/globals.css`: every single-choice `<select>` app-wide now draws a
+  custom chevron inset `0.875rem` from the right, with `padding-right: 2.75rem`.
+  Multi-select is excluded. The rule's specificity beats `px-*` utilities, so a
+  select needing different right padding needs a more specific override.
+- UI only: no logic, access or data change. ESLint, `tsc --noEmit` and the
+  related tests pass; owner confirmed visually.
+
+## BA resource allocation (Part B) — implemented locally (2026-10-26, `develop`)
+
+- Scope: Part B (sections 13–22) of `docs/proposals/BA_TEAM_KPI_FEATURE_PROPOSAL.md`.
+  Same team guard as Part A (`requireBaTeamMember` / `requireBaTeamLead`).
+- Model (migration `20261026062614_add_ba_resource_allocation`, additive
+  only, applied to Development via `db:migrate:dev`):
+  - `BaTeamProfile`: level, capacity %, hours/week. It is the single source
+    of Level, and the Part A overview reads it.
+  - `BaCustomer` (has an Internal flag), `BaProject`, `BaProjectRole`.
+  - `BaAllocation`: soft delete via `deletedAt`, Lead cancel via
+    `cancelledAt`, and Lead-only performance/risk/remark.
+- Derived values are never stored. `src/server/ba-team/ba-allocation-domain.ts`
+  computes them on read: status, allocation, available, forecast, next
+  available, the month-peak timeline and the customer report.
+  - Forecast thresholds follow 15.4, with rolling off at 30 days.
+  - Interpretation: Available Soon applies to a BA at 50–100% of capacity who
+    drops below 50% within 30 days. Over-allocated always wins.
+  - Partial Billable is shown separately and kept out of billable
+    utilization.
+- Over-allocation warns and never blocks. The client form asks for
+  confirmation, and the server re-checks; an unconfirmed save is refused with
+  a message. Confirmed saves are flagged in the audit.
+- Audit: `BA_ALLOCATION_*`, `BA_CUSTOMER_*`, `BA_PROJECT_*`,
+  `BA_PROJECT_ROLE_*`, `BA_TEAM_PROFILE_UPDATED`. Tracked assignment fields
+  record field-level from/to values. Performance, risk and remarks are never
+  in the audit.
+- Screens:
+  - `/team/my-allocation`: members add, edit and delete their own
+    assignments, and add a missing customer or project.
+  - `/team/assignments/[id]`: owner or Lead edits and deletes; the Lead also
+    cancels and writes the assessment. Shows the assignment's history.
+  - Lead only: `/team/allocation` (filters and reference date),
+    `/team/allocation/timeline` (3 months, browsable),
+    `/team/allocation/report`, and `/team/allocation/settings` (customers,
+    projects, roles, merge, BA level and capacity).
+- `TeamNav` now has "My allocation" for everyone and "Resource allocation"
+  for the Lead. The Part A plan tab shows a "Suggested from current
+  allocation" card.
+- Clone tooling: all five new models are `EXCLUDE` and listed in
+  `cleanupModels`. e2e anonymous checks include the new routes.
+- Development data: `npm run db:seed:ba-project-roles -- --apply` (release
+  `ba-project-roles-development-v1`) created 6 project roles; a re-run reports
+  `pending: 0`. No customers, projects, profiles or assignments were created.
+  The Excel data is entered manually by the owner or members; the xlsx is
+  still never imported or committed.
+- Validation: 59 files / 441 tests, ESLint, `tsc --noEmit`, local build, and
+  `test:e2e` against local dev all pass. Anonymous `/vi/team/*` allocation
+  routes return 307.
+- Not done: signed-in manual smoke test. Nothing is committed or deployed.
+  Preview and Production are untouched; Production needs both team migrations
+  in a separately approved release.
+
 ## Datum Bank onboarding mockup — Development integration (2026-10-26)
 
 - Owner authorized a **Mockup** button beside **Save knowledge** on the shared
@@ -30,6 +96,142 @@
   dirty worktree is preserved. Deployment scope is `develop` only; `main` remains
   `60b9accdd620956a1ee1c11e45bb93420876c69d`. Verify the hosted button, mockup
   assets/interactions and anonymous access boundary after the Git deployment.
+
+## BA team KPI plans (Part A) — implemented locally (2026-10-21, `develop`)
+
+- Scope: Part A of `docs/proposals/BA_TEAM_KPI_FEATURE_PROPOSAL.md`. One team;
+  ADMIN is the Lead; members are users with `User.isBaTeamMember`. Access does
+  not require a paid membership (`src/server/ba-team/ba-team-access.ts`).
+  Members see only their own plans; the Lead sees all of them.
+- Model: annual `BaPerformancePlan` (schema-v1 `profileJson`, Lead-only
+  manager notes and annual assessment) plus `BaPlanQuarter` cycles
+  KPI_DRAFT → KPI_PENDING → IN_PROGRESS → RESULTS_SUBMITTED → REVIEWED.
+  Other tables:
+  - `BaQuarterKpi`, keyed by a cross-quarter `lineageKey`.
+  - `BaKpiProgressLog`, append-only.
+  - `BaKpiAdjustment`, the Lead's mid-quarter changes, each with a reason.
+  - `BaKpiTemplate`.
+
+  The Q1 KPI set is approved together with the plan.
+- Code: `src/server/ba-team/` (domain, policy, form, repository, service, with
+  tests), `src/app/team/**` (actions, `/team`, `/team/plans/[planId]`,
+  `/team/overview`, `/team/approvals`, `/team/templates`), and
+  `src/components/team/**`. Admin users page has a BA team toggle. Links to
+  `/team` are in the admin operations and the workspace nav. `/team` is in the
+  robots disallow list and in the e2e anonymous checks.
+- Every write is transactional, uses status-conditioned updates, and writes a
+  `BA_*` AuditLog entry. Audit metadata holds only IDs and states, never
+  assessments.
+- Clone tooling: all six new models are classified `EXCLUDE`. Production
+  performance data is never copied to Development; the models are listed in
+  `cleanupModels`.
+- Development DB (after `db:check-env`):
+  - Migration `20261021035057_add_ba_team_kpi_plans` (additive only) was
+    applied via `db:migrate:dev`.
+  - `npm run db:seed:ba-kpi-templates -- --apply` seeded 13 templates (release
+    `ba-kpi-templates-development-v1`). A re-run reports `pending: 0`.
+  - No plans or team flags were created.
+- Validation: 57 files / 401 tests, ESLint, `tsc --noEmit`, local build, and
+  `test:e2e` against local dev all pass. Anonymous `/en|vi/team*` returns 307
+  to login.
+- 2026-10-21: at the owner's request, created one disposable Development test
+  account `ba-team-member.test@example.com`: MEMBER, ACTIVE, isBaTeamMember,
+  no paid membership. It was created in a Serializable transaction with an
+  absence precondition and an audit (`DEVELOPMENT_TEST_USER_CREATED`), and the
+  bcrypt read-back was verified. The password is not recorded here.
+- 2026-10-26 UI consistency: `/team` layout now reuses `WorkspaceShell`
+  (same header, main nav, sign-out) instead of its own shell. Team sections
+  (My plans / Overview / Approvals / Templates) moved to an in-page `TeamNav`
+  tab bar with active state; Lead-only tabs hidden for members. No logic,
+  access or data change. tsc, ESLint and `src/server/ba-team` tests pass.
+- Not done: a signed-in manual smoke test of the full flow. It needs an ADMIN
+  plus a flagged member account in Development. Nothing is committed or
+  deployed. Preview and Production are untouched. Production will need this
+  migration in a separately approved release.
+
+## BA team KPI feature — proposal only (2026-10-19, `develop`)
+
+- Owner requested an internal BA team feature: one team, ADMIN = Lead, flagged
+  users = members. Members author an annual capability/KPI plan, and the Lead
+  approves the whole plan. KPI actuals are tracked per quarter with an
+  append-only log. Only the Lead writes Manager Notes and quarterly reviews.
+  The Lead manages a KPI template library. Progress is entered manually, with
+  no CMS auto-counting.
+- Proposal for Lead review: `docs/proposals/BA_TEAM_KPI_FEATURE_PROPOSAL.md`
+  (Vietnamese). Open questions are listed in section 12.
+- No code, schema or database change yet. Implementation waits for Lead
+  feedback.
+- 2026-10-21: added Part B (Resource Allocation, sections 13–22), based on the
+  owner's `BA Resource Master Table.xlsx`. The Lead manages assignments. The
+  system computes allocation, available %, forecast status, next-available date,
+  a monthly timeline and a customer/project report. A `BaTeamProfile` (level,
+  capacity) is shared with Part A. Open questions are in section 22. The xlsx
+  is at the repo root and holds real names and client data. Do not commit or
+  import it.
+- The reference `.mht` KPI file at the repo root holds
+  a real person's performance data. Do not commit or import it.
+- 2026-10-21: owner clarified that members adjust the KPI set every quarter
+  (add/remove/change targets) and enter results each quarter. Part A now has
+  two layers: an annual plan approved once (descriptive sections), and a
+  quarterly cycle KPI_DRAFT → KPI_PENDING → IN_PROGRESS → RESULTS_SUBMITTED →
+  REVIEWED. Each quarter keeps its own KPI set with a cross-quarter lineage id,
+  so the Lead sees changes against the previous quarter.
+- 2026-10-21 owner decisions (Part A): quarterly review score 1–5; members
+  cannot see each other's plans; calendar-year quarters; no approval/submission
+  deadlines for now (deferred); the 13-KPI template library is complete; the
+  Lead may adjust an approved quarterly KPI set mid-quarter, with a required
+  reason and history kept. The Lead self-assesses the annual result (per-KPI
+  achieved/not achieved plus a 1–5 annual score) when closing the year. No
+  backup Lead. Part A has no open questions; Part B section 22 is still open.
+- 2026-10-21 owner decisions (Part B): forecast thresholds accepted; members
+  add/edit/delete their own assignments without approval (delete is soft, and
+  history is kept); over-allocation only warns; risk is per assignment; the
+  timeline shows 3 months and can browse past months; existing Excel data is
+  entered manually; only the Lead sees reports. Partial Billable has no rule
+  yet: it is shown separately and excluded from billable utilization; the rule
+  is deferred. Performance is per assignment and written by the Lead. Both
+  parts of the proposal now have no open questions.
+
+## Time deposit content doc (2026-10-16, `develop`)
+
+- Added `docs/content/deposits/DEPOSITS_TIME_DEPOSIT.md` (English,
+  bank-neutral), aligned with the `deposits` Journey modules and DEP-BPMN-R01..R18:
+  variants, attributes, placement, interest (symbolic formulas), maturity and
+  renewal, early/partial withdrawal, servicing, state model, new TD-BR-001..020,
+  validations, exceptions, risks, notifications, discovery questions and
+  acceptance criteria. No rates, tenors, amounts or penalties.
+- Part 2 added: `docs/content/deposits/DEPOSITS_TIME_DEPOSIT_PLACEMENT.md`
+  (channels, detailed placement flow and variants, quote lifecycle,
+  disclosure/consent, funding sources and outcomes, state models, new
+  PLC-BR-001..022, validations, exceptions, minimum placement record,
+  acceptance criteria). Part 1 retitled "Overview" and linked to Part 2.
+- Parts 3–6 added: `DEPOSITS_TIME_DEPOSIT_INTEREST.md` (INT-BR-001..021),
+  `DEPOSITS_TIME_DEPOSIT_MATURITY_RENEWAL.md` (MAT-BR-001..020),
+  `DEPOSITS_TIME_DEPOSIT_EARLY_WITHDRAWAL.md` (EWD-BR-001..024) and
+  `DEPOSITS_TIME_DEPOSIT_SERVICING_CLOSURE.md` (SVC-BR-001..019,
+  CLS-BR-001..010). Part 1 sections 4–8 now link to the detailed parts; all
+  relative links verified. Same bank-neutral, documentation-only scope.
+- Documentation only: no code, CMS, database or deployment change. Not imported
+  into the Journey CMS; not committed.
+
+## Cards overview & product catalogue doc (2026-10-07, `develop`)
+
+- Added `docs/content/cards/CARDS_OVERVIEW_AND_PRODUCT_CATALOGUE.md` (English,
+  bank-neutral): Cards overview aligned with the `cards` Journey module 1, plus
+  a product catalogue model (hierarchy, illustrative products per family,
+  attribute groups, catalogue lifecycle, CAT-BR rules, validations, journey
+  mapping, discovery questions, acceptance criteria). No fees, rates or limits.
+- Part 2 added: `docs/content/cards/CARDS_CARD_ACTIVATION.md` (activation
+  methods by channel, process and variants, PIN and token setup, state models,
+  CARD-BR-012/013/028 plus new ACT-BR-001..012, validations, exceptions, risks,
+  notifications, discovery questions, acceptance criteria).
+- Part 3 added: `docs/content/cards/CARDS_CARD_TRANSACTION.md` (usage and
+  authorisation: transaction types, decision flow and precedence, step-up,
+  controls/limits, hold lifecycle, transaction states, CARD-BR-014..022/026 plus
+  new TXN-BR-001..012, exceptions, acceptance criteria). Clearing/posting/
+  settlement deferred to the next part.
+- Documentation only: no code, CMS revision, database or deployment change.
+  Not yet imported into the Journey CMS; not committed.
 
 ## Banking Glossary & Regulations — foundation (2026-10-01, `develop`)
 

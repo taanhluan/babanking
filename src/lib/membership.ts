@@ -13,7 +13,7 @@ export async function getAccountAccessState(userId?: string) {
   const user = await db.user.findUnique({
     where: { id },
     select: {
-      id: true, name: true, email: true, role: true, accountStatus: true, isActive: true,
+      id: true, name: true, email: true, role: true, accountStatus: true, isActive: true, isBaTeamMember: true,
       memberships: {
         orderBy: { createdAt: 'desc' },
         take: 1,

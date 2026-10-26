@@ -11,6 +11,7 @@ const basePaths = [
   '/admin/content/translations',
   '/admin/audit',
   '/admin/system/environment',
+  '/team',
 ];
 
 describe('Admin navigation', () => {

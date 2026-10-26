@@ -7,6 +7,10 @@ export const cloneModelPolicy = {
   KnowledgeScope: 'COPY_AS_IS', ContentKnowledgeScope: 'COPY_AS_IS', UserScopeGrant: 'SANITIZE',
   UserContentGrant: 'SANITIZE', KnowledgePackage: 'COPY_AS_IS', KnowledgePackagePermission: 'COPY_AS_IS',
   UserKnowledgePackageAssignment: 'SANITIZE',
+  // Internal BA team performance data is never copied from Production into Development.
+  BaPerformancePlan: 'EXCLUDE', BaPlanQuarter: 'EXCLUDE', BaQuarterKpi: 'EXCLUDE', BaKpiProgressLog: 'EXCLUDE',
+  BaKpiAdjustment: 'EXCLUDE', BaKpiTemplate: 'EXCLUDE',
+  BaTeamProfile: 'EXCLUDE', BaCustomer: 'EXCLUDE', BaProject: 'EXCLUDE', BaProjectRole: 'EXCLUDE', BaAllocation: 'EXCLUDE',
 } as const;
 
 export type CloneModel = keyof typeof cloneModelPolicy;

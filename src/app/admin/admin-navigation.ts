@@ -8,6 +8,7 @@ export function getAdminOperations(isVietnamese: boolean, showJourneyCms: boolea
     [isVietnamese ? 'Quản lý bản dịch' : 'Manage Translations', '/admin/content/translations'],
     [isVietnamese ? 'Nhật ký kiểm toán' : 'View Audit Log', '/admin/audit'],
     [isVietnamese ? 'Môi trường hệ thống' : 'System Environment', '/admin/system/environment'],
+    [isVietnamese ? 'Kế hoạch & KPI team BA' : 'BA Team KPI Plans', '/team'],
   ] as Array<readonly [string, string]>;
 
   if (showJourneyCms) {

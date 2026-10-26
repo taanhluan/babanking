@@ -183,6 +183,103 @@ export const cloneRelationGraph: Readonly<Record<CloneModel, ModelRelation>> = {
     unique: [],
   },
 
+  BaPerformancePlan: {
+    required: [
+      { field: 'userId', target: 'User', nullable: false },
+    ],
+    nullable: [
+      { field: 'approvedById', target: 'User', nullable: true },
+      { field: 'annualReviewedById', target: 'User', nullable: true },
+    ],
+    unique: ['userId,year'],
+  },
+
+  BaPlanQuarter: {
+    required: [
+      { field: 'planId', target: 'BaPerformancePlan', nullable: false },
+    ],
+    nullable: [
+      { field: 'kpiApprovedById', target: 'User', nullable: true },
+      { field: 'reviewedById', target: 'User', nullable: true },
+    ],
+    unique: ['planId,quarter'],
+  },
+
+  BaQuarterKpi: {
+    required: [
+      { field: 'quarterId', target: 'BaPlanQuarter', nullable: false },
+    ],
+    nullable: [
+      { field: 'templateId', target: 'BaKpiTemplate', nullable: true },
+    ],
+    unique: ['quarterId,lineageKey'],
+  },
+
+  BaKpiProgressLog: {
+    required: [
+      { field: 'kpiId', target: 'BaQuarterKpi', nullable: false },
+      { field: 'authorId', target: 'User', nullable: false },
+    ],
+    nullable: [],
+    unique: [],
+  },
+
+  BaKpiAdjustment: {
+    required: [
+      { field: 'quarterId', target: 'BaPlanQuarter', nullable: false },
+      { field: 'actorId', target: 'User', nullable: false },
+    ],
+    nullable: [],
+    unique: [],
+  },
+
+  BaKpiTemplate: {
+    required: [],
+    nullable: [],
+    unique: ['name'],
+  },
+
+  BaTeamProfile: {
+    required: [
+      { field: 'userId', target: 'User', nullable: false },
+    ],
+    nullable: [],
+    unique: ['userId'],
+  },
+
+  BaCustomer: {
+    required: [],
+    nullable: [],
+    unique: ['name'],
+  },
+
+  BaProject: {
+    required: [
+      { field: 'customerId', target: 'BaCustomer', nullable: false },
+    ],
+    nullable: [],
+    unique: ['customerId,name'],
+  },
+
+  BaProjectRole: {
+    required: [],
+    nullable: [],
+    unique: ['name'],
+  },
+
+  BaAllocation: {
+    required: [
+      { field: 'userId', target: 'User', nullable: false },
+      { field: 'projectId', target: 'BaProject', nullable: false },
+      { field: 'roleId', target: 'BaProjectRole', nullable: false },
+      { field: 'createdById', target: 'User', nullable: false },
+    ],
+    nullable: [
+      { field: 'updatedById', target: 'User', nullable: true },
+    ],
+    unique: [],
+  },
+
   KnowledgeScope: {
     required: [],
     nullable: [
@@ -275,6 +372,17 @@ export const cleanupModels = [
   'ReadingActivity',
   'UserCareerPreference',
   'AuditLog',
+  'BaKpiProgressLog',
+  'BaKpiAdjustment',
+  'BaQuarterKpi',
+  'BaPlanQuarter',
+  'BaPerformancePlan',
+  'BaKpiTemplate',
+  'BaAllocation',
+  'BaProject',
+  'BaCustomer',
+  'BaProjectRole',
+  'BaTeamProfile',
 ] as const;
 
 /**

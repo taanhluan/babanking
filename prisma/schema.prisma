@@ -180,6 +180,18 @@ model User {
   packageAssignments   UserKnowledgePackageAssignment[] @relation("PackageAssignmentUser")
   packagesAssigned     UserKnowledgePackageAssignment[] @relation("PackageAssignmentCreator")
   packagesRevoked      UserKnowledgePackageAssignment[] @relation("PackageAssignmentRevoker")
+  isBaTeamMember       Boolean                          @default(false)
+  baPlans              BaPerformancePlan[]              @relation("BaPlanOwner")
+  baPlansApproved      BaPerformancePlan[]              @relation("BaPlanApprover")
+  baPlansAnnualReviews BaPerformancePlan[]              @relation("BaPlanAnnualReviewer")
+  baQuartersApproved   BaPlanQuarter[]                  @relation("BaQuarterKpiApprover")
+  baQuartersReviewed   BaPlanQuarter[]                  @relation("BaQuarterReviewer")
+  baKpiProgressLogs    BaKpiProgressLog[]               @relation("BaKpiProgressAuthor")
+  baKpiAdjustments     BaKpiAdjustment[]                @relation("BaKpiAdjustmentActor")
+  baTeamProfile        BaTeamProfile?
+  baAllocations        BaAllocation[]                   @relation("BaAllocationOwner")
+  baAllocationsCreated BaAllocation[]                   @relation("BaAllocationCreator")
+  baAllocationsUpdated BaAllocation[]                   @relation("BaAllocationUpdater")
 
   @@index([email])
   @@index([role, isActive])
@@ -627,4 +639,263 @@ model UserKnowledgePackageAssignment {
   @@index([userId, status, startsAt, expiresAt])
   @@index([packageId, status])
   @@index([userId, packageId, status])
+}
+
+enum BaPlanStatus {
+  DRAFT
+  PENDING_APPROVAL
+  CHANGES_REQUESTED
+  APPROVED
+  CLOSED
+}
+
+enum BaQuarterStatus {
+  KPI_DRAFT
+  KPI_PENDING
+  IN_PROGRESS
+  RESULTS_SUBMITTED
+  REVIEWED
+}
+
+enum KpiComparator {
+  GTE
+  LTE
+}
+
+/// Internal BA team annual capability and KPI plan. One plan per member per calendar year.
+model BaPerformancePlan {
+  id                   String          @id @default(cuid())
+  userId               String
+  year                 Int
+  status               BaPlanStatus    @default(DRAFT)
+  profileJson          String
+  approvedSnapshotJson String?
+  managerNotesJson     String?
+  reviewNote           String?
+  submittedAt          DateTime?
+  approvedAt           DateTime?
+  approvedById         String?
+  annualOutcomesJson   String?
+  annualRating         Int?
+  annualAssessment     String?
+  annualReviewedAt     DateTime?
+  annualReviewedById   String?
+  closedAt             DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  user                 User            @relation("BaPlanOwner", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy           User?           @relation("BaPlanApprover", fields: [approvedById], references: [id])
+  annualReviewedBy     User?           @relation("BaPlanAnnualReviewer", fields: [annualReviewedById], references: [id])
+  quarters             BaPlanQuarter[]
+
+  @@unique([userId, year])
+  @@index([year, status])
+}
+
+/// One quarterly KPI cycle of a plan: KPI set approval, in-quarter progress, results and Lead review.
+model BaPlanQuarter {
+  id                 String            @id @default(cuid())
+  planId             String
+  quarter            Int
+  status             BaQuarterStatus   @default(KPI_DRAFT)
+  changeNote         String?
+  returnNote         String?
+  kpiSubmittedAt     DateTime?
+  kpiApprovedAt      DateTime?
+  kpiApprovedById    String?
+  resultsSubmittedAt DateTime?
+  reviewRating       Int?
+  reviewAssessment   String?
+  reviewedAt         DateTime?
+  reviewedById       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  plan               BaPerformancePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  kpiApprovedBy      User?             @relation("BaQuarterKpiApprover", fields: [kpiApprovedById], references: [id])
+  reviewedBy         User?             @relation("BaQuarterReviewer", fields: [reviewedById], references: [id])
+  kpis               BaQuarterKpi[]
+  adjustments        BaKpiAdjustment[]
+
+  @@unique([planId, quarter])
+  @@index([status])
+}
+
+/// A KPI within one quarter. lineageKey identifies the same KPI across quarters of a plan.
+model BaQuarterKpi {
+  id             String             @id @default(cuid())
+  quarterId      String
+  lineageKey     String
+  templateId     String?
+  capabilityArea String?
+  name           String
+  description    String?
+  comparator     KpiComparator
+  targetValue    Float
+  unitLabel      String
+  sortOrder      Int                @default(0)
+  actualValue    Float?
+  memberNote     String?
+  evidenceUrl    String?
+  leadComment    String?
+  removedAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  quarter        BaPlanQuarter      @relation(fields: [quarterId], references: [id], onDelete: Cascade)
+  template       BaKpiTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  progressLogs   BaKpiProgressLog[]
+
+  @@unique([quarterId, lineageKey])
+}
+
+/// Append-only log of every actual-value update.
+model BaKpiProgressLog {
+  id            String       @id @default(cuid())
+  kpiId         String
+  previousValue Float?
+  newValue      Float
+  note          String?
+  evidenceUrl   String?
+  authorId      String
+  createdAt     DateTime     @default(now())
+  kpi           BaQuarterKpi @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  author        User         @relation("BaKpiProgressAuthor", fields: [authorId], references: [id])
+
+  @@index([kpiId, createdAt])
+}
+
+/// Append-only history of Lead mid-quarter KPI adjustments, visible to the plan owner.
+model BaKpiAdjustment {
+  id         String        @id @default(cuid())
+  quarterId  String
+  lineageKey String
+  action     String
+  beforeJson String?
+  afterJson  String?
+  reason     String
+  actorId    String
+  createdAt  DateTime      @default(now())
+  quarter    BaPlanQuarter @relation(fields: [quarterId], references: [id], onDelete: Cascade)
+  actor      User          @relation("BaKpiAdjustmentActor", fields: [actorId], references: [id])
+
+  @@index([quarterId, createdAt])
+}
+
+/// Lead-managed KPI template library.
+model BaKpiTemplate {
+  id             String         @id @default(cuid())
+  capabilityArea String
+  name           String         @unique
+  description    String?
+  comparator     KpiComparator
+  defaultTarget  Float
+  unitLabel      String
+  sortOrder      Int            @default(0)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  kpis           BaQuarterKpi[]
+}
+
+enum BaLevel {
+  FRESHER
+  JUNIOR
+  MIDDLE
+  SENIOR
+  PRINCIPAL
+}
+
+enum BaBillableStatus {
+  BILLABLE
+  PARTIAL_BILLABLE
+  NON_BILLABLE
+}
+
+enum BaPerformanceRating {
+  OUTSTANDING
+  EXCELLENT
+  GOOD
+  NEEDS_IMPROVEMENT
+  UNDERPERFORMING
+}
+
+enum BaRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// BA resource profile: the single source of Level and Capacity for allocation and KPI plans.
+model BaTeamProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  level           BaLevel?
+  capacityPercent Int      @default(100)
+  hoursPerWeek    Int      @default(40)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Customer catalogue for resource allocation. Internal marks the own organisation.
+model BaCustomer {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  isInternal Boolean     @default(false)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  projects   BaProject[]
+}
+
+model BaProject {
+  id                    String           @id @default(cuid())
+  customerId            String
+  name                  String
+  defaultBillableStatus BaBillableStatus @default(BILLABLE)
+  isActive              Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  customer              BaCustomer       @relation(fields: [customerId], references: [id])
+  allocations           BaAllocation[]
+
+  @@unique([customerId, name])
+}
+
+model BaProjectRole {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  sortOrder   Int            @default(0)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  allocations BaAllocation[]
+}
+
+/// One assignment of a BA to a project. Status, availability and forecast are derived on read, never stored.
+model BaAllocation {
+  id             String               @id @default(cuid())
+  userId         String
+  projectId      String
+  roleId         String
+  percent        Int
+  billableStatus BaBillableStatus
+  startDate      DateTime             @db.Date
+  endDate        DateTime?            @db.Date
+  cancelledAt    DateTime?
+  deletedAt      DateTime?
+  performance    BaPerformanceRating?
+  risk           BaRiskLevel?
+  managerRemark  String?
+  createdById    String
+  updatedById    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  user           User                 @relation("BaAllocationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  project        BaProject            @relation(fields: [projectId], references: [id])
+  role           BaProjectRole        @relation(fields: [roleId], references: [id])
+  createdBy      User                 @relation("BaAllocationCreator", fields: [createdById], references: [id])
+  updatedBy      User?                @relation("BaAllocationUpdater", fields: [updatedById], references: [id])
+
+  @@index([userId, deletedAt])
+  @@index([projectId])
 }
