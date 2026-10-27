@@ -49,8 +49,8 @@ export default async function TeamPlansPage({ searchParams }: { searchParams: Pr
             </div>
             {templates.length ? (
               <fieldset className="rounded-xl border border-slate-200 p-3">
-                <legend className="px-1 text-sm font-semibold">{copy.chooseTemplates}</legend>
-                <div className="grid gap-2 md:grid-cols-2">
+                <legend className="float-left mb-2 w-full text-sm font-semibold">{copy.chooseTemplates}</legend>
+                <div className="clear-both grid gap-2 md:grid-cols-2">
                   {templates.map((template) => (
                     <label key={template.id} className="flex min-h-11 items-start gap-2 rounded-lg p-2 text-sm hover:bg-slate-50">
                       <input type="checkbox" name="templateIds" value={template.id} defaultChecked className="mt-1 h-4 w-4" />
