@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {POLICY,DAY,newState,flow,ageOn,validPhone,validate,needsReview,issueOtp,verifyOtp,
- completeStep,provision,invalidateFrom,revalidateOnResume,fingerprint,isSubmissionAuthenticated} from './model.mjs';
+ completeStep,provision,invalidateFrom,revalidateOnResume,fingerprint,isSubmissionAuthenticated,prepareDemoAt,DEEP_LINK_STEPS} from './model.mjs';
 const T=Date.UTC(2026,9,26,3);
 function sample(product='CASA'){const s=newState(T);s.product=product;Object.assign(s.data,{eligible:true,requirements:true,confirmed:true,agreement:true,privacy:true,creditConsent:true,signature:'Alex Demo'});return s;}
 function ready(product='CASA'){
@@ -170,4 +170,12 @@ test('only verified current submission OTP unlocks review; payload changes block
 test('paused applications cannot continue or provision without resume authentication',()=>{
  const s=ready();s.paused=true;assert.equal(isSubmissionAuthenticated(s),false);
  assert.match(completeStep(s,T+1).error,/resume/);assert.match(provision(s,T+1).error,/resume/);
+});
+test('deep links prepare a consistent sample application at every linked step',()=>{
+ for(const target of DEEP_LINK_STEPS){const s=prepareDemoAt(target,T),step=target==='card'?'configuration':target;assert.ok(s,target);
+  assert.equal(s.step,step,target);assert.equal(s.openedFrom,step);assert.deepEqual(s.done,flow(s).slice(0,flow(s).indexOf(step)),target);assert.equal(s.terminal,'');}
+ assert.equal(prepareDemoAt('card',T).product,'DEBIT');assert.equal(prepareDemoAt('financial',T).product,'CREDIT');
+ assert.equal(prepareDemoAt('digital',T).product,'CASA');assert.equal(prepareDemoAt('complete',T),null);assert.equal(prepareDemoAt('toString',T),null);
+ const prov=prepareDemoAt('provisioning',T);assert.equal(prov.approved,true);assert.equal(provision(prov,T).ok,true);
+ assert.ok(validate(prepareDemoAt('identity',T),'identity',T).identity);
 });

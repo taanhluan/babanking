@@ -23,8 +23,38 @@ const lendingStep = {
   signing: { step: 'signing', label: 'Agreement signing' },
 } satisfies Record<string, MockupStep>;
 
+const onboardingStep = {
+  product: { step: 'product', label: 'Select product' },
+  contact: { step: 'contact', label: 'Contact & OTP' },
+  eligibility: { step: 'eligibility', label: 'Eligibility' },
+  identity: { step: 'identity', label: 'Verify identity' },
+  information: { step: 'information', label: 'Your information' },
+  configuration: { step: 'configuration', label: 'Product options' },
+  digital: { step: 'digital', label: 'Digital banking' },
+  card: { step: 'card', label: 'Card options' },
+  consent: { step: 'consent', label: 'Agreements' },
+  provisioning: { step: 'provisioning', label: 'Create product' },
+} satisfies Record<string, MockupStep>;
+
 const mockups: Record<string, JourneyMockup> = {
-  'customer-onboarding': { directory: 'customer-onboarding' },
+  'customer-onboarding': {
+    directory: 'customer-onboarding',
+    stages: {
+      overview: onboardingStep.product,
+      'initiation-and-eligibility': onboardingStep.eligibility,
+      'application-management': onboardingStep.contact,
+      'customer-information-service': onboardingStep.information,
+      'account-setup-service': onboardingStep.configuration,
+      'digital-banking-enrollment-service': onboardingStep.digital,
+      'card-enrollment-service': onboardingStep.card,
+      'consent-agreement-service': onboardingStep.consent,
+      'account-creation-service-provisioning': onboardingStep.provisioning,
+      'external-system-integration': onboardingStep.identity,
+    },
+    sections: {
+      'application-management-start-application': onboardingStep.product,
+    },
+  },
   lending: {
     directory: 'digital-lending',
     stages: {

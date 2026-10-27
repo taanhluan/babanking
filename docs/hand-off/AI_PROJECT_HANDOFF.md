@@ -1,5 +1,23 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Customer Onboarding → mockup step deep links (2026-10-27, `develop`)
+
+- The owner asked for the same module → mockup-step links on Customer
+  Onboarding. Source: Development Journey `customer-onboarding` published v13
+  (10 modules), read-only after `db:check-env`.
+- `catalog.ts` maps all 10 modules (Overview → product … External System
+  Integration → identity, Card Enrollment → `card`, the Debit Card options) plus
+  the "Start Application" section → product. The reader and gate are unchanged.
+- `docs/mockups/customer-onboarding/model.mjs` adds `DEEP_LINK_STEPS` and
+  `prepareDemoAt()`. `app.mjs` adds the same hash handler, confirm and notice
+  as the lending mockup.
+- Validation: 30 mockup node tests. The catalog Vitest now covers onboarding
+  links. Headless Chrome opened all 15 targets, provisioned from a deep link,
+  and checked confirm/dismiss, reload resume and the invalid target, with no
+  console errors.
+- No database or CMS change. Committed and pushed to `origin/develop` at the
+  owner's request; hosted check of the reader buttons is next.
+
 ## Journey → mockup step deep links (2026-10-27, `develop`, local)
 
 - The owner asked for Digital Lending knowledge to link to the matching mockup step.

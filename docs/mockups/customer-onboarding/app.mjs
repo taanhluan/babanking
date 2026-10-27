@@ -1,5 +1,5 @@
 import {POLICY,PRODUCTS,SAMPLE,newState,flow,validate,needsReview,issueOtp,verifyOtp,isSubmissionAuthenticated,
-  invalidateFrom,completeStep,provision,revalidateOnResume,record} from './model.mjs';
+  invalidateFrom,completeStep,provision,revalidateOnResume,record,prepareDemoAt} from './model.mjs';
 
 const $=id=>document.getElementById(id),KEY='ba-onboarding-concept-v2';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -123,7 +123,8 @@ function otpBox(purpose,title){
  return heading+result+`<div class="row">${btn(active?'Resend mock OTP':'Send mock '+(purpose==='email'?'email':'mobile')+' OTP','send-'+purpose)}</div>${active?`<div class="notice inline-mock"><span class="micro">Mock ${purpose==='email'?'email':'SMS'} · ${purpose}</span><strong class="mock-code">${esc(o.code)}</strong><span class="field-hint">Fictional code · 120-second validity · Never enter a real OTP.</span></div><label class="field" style="margin-top:15px">Mock OTP code<input id="otp-code" class="otp" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 digits" aria-describedby="otp-help"><span id="otp-help" class="field-hint">Read the mock inbox below. Never enter a real OTP.</span></label><div class="row" style="margin-top:12px">${btn('Verify mock OTP','verify-'+purpose,true)}</div>`:''}</div>`;
 }
 function productChoices(){return `<div class="welcome-art" aria-hidden="true"><div class="art-card"><div class="card-wordmark"><span class="datum-symbol"><img src="./assets/datum-logo-white.png" alt="" width="282" height="83"></span>Datum Bank</div><small>EVERYDAY BANKING</small><strong>Built around you.</strong></div></div><div class="choices">${Object.entries(PRODUCTS).map(([k,title])=>`<label class="choice"><input type="radio" name="product" value="${k}" ${s.product===k?'checked':''}><span><strong>${title}</strong><small>${k==='CASA'?'New account · optional debit card · digital banking':k==='DEBIT'?'Existing active CASA required · card selection · delivery':'Financial information · demo credit eligibility · credit consent'}</small></span><span class="badge">${k==='CASA'?'NEW ACCOUNT':k==='DEBIT'?'EXISTING ACCOUNT':'CREDIT'}</span></label>`).join('')}</div>${notice('Select a product to reveal its required stages. All product terms, fees and thresholds are illustrative.')}`;}
-function body(){const d=s.data;switch(s.step){
+function body(){return (s.openedFrom===s.step&&s.step!=='product'?notice(`Opened from the Journey. Earlier steps were completed automatically with sample customer Alex. Use ↺ Reset demo to start from the beginning.`):'')+stepBody();}
+function stepBody(){const d=s.data;switch(s.step){
  case 'product':return productChoices();
  case 'contact':return `<h2>Where should we reach you?</h2><p class="muted">Only fictional values. Both contact methods need their own OTP.</p><div class="fields">${select('country','Country of residence',['Vietnam','United States'])}${field('phone','Mobile number','tel')}${field('email','Email','email','Example: alex@example.test')}</div>${otpBox('mobile','Verify your mobile')}${otpBox('email','Verify your email')}`;
  case 'eligibility':return `<h2>Eligibility for ${esc(PRODUCTS[s.product])}</h2>${notice(`Demo policy: minimum age ${s.product==='CREDIT'?POLICY.creditMinAge:POLICY.minAge}; resident digital onboarding. Non-resident cases require assisted review.`)}<div class="fields">${field('dob','Date of birth','date')}${select('residency','Residency',['Resident','Non-resident'])}${select('nationality','Nationality',['Vietnam','United States'])}${select('channel','Application channel',['Web','Mobile app','Branch assisted'])}</div>${check('eligible','I am using a fictional customer who meets the displayed demo eligibility.')}${check('requirements','I have reviewed the illustrative product requirements.')}`;
@@ -191,4 +192,13 @@ function renderResume(message=''){$('resume-body').innerHTML=`<h2>Resume your sa
 function drawResumeChallenge(){const o=s.otp;$('resume-challenge').innerHTML=`<div class="notice"><div class="micro">MOCK SMS · RESUME</div><strong class="mock-code">${esc(o.code)}</strong><p>Expires in 120s; old session OTPs are invalid.</p></div><label class="field">Resume OTP<input id="resume-code" inputmode="numeric" maxlength="6"></label><button id="resume-verify" class="primary" style="margin-top:15px">Verify & resume</button>`;$('resume-verify').onclick=()=>{const r=verifyOtp(s,$('resume-code').value,'resume',now());persist();if(r.error){$('resume-error').textContent=r.error;return;}s.updatedAt=resumeLastActivity;resumeNote=revalidateOnResume(s,now());s.paused=false;restored=false;record(s,'Application resumed with fresh mock authentication',now());persist();$('pause').close();render();toast(resumeNote);};}
 function updateClock(){const el=$('otp-clock'),o=s.otp;if(!el||!o)return;const lock=Math.max(0,Math.ceil((o.lockedUntil-now())/1000)),ttl=Math.max(0,Math.ceil((o.expiresAt-now())/1000)),cool=Math.max(0,Math.ceil((o.resendAt-now())/1000));el.textContent=lock?`Locked: ${lock}s`:`Expires: ${ttl}s · Resend: ${cool}s · Attempts: ${o.attempts}/${POLICY.otpAttempts}`;}
 $('pause').addEventListener('cancel',e=>e.preventDefault());
-setInterval(updateClock,1000);render();if(restored||s.paused)openResume();
+function openDeepLink(){const m=/^#step=([a-z]+)$/.exec(location.hash);if(!m)return false;
+ history.replaceState(null,'',location.pathname+location.search);
+ const label=m[1]==='card'?'Card options':labels[m[1]]||m[1];
+ const inProgress=!!s.product&&!s.terminal&&s.step!=='product'&&s.openedFrom!==s.step;
+ if(inProgress&&!window.confirm(`Open “${label}” with a fresh sample application? Your saved demo progress will be replaced.`))return false;
+ const prepared=prepareDemoAt(m[1],now());if(!prepared){toast('This mockup step cannot be opened directly.');return false;}
+ s=prepared;restored=false;errors={};otpInput='';if($('pause').open)$('pause').close();persist();render();window.scrollTo({top:0});
+ toast(`Opened at “${label}”.`);return true;}
+window.addEventListener('hashchange',openDeepLink);
+setInterval(updateClock,1000);render();if(!openDeepLink()&&(restored||s.paused))openResume();

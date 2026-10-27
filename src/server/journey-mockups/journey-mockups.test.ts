@@ -47,7 +47,11 @@ describe('Development-only Journey mockup', () => {
     expect(links?.stages['decision-engine'].href).toBe('/vi/banking-journeys/lending/mockup#step=decision');
     expect(links?.sections['offer-and-agreement-step-5-agreement-signing'].href).toBe('/vi/banking-journeys/lending/mockup#step=signing');
     expect(Object.keys(links?.stages ?? {})).toHaveLength(10);
-    expect(getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'customer-onboarding', 'en', dev)).toBeNull();
+    const onboarding = getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'customer-onboarding', 'en', dev);
+    expect(onboarding?.stages['customer-information-service']).toEqual({ href: '/en/banking-journeys/customer-onboarding/mockup#step=information', label: 'Your information' });
+    expect(onboarding?.stages['card-enrollment-service'].href).toBe('/en/banking-journeys/customer-onboarding/mockup#step=card');
+    expect(onboarding?.sections['application-management-start-application'].href).toBe('/en/banking-journeys/customer-onboarding/mockup#step=product');
+    expect(getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'payments-and-transfers', 'en', dev)).toBeNull();
     expect(getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'lending', 'en', { APP_ENV: 'production', DATABASE_ENVIRONMENT: 'production' })).toBeNull();
   });
 

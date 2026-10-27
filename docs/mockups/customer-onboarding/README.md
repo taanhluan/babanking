@@ -17,6 +17,38 @@ with locale middleware. CSP disables network APIs and form submission.
 
 Deployment and verification evidence is recorded in `docs/hand-off/AI_PROJECT_HANDOFF.md`.
 
+### Deep links from the Journey reader
+
+Each `customer-onboarding` module shows **Try in mockup: <step>** under its
+title (Development only). The "Start Application" section links to product
+selection. Mapping lives in `src/server/journey-mockups/catalog.ts`.
+
+| Journey module | Mockup step (`#step=`) |
+|---|---|
+| Overview | `product` |
+| Initiation & Eligibility | `eligibility` |
+| Application Management ("Start Application" → `product`) | `contact` |
+| Customer Information Service | `information` |
+| Account Setup Service | `configuration` |
+| Digital Banking Enrollment Service | `digital` |
+| Card Enrollment Service | `card` (Debit Card route, product options) |
+| Consent & Agreement Service | `consent` |
+| Account Creation & Service Provisioning | `provisioning` |
+| External System Integration | `identity` (sample eKYC provider check) |
+
+How a link opens:
+
+- `…/mockup#step=<key>` builds a fresh sample application for Alex Demo.
+  The product is CASA, except `linked`/`card` (Debit Card) and `financial`
+  (Credit Card).
+- Earlier stages are completed with the normal actions, including a
+  submission OTP when needed. The linked step's own action is left to do.
+- A notice states that earlier steps were completed automatically.
+- The hash is removed afterwards, so a reload keeps progress and shows the
+  normal resume dialog.
+- If saved progress has moved past the linked step, the reviewer confirms
+  before it is replaced.
+
 Serve this folder (ES modules require HTTP; do not open the HTML with `file://`):
 
 ```bash
@@ -91,9 +123,9 @@ node --test docs/mockups/customer-onboarding/model.test.mjs
 npx eslint docs/mockups/customer-onboarding/app.mjs docs/mockups/customer-onboarding/model.mjs docs/mockups/customer-onboarding/model.test.mjs
 ```
 
-29 behavioral groups cover branch routing, date/format boundaries, conditional
-validation, OTP lifecycle/binding, rework, stale evidence, terminal outcomes and
-idempotency. Chrome walkthroughs completed all three branches and tested the
+30 behavioral groups cover branch routing, date/format boundaries, conditional
+validation, OTP lifecycle/binding, rework, stale evidence, terminal outcomes,
+idempotency and deep-link preparation for every linkable step. Chrome walkthroughs completed all three branches and tested the
 major error paths, contact/submission/resume OTP, retained form data, PEP review,
 notification retry and responsive layout at 390px.
 

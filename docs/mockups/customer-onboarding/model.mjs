@@ -183,3 +183,25 @@ export function revalidateOnResume(s,now=Date.now()){
  if(['review','provisioning'].includes(s.step)){s.approved=false;s.done=s.done.filter(x=>!['authentication','review'].includes(x));s.step='authentication';return 'Fresh submission authentication is required after resume.';}
  return 'Saved progress restored. Previous session OTPs were invalidated.';
 }
+// Journey deep links (`#step=`): `card` opens the Debit Card route at its card options.
+export const DEEP_LINK_STEPS=['product','contact','eligibility','identity','information','screening','linked','financial',
+ 'configuration','card','digital','consent','authentication','review','provisioning'];
+const DEEP_LINK_PRODUCT={linked:'DEBIT',card:'DEBIT',financial:'CREDIT'};
+export function prepareDemoAt(target,now=Date.now()){
+ if(!DEEP_LINK_STEPS.includes(target))return null;
+ const s=newState(now),step=target==='card'?'configuration':target;s.product=DEEP_LINK_PRODUCT[target]||'CASA';
+ s.openedFrom=step;if(step==='product')return s;
+ record(s,`Opened from the Journey at “${target}”; earlier stages completed with sample customer Alex`,now);
+ for(let guard=0;guard<20&&s.step!==step;guard++){
+  switch(s.step){
+   case 'contact':s.verifiedPhone=s.data.phone;s.verifiedEmail=s.data.email;break;
+   case 'eligibility':Object.assign(s.data,{eligible:true,requirements:true});break;
+   case 'identity':s.identityAt=now;break;
+   case 'information':s.data.confirmed=true;break;
+   case 'screening':s.screeningAt=now;break;
+   case 'consent':Object.assign(s.data,{agreement:true,privacy:true,creditConsent:true,signature:s.data.name});break;
+   case 'authentication':if(!issueOtp(s,'submission',now).ok||!verifyOtp(s,s.otp.code,'submission',now).ok)return null;break;
+  }
+  if(!completeStep(s,now).ok)return null;
+ }
+ return s.step===step?s:null;}
