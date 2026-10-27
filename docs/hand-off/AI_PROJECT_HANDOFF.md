@@ -1,5 +1,31 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Journey → mockup step deep links (2026-10-27, `develop`, local)
+
+- The owner asked for Digital Lending knowledge to link to the matching mockup step.
+- `catalog.ts` now maps `lending` modules (and the two Offer & Agreement signing
+  sections) to mockup steps. `getDevelopmentMockupStepLinks()` returns
+  `…/mockup#step=<key>` links, and only on matching Development labels (the
+  same gate as the Mockup button).
+- How the link reaches the reader:
+  - `banking-journeys/[slug]/page.tsx` computes the links after the existing
+    premium authorization.
+  - `DatabaseArticle` passes them through, and `SharedJourneyReader` renders
+    "Try in mockup: <step>" under the stage title and on sections whose step
+    differs from the stage's.
+  - The prop is optional, so other Journeys and the Payments portal are unchanged.
+- The mockup's `prepareDemoAt(step)` (in `model.mjs`) builds a sample
+  application and drives it through the real actions to the linked step. It
+  asks before replacing progress that has moved past the linked step.
+- Validation:
+  - Mockup: 21 node tests.
+  - Vitest adds two tests (catalog links; reader renders links only when
+    provided).
+  - Headless Chrome opened all 14 linkable steps plus the confirm/cancel path,
+    with no console errors.
+- No database or CMS change. Committed and pushed to `origin/develop` at the
+  owner's request; hosted check of the reader buttons is next.
+
 ## Digital lending onboarding mockup (2026-10-27, `develop`)
 
 - Owner asked for a mockup of the Digital Lending Onboarding content, built

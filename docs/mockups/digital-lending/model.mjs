@@ -519,3 +519,31 @@ export function outcomes(s){const rows=[],done=k=>s.done.includes(k),f=flow(s),r
   if(s.offer)rows.push(['Offer & Agreement',...(s.result?['Agreement signed','USABLE']:s.terminal==='OFFER DECLINED'?['Offer declined by customer','NEGATIVE']
     :s.terminal==='OFFER EXPIRED'?['Offer expired','NEGATIVE']:s.offer.response==='ACCEPTED'?['Offer accepted','USABLE']:['Offer generated','USABLE'])]);
   return rows;}
+// Deep link support: builds a fresh sample application (persona Alex) and completes the earlier
+// stages through the same actions a reviewer would use, stopping at `target`.
+export const DEEP_LINK_STEPS=['product','registration','identity','screening','consent','profile','eligibility','bureau',
+  'collateral','documents','affordability','decision','simulation','offer','signing'];
+const SAMPLE_FILE={income:'payslips',business:'business',statement:'statement',address:'address',collateral:'vehicle'};
+export function prepareDemoAt(target,now=Date.now()){
+  if(!DEEP_LINK_STEPS.includes(target))return null;
+  const s=newState(now);applyPersona(s,'prime');s.product=target==='collateral'?'COLLATERAL':'CREDIT';
+  s.openedFrom=target;if(target==='product')return s;
+  record(s,`Opened from the Journey at “${target}”; earlier stages completed with sample persona Alex`,now);
+  for(let guard=0;guard<20&&s.step!==target;guard++){
+    switch(s.step){
+      case 'registration':s.verifiedPhone=s.data.phone;s.verifiedEmail=s.data.email;break;
+      case 'identity':runIdentity(s,now);break;
+      case 'screening':runScreening(s,now);break;
+      case 'consent':Object.assign(s.data,{terms:true,privacy:true,bureauConsent:true});break;
+      case 'profile':s.data.confirmed=true;break;
+      case 'eligibility':runEligibility(s,now);break;
+      case 'bureau':runBureau(s,now);break;
+      case 'collateral':runAppraisal(s,now);break;
+      case 'documents':for(const r of requirements(s))uploadDocument(s,r.key,SAMPLE_FILE[r.key],now);break;
+      case 'affordability':runAffordability(s,now);break;
+      case 'decision':runEngine(s,now);break;
+      case 'offer':s.data.kfs=true;respondOffer(s,'ACCEPTED',now);break;
+    }
+    if(!completeStep(s,now).ok)return null;
+  }
+  return s.step===target?s:null;}

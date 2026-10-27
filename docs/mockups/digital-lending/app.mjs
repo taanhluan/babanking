@@ -2,7 +2,7 @@ import {POLICY,PRODUCTS,SAMPLE,PERSONAS,PURPOSES,FILES,INDICATIVE_RATE,CATALOG_M
   applyPersona,applyCustomerType,completeStep,runIdentity,runScreening,complianceOutcome,runEligibility,approveException,switchProduct,
   runBureau,runAppraisal,requirements,activeUpload,uploadDocument,runAffordability,affordabilityKey,affordabilityReview,runEngine,underwriterOutcome,
   gradeTerms,simulate,respondOffer,issueOtp,verifyOtp,isSigningAuthenticated,signAgreement,invalidateFrom,revalidateOnResume,
-  outcomes,record,emi,num,money,DAY} from './model.mjs';
+  outcomes,record,emi,num,money,DAY,prepareDemoAt} from './model.mjs';
 
 const $=id=>document.getElementById(id),KEY='ba-digital-lending-concept-v1';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -142,7 +142,8 @@ function productChoices(){const badges={CREDIT:'UNSECURED',COLLATERAL:'SECURED',
   <div class="fields">${select('persona','Sample persona',Object.entries(PERSONAS).map(([k,p])=>[k,p.label]))}</div>
   <div class="choices">${Object.entries(PRODUCTS).map(([k,title])=>`<label class="choice"><input type="radio" name="product" value="${k}" ${s.product===k?'checked':''}><span><strong>${title}</strong><small>${copy[k]}</small></span><span class="badge">${badges[k]}</span></label>`).join('')}</div>${hint('product')}
   <div class="fields">${select('customerType','Customer type',[['New','New to Datum Bank'],['Existing','Existing customer']])}${s.data.customerType==='Existing'?field('cif','Customer number','text','Sample relationship: DEMO-CIF-001'):''}${select('channel','Application channel',['Mobile app','Web','Partner referral','Branch assisted'])}${select('purpose','Loan purpose',PURPOSES)}${amountField('amount','Requested amount (VND)',`Steps of 1,000,000 · max ${fmt(CATALOG_MAX[s.product]||CATALOG_MAX.CREDIT)}`)}${field('tenor','Term (months)','number','6–60 months')}</div>${estimate()}${notice('Personas, rates, caps and thresholds are illustrative. Nothing here is a lending offer.')}`;}
-function body(){const d=s.data,existing=d.customerType==='Existing';switch(s.step){
+function body(){return (s.openedFrom===s.step&&s.step!=='product'?notice(`Opened from the Journey. Earlier steps were completed automatically with sample persona Alex. Use ↺ Reset demo to start from the beginning.`):'')+stepBody();}
+function stepBody(){const d=s.data,existing=d.customerType==='Existing';switch(s.step){
   case 'product':return productChoices();
   case 'registration':return `<h2>Where should we reach you?</h2>${existing?notice(`Recognised relationship <strong>${esc(d.cif)}</strong>. Known profile data will be pre-filled where permitted.`,'success'):''}<div class="fields">${field('phone','Mobile number','tel','Vietnam format, e.g. 0900000000')}${field('email','Email','email')}</div>${otpBox('mobile','Verify your mobile')}${otpBox('email','Verify your email')}`;
   case 'identity':return `<h2>${existing?'Welcome back. A quick selfie check.':'A sample identity, verified carefully.'}</h2>${notice(existing?'Your identity was verified when the relationship was opened. Only a selfie and liveness comparison is required.':'No camera or upload. Toggle sample evidence and outcomes to explore validations.')}${existing?'':`<div class="fields">${select('documentType','Document type',['National ID','Passport'])}${field('documentNo','Sample document reference')}${field('documentName','Name on sample document')}${field('documentDob','Date of birth on document','date')}${field('documentExpiry','Document expiry','date')}${select('quality','Image quality',['Clear','Blurred'])}</div>${check('front','Front / passport sample provided')}${d.documentType==='National ID'?check('back','Back of National ID sample provided'):''}`}<div class="fields">${select('liveness','Liveness result',['Pass','Fail'])}</div>${check('selfie','Selfie sample provided')}${task('Identity verification',s.identityAt?'Verified ✓':`Not verified · ${s.identityAttempts}/3 failed attempts`,!!s.identityAt)}<div class="row" style="margin-top:20px">${btn(existing?'Run selfie match':'Run sample eKYC','identity',true)}</div>`;
@@ -224,4 +225,13 @@ function drawResumeChallenge(){const o=s.otp;$('resume-challenge').innerHTML=`<d
   $('resume-verify').onclick=()=>{const r=verifyOtp(s,$('resume-code').value,'resume',now());persist();if(r.error){$('resume-error').textContent=r.error;return;}s.updatedAt=resumeLastActivity;resumeNote=revalidateOnResume(s,now());s.paused=false;restored=false;record(s,'Application resumed with fresh mock authentication',now());persist();$('pause').close();render();toast(resumeNote);};}
 function updateClock(){const el=$('otp-clock'),o=s.otp;if(!el||!o)return;const lock=Math.max(0,Math.ceil((o.lockedUntil-now())/1000)),ttl=Math.max(0,Math.ceil((o.expiresAt-now())/1000)),cool=Math.max(0,Math.ceil((o.resendAt-now())/1000));el.textContent=lock?`Locked: ${lock}s`:`Expires: ${ttl}s · Resend: ${cool}s · Attempts: ${o.attempts}/${POLICY.otpAttempts}`;}
 $('pause').addEventListener('cancel',e=>e.preventDefault());
-setInterval(updateClock,1000);render();if(restored||s.paused)openResume();
+// Journey deep links (#step=<key>) open a prepared sample application at that step.
+function openDeepLink(){const m=/^#step=([a-z]+)$/.exec(location.hash);if(!m)return false;
+  history.replaceState(null,'',location.pathname+location.search);
+  const inProgress=!!s.product&&!s.terminal&&s.step!=='product'&&s.openedFrom!==s.step;
+  if(inProgress&&!window.confirm(`Open “${labels[m[1]]||m[1]}” with a fresh sample application? Your saved demo progress will be replaced.`))return false;
+  const prepared=prepareDemoAt(m[1],now());if(!prepared){toast('This mockup step cannot be opened directly.');return false;}
+  s=prepared;restored=false;errors={};otpInput='';if($('pause').open)$('pause').close();persist();render();window.scrollTo({top:0});
+  toast(`Opened at “${labels[s.step]}”.`);return true;}
+window.addEventListener('hashchange',openDeepLink);
+setInterval(updateClock,1000);render();if(!openDeepLink()&&(restored||s.paused))openResume();

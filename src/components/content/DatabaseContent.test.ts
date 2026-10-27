@@ -104,6 +104,25 @@ describe('DatabaseArticle', () => {
     expect(html).not.toContain('paymentType');
   });
 
+  it('renders Development mockup step links only for mapped stages and differing sections', () => {
+    const content = {
+      id: 'lending', type: 'BANKING_JOURNEY' as const, slug: 'lending', title: 'Digital Lending Onboarding', summary: 'Lending summary',
+      body: { title: 'Digital Lending Onboarding', slug: 'lending', summary: 'Lending summary', metadata: { journeyReader: 'canonical' }, modules: [{ id: 'offer-and-agreement', title: 'Offer & Agreement', sections: [
+        { id: 'offer-and-agreement-step-3-offer-presentation', title: 'Step 3: Offer Presentation', blocks: [{ id: 'a', blockType: 'RICH_TEXT', schemaVersion: 1, payload: { text: 'Presentation' } }] },
+        { id: 'offer-and-agreement-step-5-agreement-signing', title: 'Step 5: Agreement Signing', blocks: [{ id: 'b', blockType: 'RICH_TEXT', schemaVersion: 1, payload: { text: 'Signing' } }] },
+      ] }] },
+    };
+    const mockupLinks = {
+      stages: { 'offer-and-agreement': { href: '/en/banking-journeys/lending/mockup#step=offer', label: 'Your offer' } },
+      sections: { 'offer-and-agreement-step-5-agreement-signing': { href: '/en/banking-journeys/lending/mockup#step=signing', label: 'Agreement signing' } },
+    };
+    const html = renderToStaticMarkup(createElement(DatabaseArticle, { content, stage: 'offer-and-agreement', mockupLinks }));
+    expect(html).toContain('href="/en/banking-journeys/lending/mockup#step=offer"');
+    expect(html).toContain('href="/en/banking-journeys/lending/mockup#step=signing"');
+    expect(html.match(/Try in mockup/g)).toHaveLength(2);
+    expect(renderToStaticMarkup(createElement(DatabaseArticle, { content, stage: 'offer-and-agreement' }))).not.toContain('Try in mockup');
+  });
+
   it('keeps structured-looking legacy Journeys on DatabaseArticle fallback without the canonical marker', () => {
     const html = renderToStaticMarkup(createElement(DatabaseArticle, {
       content: {

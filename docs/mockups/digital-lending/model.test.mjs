@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {POLICY,DAY,newState,flow,applyPersona,applyCustomerType,validate,completeStep,evaluateEligibility,runEligibility,
  approveException,switchProduct,runIdentity,runScreening,complianceOutcome,runBureau,runAppraisal,requirements,uploadDocument,
  activeUpload,runAffordability,affordabilityReview,runEngine,underwriterOutcome,proposal,simulate,allowedAmount,respondOffer,
- issueOtp,verifyOtp,signAgreement,invalidateFrom,revalidateOnResume,outcomes,emi,apr,ageOn,maturityAge} from './model.mjs';
+ issueOtp,verifyOtp,signAgreement,invalidateFrom,revalidateOnResume,outcomes,emi,apr,ageOn,maturityAge,prepareDemoAt,DEEP_LINK_STEPS} from './model.mjs';
 const T=Date.UTC(2026,9,27,3);
 function start(product='CREDIT',persona='prime'){const s=newState(T);applyPersona(s,persona);s.product=product;
  if(product==='REPEAT'){s.data.customerType='Existing';s.data.cif='DEMO-CIF-001';applyCustomerType(s);}
@@ -176,4 +176,11 @@ test('domain outcomes follow the Journey taxonomy',()=>{
  assert.deepEqual(rows['Registration & Onboarding'],['Verified and permitted','USABLE']);
  assert.equal(rows['Risk Assessment'][1],'USABLE');assert.deepEqual(rows['Offer & Agreement'],['Offer generated','USABLE']);
  assert.equal(proposal(s).outcome,'AVAILABLE');
+});
+test('deep links prepare a consistent sample application at every linked step',()=>{
+ for(const step of DEEP_LINK_STEPS){const s=prepareDemoAt(step,T);assert.ok(s,step);assert.equal(s.step,step);
+  assert.deepEqual(s.done,flow(s).slice(0,flow(s).indexOf(step)),step);assert.equal(s.terminal,'');}
+ assert.equal(prepareDemoAt('collateral',T).product,'COLLATERAL');assert.equal(prepareDemoAt('complete',T),null);
+ assert.equal(prepareDemoAt('toString',T),null);
+ const sign=prepareDemoAt('signing',T);assert.equal(sign.offer.response,'ACCEPTED');assert.ok(validate(sign,'signing',T).agreement);
 });

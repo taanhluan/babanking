@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDevelopmentMockupHref, getMockupResource } from './catalog';
+import { getDevelopmentMockupHref, getDevelopmentMockupStepLinks, getMockupResource } from './catalog';
 
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
@@ -38,6 +38,17 @@ describe('Development-only Journey mockup', () => {
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'en', {
       APP_ENV: 'production', DATABASE_ENVIRONMENT: 'production',
     })).toBeNull();
+  });
+
+  it('builds per-stage deep links only for mapped Journeys in Development', () => {
+    const dev = { APP_ENV: 'development', DATABASE_ENVIRONMENT: 'development' } as const;
+    const links = getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'lending', 'vi', dev);
+    expect(links?.stages['credit-assessment']).toEqual({ href: '/vi/banking-journeys/lending/mockup#step=bureau', label: 'Credit check' });
+    expect(links?.stages['decision-engine'].href).toBe('/vi/banking-journeys/lending/mockup#step=decision');
+    expect(links?.sections['offer-and-agreement-step-5-agreement-signing'].href).toBe('/vi/banking-journeys/lending/mockup#step=signing');
+    expect(Object.keys(links?.stages ?? {})).toHaveLength(10);
+    expect(getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'customer-onboarding', 'en', dev)).toBeNull();
+    expect(getDevelopmentMockupStepLinks('BANKING_JOURNEY', 'lending', 'en', { APP_ENV: 'production', DATABASE_ENVIRONMENT: 'production' })).toBeNull();
   });
 
   it('checks Journey VIEW access before reading the HTML', async () => {

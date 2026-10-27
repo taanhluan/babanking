@@ -17,6 +17,33 @@ It uses the same protected route handler as Customer Onboarding:
 
 The catalog maps the slug `lending` to this directory. Nothing is copied to `public/`.
 
+### Deep links from the Journey reader
+
+Each `lending` module shows **Try in mockup: <step>** under its title (Development only).
+The Offer & Agreement signing sections link to the Sign step. Mapping lives in
+`src/server/journey-mockups/catalog.ts`.
+
+| Journey module | Mockup step (`#step=`) |
+|---|---|
+| Registration & Onboarding | `registration` |
+| Profile & Information Collection | `profile` |
+| Eligibility Check | `eligibility` |
+| Credit Assessment | `bureau` |
+| Income & Affordability | `affordability` |
+| Loan Product & Simulation | `simulation` |
+| Document Upload | `documents` |
+| Risk Assessment, Decision Engine | `decision` |
+| Offer & Agreement (signing sections → `signing`) | `offer` |
+
+How a link opens:
+
+- `…/mockup#step=<key>` builds a fresh sample application (persona Alex,
+  collateral loan for `collateral`). It completes the earlier stages with the
+  normal actions and stops at the linked step, whose own action is still to do.
+- A notice states that earlier steps were completed automatically.
+- The hash is removed afterwards, so a reload keeps the reviewer's progress.
+- If saved progress has moved past the linked step, the reviewer confirms before it is replaced.
+
 Run it standalone (ES modules need HTTP, not `file://`):
 
 ```bash
@@ -81,11 +108,11 @@ node --test docs/mockups/digital-lending/model.test.mjs
 npx eslint docs/mockups/digital-lending/
 ```
 
-20 behavioral tests cover routing, gating, eligibility outcomes, bureau
+21 behavioral tests cover routing, gating, eligibility outcomes, bureau
 footprint, upload validation and lineage, affordability bands, hard rules,
 scoring and grading, caps and counter-offers, offer expiry and decline, signing
-OTP binding and idempotency, OTP lifecycle, resume revalidation and outcome
-taxonomy.
+OTP binding and idempotency, OTP lifecycle, resume revalidation, outcome
+taxonomy and deep-link preparation for every linkable step.
 
 A headless Chrome walkthrough completed every product and persona path (Dung
 ends declined) with no console errors, including a 390px mobile run.
