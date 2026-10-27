@@ -10,7 +10,7 @@ export { buttonClass, cardClass, dangerButtonClass, inputClass, secondaryButtonC
 
 /** The team area reuses the shared workspace shell so header, main navigation and sign-out stay identical. */
 export function TeamShell({ user, children }: { user: { name: string; role: Role; isBaTeamMember: boolean }; children: React.ReactNode }) {
-  return <WorkspaceShell user={user}>{children}</WorkspaceShell>;
+  return <WorkspaceShell user={user}><div className="team-forms min-w-0">{children}</div></WorkspaceShell>;
 }
 
 export type TeamSection = 'plans' | 'myAllocation' | 'overview' | 'approvals' | 'templates' | 'allocation';

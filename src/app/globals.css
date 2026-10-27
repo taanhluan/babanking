@@ -86,3 +86,28 @@ select:not([multiple]):not([size]) {
 .cinematic-story[data-transition-phase="out"] .cinematic-exit,.cinematic-story[data-transition-phase="in"] .cinematic-exit { opacity:0; }
 @media (max-width: 767px) { .cinematic-title { white-space:normal; font-size:clamp(3rem,15vw,5rem); }.cinematic-platform,.cinematic-method,.cinematic-membership { width:min(100% - 2rem,500px); }.platform-panels { grid-template-columns:1fr; }.platform-panels article { min-height:0; padding:1rem; }.platform-panels strong { margin-top:.6rem; }.cinematic-method { gap:.5rem; }.cinematic-method strong { font-size:1.25rem; }.cinematic-membership > div { grid-template-columns:1fr; gap:.6rem; }.cinematic-membership article { padding:.85rem; }.cinematic-scroll-cue { margin-top:1.4rem; } }
 @media (prefers-reduced-motion: reduce) { .cinematic-story { --s1:0; --s2:0; --s3:0; --s4:0; }.cinematic-grid,.cinematic-path { opacity:.15; }.cinematic-brand { opacity:1; visibility:visible; transform:translateY(-50%); }.cinematic-scroll-cue { display:none; } }
+
+/*
+ * /team forms: a label whose own control is required shows a red asterisk after its text. The label becomes a
+ * wrapping flex row so the anonymous text item comes first, the asterisk next and the control on its own line.
+ * Disabled controls (for example a milestone KPI's target) are not marked.
+ */
+.team-forms label:has(> :is(input, select, textarea):required:not(:disabled)) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.25rem;
+}
+
+.team-forms label:has(> :is(input, select, textarea):required:not(:disabled)) > * {
+  order: 2;
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.team-forms label:has(> :is(input, select, textarea):required:not(:disabled))::after {
+  content: '*' / '';
+  order: 1;
+  color: rgb(220 38 38);
+  font-weight: 700;
+}

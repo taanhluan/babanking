@@ -79,6 +79,10 @@
     restores what was typed. The form class strings moved to
     `team-styles.ts` (re-exported by `TeamShell`), since `TeamShell` imports
     server-only code.
+- Required markers (owner request): `TeamShell` wraps `/team` pages in
+  `.team-forms`; a rule in `globals.css` adds a red `*` after the text of any
+  label whose direct control is `required` and not disabled (CSS `:has`, no
+  per-form markup). Committed and pushed to `origin/develop` at the owner's request.
 - Validation: 60 files / 464 tests, ESLint and `tsc --noEmit` pass; local dev
   pages return 200. Nothing since `a366220` is committed. Production will need
   the three new migrations in a separately approved release.
