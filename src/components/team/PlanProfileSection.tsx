@@ -39,8 +39,8 @@ export function PlanProfileSection({ planId, profile, editable, copy, locale }: 
       <input type="hidden" name="tab" value="plan" />
       {profileSections.map((section) => (
         <fieldset key={section.key} className={cardClass}>
-          <legend className="px-1 text-lg font-semibold text-navy">{copy.sections[section.key]}</legend>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <legend className="float-left mb-3 w-full text-lg font-semibold text-navy">{copy.sections[section.key]}</legend>
+          <div className="clear-both grid gap-3 sm:grid-cols-2">
             {fieldsOf(section).map((field) => {
               const name = `profile.${section.key}.${field}`;
               const wide = longFields.has(field) || section.fields === 'areas';

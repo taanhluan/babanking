@@ -126,6 +126,9 @@
   select needing different right padding needs a more specific override.
 - UI only: no logic, access or data change. ESLint, `tsc --noEmit` and the
   related tests pass; owner confirmed visually.
+- 2026-10-27: plan profile section titles (`PlanProfileSection`) no longer
+  sit on the card border: the `<legend>` floats inside the card
+  (`float-left w-full`, grid `clear-both`), matching the read-only view.
 
 ## BA resource allocation (Part B) — implemented locally (2026-10-26, `develop`)
 
