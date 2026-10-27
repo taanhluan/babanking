@@ -1,5 +1,28 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Onboarding and lending Journeys exported to Markdown (2026-10-27, `develop`, local)
+
+- The owner asked for the Customer Onboarding and Digital Lending content as
+  Markdown files in `docs`. Source: Development published `customer-onboarding`
+  v13 and `lending` v6, read-only after `db:check-env`.
+- Output (split per owner request: one file per module):
+  - `docs/content/customer-onboarding/`: `README.md` (summary and module
+    index) plus `01-overview.md` … `10-external-system-integration.md`, and
+    `assets/image-01.png` (the one embedded base64 screenshot).
+  - `docs/content/lending/`: `README.md` plus `01-registration-onboarding.md`
+    … `10-offer-agreement.md`.
+  - Each module file has its own section contents and README/previous/next links.
+- Every module, section, subsection and block is included; section and table
+  counts match the source. The structured BPMN diagram became a Mermaid
+  flowchart with step and rule tables. Mermaid and PlantUML code inside rich
+  text is fenced.
+- One private-Blob image (`retail-banking-orchestration 2.png`) was not exported
+  and is marked in place. A one-off converter in the session scratchpad did the
+  conversion; no repo script was added.
+- No database, CMS or code change. Committed and pushed to `origin/develop`
+  at the owner's request. The export is premium
+  content: keep it out of `/public` and anything shared outside the team.
+
 ## Customer Onboarding → mockup step deep links (2026-10-27, `develop`)
 
 - The owner asked for the same module → mockup-step links on Customer
