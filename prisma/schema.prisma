@@ -657,9 +657,12 @@ enum BaQuarterStatus {
   REVIEWED
 }
 
+/// GTE ≥, LTE ≤, EQ =; DONE is a milestone reported as done (1) or not (0).
 enum KpiComparator {
   GTE
   LTE
+  EQ
+  DONE
 }
 
 /// Internal BA team annual capability and KPI plan. One plan per member per calendar year.
@@ -694,10 +697,10 @@ model BaPerformancePlan {
 
 /// One quarterly KPI cycle of a plan: KPI set approval, in-quarter progress, results and Lead review.
 model BaPlanQuarter {
-  id                 String            @id @default(cuid())
+  id                 String               @id @default(cuid())
   planId             String
   quarter            Int
-  status             BaQuarterStatus   @default(KPI_DRAFT)
+  status             BaQuarterStatus      @default(KPI_DRAFT)
   changeNote         String?
   returnNote         String?
   kpiSubmittedAt     DateTime?
@@ -708,12 +711,13 @@ model BaPlanQuarter {
   reviewAssessment   String?
   reviewedAt         DateTime?
   reviewedById       String?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  plan               BaPerformancePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  kpiApprovedBy      User?             @relation("BaQuarterKpiApprover", fields: [kpiApprovedById], references: [id])
-  reviewedBy         User?             @relation("BaQuarterReviewer", fields: [reviewedById], references: [id])
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  plan               BaPerformancePlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  kpiApprovedBy      User?                @relation("BaQuarterKpiApprover", fields: [kpiApprovedById], references: [id])
+  reviewedBy         User?                @relation("BaQuarterReviewer", fields: [reviewedById], references: [id])
   kpis               BaQuarterKpi[]
+  objectives         BaQuarterObjective[]
   adjustments        BaKpiAdjustment[]
 
   @@unique([planId, quarter])
@@ -722,27 +726,51 @@ model BaPlanQuarter {
 
 /// A KPI within one quarter. lineageKey identifies the same KPI across quarters of a plan.
 model BaQuarterKpi {
-  id             String             @id @default(cuid())
+  id             String              @id @default(cuid())
   quarterId      String
   lineageKey     String
   templateId     String?
+  objectiveId    String?
   capabilityArea String?
   name           String
   description    String?
   comparator     KpiComparator
   targetValue    Float
   unitLabel      String
-  sortOrder      Int                @default(0)
+  sortOrder      Int                 @default(0)
   actualValue    Float?
   memberNote     String?
   evidenceUrl    String?
   leadComment    String?
   removedAt      DateTime?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  quarter        BaPlanQuarter      @relation(fields: [quarterId], references: [id], onDelete: Cascade)
-  template       BaKpiTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  quarter        BaPlanQuarter       @relation(fields: [quarterId], references: [id], onDelete: Cascade)
+  template       BaKpiTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  objective      BaQuarterObjective? @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
   progressLogs   BaKpiProgressLog[]
+
+  @@unique([quarterId, lineageKey])
+  @@index([objectiveId])
+}
+
+/// OKR Objective for one quarter; its KPIs are the Key Results. SMART: Measurable comes from the
+/// linked KPIs and Time-bound from the quarter end, so only S, A and R are stored.
+model BaQuarterObjective {
+  id            String         @id @default(cuid())
+  quarterId     String
+  lineageKey    String
+  title         String
+  specific      String         @default("")
+  achievable    String         @default("")
+  relevant      String         @default("")
+  /// Key of the annual goal (BaPerformancePlan.profileJson annualGoals) this Objective serves.
+  annualGoalKey String?
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  quarter       BaPlanQuarter  @relation(fields: [quarterId], references: [id], onDelete: Cascade)
+  kpis          BaQuarterKpi[]
 
   @@unique([quarterId, lineageKey])
 }

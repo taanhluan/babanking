@@ -4,11 +4,16 @@ import { Badge, TeamNav, cardClass, inputClass, secondaryButtonClass } from '@/c
 import { levelLabels } from '@/components/team/allocation-copy';
 import { planStatusLabels, quarterStatusLabels, teamCopy } from '@/components/team/team-copy';
 import { WorkspaceTitle } from '@/components/workspace/WorkspaceShell';
+import type { SupportedLocale } from '@/i18n/config';
 import { getCurrentLocale } from '@/i18n/server';
 import { getLocalizedPath } from '@/i18n/routing';
 import { parseManagerNotes, parsePlanProfile, planYearSchema, quarters } from '@/server/ba-team/ba-plan-domain';
 import { BaPlanRepository } from '@/server/ba-team/ba-plan-repository';
 import { requireBaTeamLead } from '@/server/ba-team/ba-team-access';
+
+const isLevel = (value: string): value is keyof (typeof levelLabels)['en'] => value in levelLabels.en;
+/** Plans store the chosen team level; plans written before the level list keep their free text. */
+const planLevel = (locale: SupportedLocale, level: string) => (isLevel(level) ? levelLabels[locale][level] : level) || '—';
 
 export default async function TeamOverviewPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
   await requireBaTeamLead('/team/overview');
@@ -37,7 +42,7 @@ export default async function TeamOverviewPage({ searchParams }: { searchParams:
               return (
                 <tr key={member.id} className="border-t border-slate-100 align-top">
                   <td className="py-3 pr-3"><span className="font-semibold">{member.name}</span><span className="block text-xs text-slate-500">{member.email}</span></td>
-                  <td className="py-3 pr-3">{member.baTeamProfile?.level ? levelLabels[locale][member.baTeamProfile.level] : (plan ? parsePlanProfile(plan.profileJson).personal.level || '—' : '—')}</td>
+                  <td className="py-3 pr-3">{member.baTeamProfile?.level ? levelLabels[locale][member.baTeamProfile.level] : (plan ? planLevel(locale, parsePlanProfile(plan.profileJson).personal.level) : '—')}</td>
                   <td className="py-3 pr-3">{plan ? <Link href={getLocalizedPath(`/team/plans/${plan.id}`, locale) as Route} className="font-semibold text-royalBlue underline">{planStatusLabels[locale][plan.status]}</Link> : <span className="text-slate-400">{copy.noPlan}</span>}</td>
                   {quarters.map((quarter) => {
                     const entry = plan?.quarters.find((item) => item.quarter === quarter);

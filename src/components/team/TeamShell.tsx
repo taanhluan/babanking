@@ -6,6 +6,8 @@ import { getCurrentLocale } from '@/i18n/server';
 import { getLocalizedPath } from '@/i18n/routing';
 import { teamCopy } from './team-copy';
 
+export { buttonClass, cardClass, dangerButtonClass, inputClass, secondaryButtonClass } from './team-styles';
+
 /** The team area reuses the shared workspace shell so header, main navigation and sign-out stay identical. */
 export function TeamShell({ user, children }: { user: { name: string; role: Role; isBaTeamMember: boolean }; children: React.ReactNode }) {
   return <WorkspaceShell user={user}>{children}</WorkspaceShell>;
@@ -38,8 +40,3 @@ export function Badge({ children, tone = 'border-slate-300 bg-slate-50 text-slat
   return <span className={`inline-flex items-center rounded-lg border px-2 py-1 text-xs font-semibold ${tone}`}>{children}</span>;
 }
 
-export const inputClass = 'mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal';
-export const buttonClass = 'min-h-11 rounded-xl bg-royalBlue px-4 font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-royalBlue';
-export const secondaryButtonClass = 'min-h-11 rounded-xl border border-slate-300 bg-white px-4 font-semibold text-slate-700';
-export const dangerButtonClass = 'min-h-11 rounded-xl border border-red-300 bg-white px-4 font-semibold text-red-700';
-export const cardClass = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';

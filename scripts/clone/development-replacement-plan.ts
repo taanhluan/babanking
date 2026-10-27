@@ -211,7 +211,16 @@ export const cloneRelationGraph: Readonly<Record<CloneModel, ModelRelation>> = {
     ],
     nullable: [
       { field: 'templateId', target: 'BaKpiTemplate', nullable: true },
+      { field: 'objectiveId', target: 'BaQuarterObjective', nullable: true },
     ],
+    unique: ['quarterId,lineageKey'],
+  },
+
+  BaQuarterObjective: {
+    required: [
+      { field: 'quarterId', target: 'BaPlanQuarter', nullable: false },
+    ],
+    nullable: [],
     unique: ['quarterId,lineageKey'],
   },
 
@@ -375,6 +384,7 @@ export const cleanupModels = [
   'BaKpiProgressLog',
   'BaKpiAdjustment',
   'BaQuarterKpi',
+  'BaQuarterObjective',
   'BaPlanQuarter',
   'BaPerformancePlan',
   'BaKpiTemplate',

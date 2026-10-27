@@ -4,13 +4,13 @@ import { redirect } from 'next/navigation';
 import type { Route } from 'next';
 import { z } from 'zod';
 import { kpiDefinitionSchema, planYearSchema, quarterSchema, type Quarter } from '@/server/ba-team/ba-plan-domain';
-import { annualOutcomesFromForm, kpiFromForm, managerNotesFromForm, prefixedEntries, profileFromForm, progressFromForm } from '@/server/ba-team/ba-plan-form';
+import { annualGoalFromForm, annualOutcomesFromForm, kpiFromForm, managerNotesFromForm, objectiveFromForm, prefixedEntries, profileFromForm, progressFromForm } from '@/server/ba-team/ba-plan-form';
 import type { BaTeamActor } from '@/server/ba-team/ba-plan-policy';
 import { BaPlanRepository } from '@/server/ba-team/ba-plan-repository';
 import {
-  addQuarterKpi, approvePlan, approveQuarterKpis, closeYear, createPlan, deleteQuarterKpi, leadAddKpi, leadChangeKpi, leadRemoveKpi,
-  openRemainingQuarters, reopenPlan, reopenQuarterResults, returnPlan, returnQuarterKpis, reviewQuarter, saveKpiTemplate, saveManagerNotes,
-  savePlanProfile, setBaTeamMembership, submitPlan, submitQuarterKpis, submitQuarterResults, updateKpiProgress, updateQuarterKpi,
+  addAnnualGoal, addObjective, addQuarterKpi, approvePlan, approveQuarterKpis, closeYear, createPlan, deleteQuarterKpi, leadAddKpi, leadChangeKpi, leadRemoveKpi,
+  openRemainingQuarters, removeAnnualGoal, removeObjective, reopenPlan, reopenQuarterResults, returnPlan, returnQuarterKpis, reviewQuarter, saveKpiTemplate, saveManagerNotes,
+  savePlanProfile, setBaTeamMembership, submitPlan, submitQuarterKpis, submitQuarterResults, updateAnnualGoal, updateKpiProgress, updateObjective, updateQuarterKpi,
 } from '@/server/ba-team/ba-plan-service';
 import { requireBaTeamLead, requireBaTeamMember } from '@/server/ba-team/ba-team-access';
 
@@ -56,7 +56,8 @@ function planTarget(formData: FormData) {
 function quarterTarget(formData: FormData) {
   const planId = idSchema.parse(formData.get('planId'));
   const quarter: Quarter = quarterSchema.parse(formData.get('quarter'));
-  return { planId, quarter, path: planPath(planId, `q${quarter}`) };
+  const view = formData.get('view') === 'report' ? 'report' : 'declare';
+  return { planId, quarter, path: `${planPath(planId, `q${quarter}`)}&view=${view}` };
 }
 
 // ---------- Annual plan ----------
@@ -79,6 +80,25 @@ export async function createPlanAction(formData: FormData) {
 export async function savePlanProfileAction(formData: FormData) {
   const { planId, path } = planTarget(formData);
   await run(path, (actor) => savePlanProfile(planId, profileFromForm(formData), actor));
+}
+
+const goalKeySchema = z.string().min(1).max(64);
+
+export async function addAnnualGoalAction(formData: FormData) {
+  const { planId, path } = planTarget(formData);
+  await run(path, (actor) => addAnnualGoal(planId, annualGoalFromForm(formData), actor));
+}
+
+export async function updateAnnualGoalAction(formData: FormData) {
+  const { planId, path } = planTarget(formData);
+  const key = goalKeySchema.parse(formData.get('goalKey'));
+  await run(path, (actor) => updateAnnualGoal(planId, key, annualGoalFromForm(formData), actor));
+}
+
+export async function removeAnnualGoalAction(formData: FormData) {
+  const { planId, path } = planTarget(formData);
+  const key = goalKeySchema.parse(formData.get('goalKey'));
+  await run(path, (actor) => removeAnnualGoal(planId, key, actor));
 }
 
 export async function submitPlanAction(formData: FormData) {
@@ -141,7 +161,7 @@ export async function addTemplateKpiAction(formData: FormData) {
     const templateId = idSchema.parse(formData.get('templateId'));
     const template = (await BaPlanRepository.listTemplates({ activeOnly: true })).find((entry) => entry.id === templateId);
     if (!template) throw new Error('Template not found.');
-    const definition = kpiDefinitionSchema.parse({ name: template.name, description: template.description ?? undefined, capabilityArea: template.capabilityArea, comparator: template.comparator, targetValue: template.defaultTarget, unitLabel: template.unitLabel, templateId: template.id });
+    const definition = kpiDefinitionSchema.parse({ name: template.name, description: template.description ?? undefined, capabilityArea: template.capabilityArea, comparator: template.comparator, targetValue: template.defaultTarget, unitLabel: template.unitLabel, templateId: template.id, objectiveId: formData.get('objectiveId') || undefined });
     return adjust ? leadAddKpi(planId, quarter, definition, text(formData, 'reason'), actor) : addQuarterKpi(planId, quarter, definition, actor);
   });
 }
@@ -151,6 +171,23 @@ export async function updateKpiAction(formData: FormData) {
   const kpiId = idSchema.parse(formData.get('kpiId'));
   const adjust = formData.get('mode') === 'adjust';
   await run(path, (actor) => adjust ? leadChangeKpi(kpiId, kpiFromForm(formData), text(formData, 'reason'), actor) : updateQuarterKpi(kpiId, kpiFromForm(formData), actor));
+}
+
+export async function addObjectiveAction(formData: FormData) {
+  const { planId, quarter, path } = quarterTarget(formData);
+  await run(path, (actor) => addObjective(planId, quarter, objectiveFromForm(formData), actor));
+}
+
+export async function updateObjectiveAction(formData: FormData) {
+  const { path } = quarterTarget(formData);
+  const objectiveId = idSchema.parse(formData.get('objectiveId'));
+  await run(path, (actor) => updateObjective(objectiveId, objectiveFromForm(formData), actor));
+}
+
+export async function removeObjectiveAction(formData: FormData) {
+  const { path } = quarterTarget(formData);
+  const objectiveId = idSchema.parse(formData.get('objectiveId'));
+  await run(path, (actor) => removeObjective(objectiveId, actor));
 }
 
 export async function removeKpiAction(formData: FormData) {

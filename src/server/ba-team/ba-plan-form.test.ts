@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { annualOutcomesFromForm, kpiFromForm, prefixedEntries, profileFromForm } from './ba-plan-form';
+import { annualGoalFromForm, annualOutcomesFromForm, kpiFromForm, prefixedEntries, profileFromForm } from './ba-plan-form';
 
 function form(entries: Record<string, string>) {
   const data = new FormData();
@@ -8,20 +8,13 @@ function form(entries: Record<string, string>) {
 }
 
 describe('BA plan form parsing', () => {
-  it('maps profile.<section>.<field> inputs onto the profile schema', () => {
-    const profile = profileFromForm(form({ 'profile.personal.level': 'Middle', 'profile.roadmap.q2': 'Lead workshops', 'profile.capabilityFocus.AI_ASSISTED': 'Prompt library', planId: 'ignored' }));
-    expect(profile.personal.level).toBe('Middle');
-    expect(profile.roadmap.q2).toBe('Lead workshops');
-    expect(profile.capabilityFocus.AI_ASSISTED).toBe('Prompt library');
-    expect(profile.personal.primaryDomain).toBe('');
-  });
-
-  it('rejects unknown profile sections', () => {
-    expect(() => profileFromForm(form({ 'profile.salary.amount': '1' }))).toThrow();
+  it('reads the profile basics and one annual goal', () => {
+    expect(profileFromForm(form({ level: 'MIDDLE', primaryDomain: 'Lending', planId: 'ignored' }))).toEqual({ level: 'MIDDLE', primaryDomain: 'Lending' });
+    expect(annualGoalFromForm(form({ title: 'Raise specification quality', measure: 'First-pass ≥ 90%' }))).toEqual({ title: 'Raise specification quality', measure: 'First-pass ≥ 90%' });
   });
 
   it('reads KPI inputs, dropping empty optional fields', () => {
-    expect(kpiFromForm(form({ name: 'Rework', comparator: 'LTE', targetValue: '5', unitLabel: '%', description: ' ', templateId: '' }))).toEqual({ name: 'Rework', description: undefined, capabilityArea: undefined, comparator: 'LTE', targetValue: '5', unitLabel: '%', templateId: undefined });
+    expect(kpiFromForm(form({ name: 'Rework', comparator: 'LTE', targetValue: '5', unitLabel: '%', description: ' ', templateId: '' }))).toEqual({ name: 'Rework', description: undefined, capabilityArea: undefined, comparator: 'LTE', targetValue: '5', unitLabel: '%', templateId: undefined, objectiveId: undefined });
   });
 
   it('collects prefixed entries and annual outcomes', () => {

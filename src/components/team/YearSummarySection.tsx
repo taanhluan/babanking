@@ -1,6 +1,6 @@
 import { closeYearAction } from '@/app/team/actions';
 import type { SupportedLocale } from '@/i18n/config';
-import { evaluateKpi, formatNumber, formatTarget, parseAnnualOutcomes, quarters } from '@/server/ba-team/ba-plan-domain';
+import { evaluateKpi, formatActual, formatTarget, parseAnnualOutcomes, quarters } from '@/server/ba-team/ba-plan-domain';
 import type { BaPlanDetail } from '@/server/ba-team/ba-plan-repository';
 import { Badge, buttonClass, cardClass, inputClass } from './TeamShell';
 import { evaluationLabels, evaluationTone, type TeamCopy } from './team-copy';
@@ -42,7 +42,7 @@ export function YearSummarySection({ plan, canClose, copy, locale }: { plan: BaP
                 const evaluation = evaluateKpi(kpi.comparator, kpi.targetValue, kpi.actualValue);
                 return (
                   <td key={quarter} className="py-2 pr-3">
-                    <span className="block">{formatNumber(kpi.actualValue)} <span className="text-xs text-slate-500">/ {formatTarget(kpi.comparator, kpi.targetValue, kpi.unitLabel)}</span></span>
+                    <span className="block">{formatActual(kpi.comparator, kpi.actualValue, '', locale)} <span className="text-xs text-slate-500">/ {formatTarget(kpi.comparator, kpi.targetValue, kpi.unitLabel, locale)}</span></span>
                     <span className={`mt-1 inline-block h-2 w-8 rounded-full border ${evaluationTone[evaluation]}`} role="img" aria-label={evaluationLabels[locale][evaluation]} title={evaluationLabels[locale][evaluation]} />
                   </td>
                 );

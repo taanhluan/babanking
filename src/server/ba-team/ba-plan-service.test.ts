@@ -4,7 +4,8 @@ const mocks = vi.hoisted(() => {
   const tx = {
     baPerformancePlan: { create: vi.fn(), updateMany: vi.fn() },
     baPlanQuarter: { create: vi.fn(), updateMany: vi.fn(), count: vi.fn() },
-    baQuarterKpi: { create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn(), update: vi.fn() },
+    baQuarterKpi: { create: vi.fn(), createMany: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn(), update: vi.fn() },
+    baQuarterObjective: { create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
     baKpiProgressLog: { create: vi.fn() },
     baKpiAdjustment: { create: vi.fn() },
     baKpiTemplate: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
@@ -17,6 +18,8 @@ const mocks = vi.hoisted(() => {
     kpiFindUnique: vi.fn(),
     kpiFindMany: vi.fn(),
     kpiCount: vi.fn(),
+    objectiveFindMany: vi.fn(),
+    objectiveCount: vi.fn(),
     templateFindMany: vi.fn(),
   };
 });
@@ -27,13 +30,14 @@ vi.mock('@/lib/db', () => ({
   db: {
     baPerformancePlan: { findUnique: mocks.planFindUnique },
     baQuarterKpi: { findUnique: mocks.kpiFindUnique, findMany: mocks.kpiFindMany, count: mocks.kpiCount },
+    baQuarterObjective: { findMany: mocks.objectiveFindMany, count: mocks.objectiveCount },
     baKpiTemplate: { findMany: mocks.templateFindMany },
     $transaction: (callback: (tx: typeof mocks.tx) => unknown) => callback(mocks.tx),
   },
 }));
 
 import {
-  approvePlan, closeYear, createPlan, leadChangeKpi, leadRemoveKpi, openRemainingQuarters, returnPlan, reviewQuarter, savePlanProfile,
+  addAnnualGoal, addObjective, addQuarterKpi, approvePlan, closeYear, createPlan, leadChangeKpi, leadRemoveKpi, openRemainingQuarters, removeAnnualGoal, returnPlan, reviewQuarter, savePlanProfile,
   setBaTeamMembership, submitPlan, updateKpiProgress, updateQuarterKpi,
 } from './ba-plan-service';
 
@@ -55,7 +59,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   for (const model of [mocks.tx.baPerformancePlan, mocks.tx.baPlanQuarter, mocks.tx.baQuarterKpi, mocks.tx.user]) model.updateMany.mockResolvedValue({ count: 1 });
   mocks.tx.baQuarterKpi.deleteMany.mockResolvedValue({ count: 1 });
+  mocks.objectiveFindMany.mockResolvedValue([]);
+  mocks.kpiFindMany.mockResolvedValue([]);
 });
+
+const withGoal = JSON.stringify({ schemaVersion: 1, annualGoals: [{ key: 'g1', title: 'Raise specification quality', measure: '' }] });
+const smartObjective = { id: 'obj-1', title: 'Raise specification quality', specific: 'All BRDs in scope', achievable: 'Within current capacity', relevant: 'Supports the team goal' };
 
 describe('membership and visibility', () => {
   it('rejects users outside the BA team before any read', async () => {
@@ -82,12 +91,14 @@ describe('annual plan lifecycle', () => {
     mocks.planFindUnique.mockResolvedValue(null);
     mocks.templateFindMany.mockResolvedValue([{ id: 'ckt0000000000000000000001', name: 'Rework Rate', description: null, capabilityArea: 'STRUCTURED_SPECIFICATION', comparator: 'LTE', defaultTarget: 5, unitLabel: '%' }]);
     mocks.tx.baPerformancePlan.create.mockResolvedValue({ id: 'plan-1' });
+    mocks.tx.baPlanQuarter.create.mockImplementation(({ data }: { data: { quarter: number } }) => Promise.resolve({ id: `q${data.quarter}` }));
     await createPlan({ year: 2026, source: 'TEMPLATES', templateIds: ['ckt0000000000000000000001'] }, owner);
-    const data = mocks.tx.baPerformancePlan.create.mock.calls[0][0].data;
-    expect(data).toMatchObject({ userId: 'owner', year: 2026 });
-    expect(data.quarters.create.map((entry: { quarter: number }) => entry.quarter)).toEqual([1, 2, 3, 4]);
-    for (const entry of data.quarters.create) expect(entry.kpis.create).toEqual([expect.objectContaining({ name: 'Rework Rate', comparator: 'LTE', targetValue: 5, templateId: 'ckt0000000000000000000001', sortOrder: 0 })]);
-    expect(new Set(data.quarters.create.map((entry: { kpis: { create: Array<{ lineageKey: string }> } }) => entry.kpis.create[0].lineageKey)).size).toBe(1);
+    expect(mocks.tx.baPerformancePlan.create.mock.calls[0][0].data).toMatchObject({ userId: 'owner', year: 2026 });
+    expect(mocks.tx.baPlanQuarter.create.mock.calls.map((call) => call[0].data.quarter)).toEqual([1, 2, 3, 4]);
+    const seeded = mocks.tx.baQuarterKpi.createMany.mock.calls.map((call) => call[0].data);
+    expect(seeded.map((rows) => rows[0].quarterId)).toEqual(['q1', 'q2', 'q3', 'q4']);
+    for (const rows of seeded) expect(rows).toEqual([expect.objectContaining({ name: 'Rework Rate', comparator: 'LTE', targetValue: 5, templateId: 'ckt0000000000000000000001', objectiveId: null, sortOrder: 0 })]);
+    expect(new Set(seeded.map((rows) => rows[0].lineageKey)).size).toBe(1);
     expect(auditActions()).toEqual(['BA_PLAN_CREATED']);
   });
 
@@ -98,9 +109,14 @@ describe('annual plan lifecycle', () => {
 
   it('requires at least one Q1 KPI and moves Q1 to pending together with the plan', async () => {
     mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
+    await expect(submitPlan('plan-1', owner)).rejects.toThrow(/at least one annual goal/);
+    mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT'), profileJson: withGoal });
     mocks.kpiCount.mockResolvedValue(0);
     await expect(submitPlan('plan-1', owner)).rejects.toThrow(/at least one Q1 KPI/);
     mocks.kpiCount.mockResolvedValue(3);
+    await expect(submitPlan('plan-1', owner)).rejects.toThrow(/OKR set is not ready: Add at least one Objective/);
+    mocks.objectiveFindMany.mockResolvedValue([smartObjective]);
+    mocks.kpiFindMany.mockResolvedValue([{ objectiveId: 'obj-1', removedAt: null }]);
     await submitPlan('plan-1', owner);
     expect(mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'plan-1', status: 'DRAFT' }, data: { status: 'PENDING_APPROVAL' } });
     expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'q1', status: 'KPI_DRAFT' }, data: { status: 'KPI_PENDING' } });
@@ -122,10 +138,41 @@ describe('annual plan lifecycle', () => {
     expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0].data).toMatchObject({ status: 'KPI_DRAFT', returnNote: 'Please tighten the Q1 targets.' });
   });
 
+  it('saves the profile basics while keeping goals and sections of the earlier template', async () => {
+    mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT'), profileJson: JSON.stringify({ schemaVersion: 1, roadmap: { q1: 'Kick-off', q2: '', q3: '', q4: '' }, annualGoals: [{ key: 'g1', title: 'Raise quality', measure: '' }] }) });
+    await savePlanProfile('plan-1', { level: 'MIDDLE', primaryDomain: 'Lending' }, owner);
+    const saved = JSON.parse(mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0].data.profileJson);
+    expect(saved.personal).toEqual({ level: 'MIDDLE', primaryDomain: 'Lending' });
+    expect(saved.roadmap.q1).toBe('Kick-off');
+    expect(saved.annualGoals).toHaveLength(1);
+    await expect(savePlanProfile('plan-1', { level: 'Lead architect', primaryDomain: '' }, owner)).rejects.toThrow();
+  });
+
+  it('adds annual goals one at a time, up to five, each with its own key', async () => {
+    mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
+    await addAnnualGoal('plan-1', { title: 'Raise specification quality', measure: 'First-pass ≥ 90%' }, owner);
+    const saved = JSON.parse(mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0].data.profileJson);
+    expect(saved.annualGoals).toEqual([{ key: expect.any(String), title: 'Raise specification quality', measure: 'First-pass ≥ 90%' }]);
+    expect(auditActions()).toEqual(['BA_PLAN_GOAL_ADDED']);
+    const full = JSON.stringify({ schemaVersion: 1, annualGoals: Array.from({ length: 5 }, (_, index) => ({ key: `g${index}`, title: `Goal ${index}`, measure: '' })) });
+    mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT'), profileJson: full });
+    await expect(addAnnualGoal('plan-1', { title: 'One more goal' }, owner)).rejects.toThrow(/at most 5/);
+  });
+
+  it('unlinks quarterly Objectives when their annual goal is removed', async () => {
+    mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT'), profileJson: withGoal });
+    await removeAnnualGoal('plan-1', 'g1', owner);
+    expect(JSON.parse(mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0].data.profileJson).annualGoals).toEqual([]);
+    expect(mocks.tx.baQuarterObjective.updateMany).toHaveBeenCalledWith({ where: { annualGoalKey: 'g1', quarter: { planId: 'plan-1' } }, data: { annualGoalKey: null } });
+    expect(auditActions()).toEqual(['BA_PLAN_GOAL_REMOVED']);
+    mocks.planFindUnique.mockResolvedValue(planRecord('APPROVED', [{ id: 'q1', quarter: 1, status: 'IN_PROGRESS' }]));
+    await expect(removeAnnualGoal('plan-1', 'g1', owner)).rejects.toThrow(/draft or returned/);
+  });
+
   it('fails when the plan changed concurrently', async () => {
     mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
     mocks.tx.baPerformancePlan.updateMany.mockResolvedValue({ count: 0 });
-    await expect(savePlanProfile('plan-1', {}, owner)).rejects.toThrow(/changed/);
+    await expect(savePlanProfile('plan-1', { level: 'MIDDLE', primaryDomain: '' }, owner)).rejects.toThrow(/changed/);
     expect(mocks.tx.auditLog.create).not.toHaveBeenCalled();
   });
 });
@@ -133,14 +180,16 @@ describe('annual plan lifecycle', () => {
 describe('quarterly cycle', () => {
   it('opens every missing quarter of an older plan from the latest KPI set, keeping lineage keys', async () => {
     mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
-    mocks.kpiFindMany.mockResolvedValue([{ lineageKey: 'line-1', templateId: null, capabilityArea: null, name: 'Rework Rate', description: null, comparator: 'LTE', targetValue: 5, unitLabel: '%' }]);
-    mocks.tx.baPlanQuarter.create.mockResolvedValue({ id: 'qn' });
+    mocks.objectiveFindMany.mockResolvedValue([{ lineageKey: 'obj-line', title: 'Raise specification quality', specific: 'S', achievable: 'A', relevant: 'R' }]);
+    mocks.kpiFindMany.mockResolvedValue([{ lineageKey: 'line-1', templateId: null, capabilityArea: null, name: 'Rework Rate', description: null, comparator: 'LTE', targetValue: 5, unitLabel: '%', actualValue: 3, objective: { lineageKey: 'obj-line' } }]);
+    mocks.tx.baPlanQuarter.create.mockImplementation(({ data }: { data: { quarter: number } }) => Promise.resolve({ id: `q${data.quarter}` }));
+    mocks.tx.baQuarterObjective.create.mockImplementation(({ data }: { data: { quarterId: string } }) => Promise.resolve({ id: `obj-${data.quarterId}` }));
     await expect(openRemainingQuarters('plan-1', owner)).resolves.toEqual({ quarter: 2 });
-    const created = mocks.tx.baPlanQuarter.create.mock.calls.map((call) => call[0].data);
-    expect(created.map((data) => data.quarter)).toEqual([2, 3, 4]);
-    expect(created[2]).toMatchObject({ planId: 'plan-1' });
-    expect(created[2].kpis.create[0]).toMatchObject({ lineageKey: 'line-1', targetValue: 5 });
-    expect(created[2].kpis.create[0]).not.toHaveProperty('actualValue');
+    expect(mocks.tx.baPlanQuarter.create.mock.calls.map((call) => call[0].data)).toEqual([2, 3, 4].map((quarter) => ({ planId: 'plan-1', quarter })));
+    expect(mocks.tx.baQuarterObjective.create.mock.calls[2][0].data).toMatchObject({ quarterId: 'q4', lineageKey: 'obj-line', title: 'Raise specification quality' });
+    const q4Kpis = mocks.tx.baQuarterKpi.createMany.mock.calls[2][0].data;
+    expect(q4Kpis[0]).toMatchObject({ quarterId: 'q4', lineageKey: 'line-1', targetValue: 5, objectiveId: 'obj-q4' });
+    expect(q4Kpis[0]).not.toHaveProperty('actualValue');
     expect(auditActions()).toEqual(['BA_QUARTER_OPENED', 'BA_QUARTER_OPENED', 'BA_QUARTER_OPENED']);
   });
 
@@ -148,6 +197,26 @@ describe('quarterly cycle', () => {
     mocks.planFindUnique.mockResolvedValue(planRecord('APPROVED', [1, 2, 3, 4].map((quarter) => ({ id: `q${quarter}`, quarter, status: 'KPI_DRAFT' }))));
     await expect(openRemainingQuarters('plan-1', owner)).rejects.toThrow(/already open/);
     expect(mocks.tx.baPlanQuarter.create).not.toHaveBeenCalled();
+  });
+
+  it('adds SMART Objectives only to a draft KPI set, with an audit', async () => {
+    mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
+    mocks.objectiveCount.mockResolvedValue(0);
+    mocks.tx.baQuarterObjective.create.mockResolvedValue({ id: 'obj-1' });
+    mocks.tx.baPlanQuarter.count.mockResolvedValue(1);
+    await addObjective('plan-1', 1, { title: 'Raise specification quality', specific: 'All BRDs' }, owner);
+    expect(mocks.tx.baQuarterObjective.create.mock.calls[0][0].data).toMatchObject({ quarterId: 'q1', title: 'Raise specification quality', specific: 'All BRDs', achievable: '', relevant: '' });
+    expect(auditActions()).toEqual(['BA_OBJECTIVE_ADDED']);
+    mocks.planFindUnique.mockResolvedValue(planRecord('APPROVED', [{ id: 'q1', quarter: 1, status: 'IN_PROGRESS' }]));
+    await expect(addObjective('plan-1', 1, { title: 'Another objective' }, owner)).rejects.toThrow(/draft/);
+  });
+
+  it('links a KPI only to an Objective of the same quarter', async () => {
+    mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
+    mocks.objectiveCount.mockResolvedValue(0);
+    await expect(addQuarterKpi('plan-1', 1, { name: 'Rework Rate', comparator: 'LTE', targetValue: 5, unitLabel: '%', objectiveId: 'ckt0000000000000000000009' }, owner)).rejects.toThrow(/Objective from this quarter/);
+    expect(mocks.objectiveCount).toHaveBeenCalledWith({ where: { id: 'ckt0000000000000000000009', quarterId: 'q1' } });
+    expect(mocks.tx.baQuarterKpi.create).not.toHaveBeenCalled();
   });
 
   it('locks the KPI set for the owner once approved', async () => {

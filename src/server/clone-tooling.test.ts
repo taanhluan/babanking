@@ -187,7 +187,7 @@ describe('safe clone tooling', () => {
       excludedModelSet.has('Bookmark'),
     ).toBe(true);
 
-    for (const model of ['BaPerformancePlan', 'BaPlanQuarter', 'BaQuarterKpi', 'BaKpiProgressLog', 'BaKpiAdjustment', 'BaKpiTemplate', 'BaTeamProfile', 'BaCustomer', 'BaProject', 'BaProjectRole', 'BaAllocation'] as const) {
+    for (const model of ['BaPerformancePlan', 'BaPlanQuarter', 'BaQuarterKpi', 'BaQuarterObjective', 'BaKpiProgressLog', 'BaKpiAdjustment', 'BaKpiTemplate', 'BaTeamProfile', 'BaCustomer', 'BaProject', 'BaProjectRole', 'BaAllocation'] as const) {
       expect(excludedModelSet.has(model)).toBe(true);
     }
 

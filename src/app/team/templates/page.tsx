@@ -29,7 +29,7 @@ export default async function TeamTemplatesPage({ searchParams }: { searchParams
         {templates.map((template) => (
           <details key={template.id} className={cardClass}>
             <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2">
-              <span><span className="font-semibold text-navy">{template.name}</span> <span className="text-sm text-textSecondary">{formatTarget(template.comparator, template.defaultTarget, template.unitLabel)}</span><span className="block text-xs text-slate-500">{capabilityAreaLabels[locale][template.capabilityArea as CapabilityArea] ?? template.capabilityArea}</span></span>
+              <span><span className="font-semibold text-navy">{template.name}</span> <span className="text-sm text-textSecondary">{formatTarget(template.comparator, template.defaultTarget, template.unitLabel, locale)}</span><span className="block text-xs text-slate-500">{capabilityAreaLabels[locale][template.capabilityArea as CapabilityArea] ?? template.capabilityArea}</span></span>
               <Badge>{template.isActive ? copy.active : copy.inactive}</Badge>
             </summary>
             <form action={saveTemplateAction} className="mt-3 grid gap-3">

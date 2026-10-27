@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { baLevels } from './ba-allocation-domain';
 import type { BaPlanStatus, BaQuarterStatus, KpiComparator } from '@prisma/client';
 
 /** Fixed capability areas of the BA capability framework. Labels live in the UI copy. */
@@ -10,7 +11,20 @@ export type Quarter = (typeof quarters)[number];
 const text = (max: number) => z.string().trim().max(max).default('');
 const byArea = (max: number) => z.object(Object.fromEntries(capabilityAreas.map((area) => [area, text(max)])) as Record<CapabilityArea, ReturnType<typeof text>>);
 
-/** Descriptive sections of the annual plan (schema-versioned JSON in BaPerformancePlan.profileJson). */
+export const MAX_ANNUAL_GOALS = 5;
+
+/** A few goals for the year (owner decision 2026-10-27); quarterly Objectives point at them by key. */
+export const annualGoalSchema = z.object({
+  key: z.string().min(1).max(64),
+  title: z.string().trim().min(3, 'Give each annual goal a title of at least 3 characters.').max(200),
+  measure: z.string().trim().max(300).default(''),
+});
+export type AnnualGoal = z.infer<typeof annualGoalSchema>;
+
+/**
+ * Descriptive sections of the annual plan (schema-versioned JSON in BaPerformancePlan.profileJson).
+ * Only `personal` and `annualGoals` are edited now; the other sections are kept for plans written with the earlier template.
+ */
 export const baPlanProfileSchema = z.object({
   schemaVersion: z.literal(1).default(1),
   personal: z.object({ level: text(1500), primaryDomain: text(1500) }).default({ level: '', primaryDomain: '' }),
@@ -23,8 +37,25 @@ export const baPlanProfileSchema = z.object({
   riskControl: z.object({ contextSwitching: text(1500), burnout: text(1500), knowledgeGrowth: text(1500) }).default({ contextSwitching: '', burnout: '', knowledgeGrowth: '' }),
   expectedOutcomes: byArea(1500).default(emptyByArea()),
   deliveryImpact: z.object({ businessImpact: text(1500) }).default({ businessImpact: '' }),
+  annualGoals: z.array(annualGoalSchema).max(MAX_ANNUAL_GOALS).default([]),
 }).strict();
 export type BaPlanProfile = z.infer<typeof baPlanProfileSchema>;
+
+/** Profile basics a member edits; the level is one of the team levels (blank until chosen). */
+export const planPersonalSchema = z.object({
+  level: z.union([z.enum(baLevels), z.literal('')]),
+  primaryDomain: z.string().trim().max(1500).default(''),
+}).strict();
+
+/** One annual goal as entered; the server assigns its key. */
+export const annualGoalInputSchema = annualGoalSchema.omit({ key: true });
+
+/** True when the plan still holds content in a section of the earlier, longer template. */
+export function hasLegacyProfileContent(profile: BaPlanProfile) {
+  return Object.entries(profile)
+    .filter(([key]) => !['schemaVersion', 'personal', 'annualGoals'].includes(key))
+    .some(([, section]) => Object.values(section as Record<string, string>).some((entry) => entry.trim()));
+}
 
 function emptyByArea() {
   return Object.fromEntries(capabilityAreas.map((area) => [area, ''])) as Record<CapabilityArea, string>;
@@ -60,16 +91,76 @@ export function parseManagerNotes(json: string | null | undefined): ManagerNotes
 const finiteNumber = z.coerce.number().finite().min(-1_000_000).max(1_000_000);
 const optionalUrl = z.string().trim().max(500).url().refine((value) => /^https?:\/\//i.test(value), 'Use an http(s) link.').optional();
 
+/** ≥, ≤ and = compare the actual with the target; DONE is a milestone whose actual is 1 (done) or 0 (not done). */
+export const kpiComparators = ['GTE', 'LTE', 'EQ', 'DONE'] as const;
+/** A milestone KPI always targets "done"; its unit is not shown. */
+export const MILESTONE_TARGET = 1;
+
 export const kpiDefinitionSchema = z.object({
   name: z.string().trim().min(2).max(200),
   description: z.string().trim().max(1000).optional(),
   capabilityArea: z.enum(capabilityAreas).optional(),
-  comparator: z.enum(['GTE', 'LTE']),
+  comparator: z.enum(kpiComparators),
   targetValue: finiteNumber,
   unitLabel: z.string().trim().min(1).max(60),
   templateId: z.string().cuid().optional(),
+  objectiveId: z.string().cuid().optional(),
 });
 export type KpiDefinition = z.infer<typeof kpiDefinitionSchema>;
+
+/** Milestone KPIs carry a fixed target and no meaningful unit, whatever the form sent. */
+export function normalizeKpiInput<T extends { comparator?: unknown; targetValue?: unknown; unitLabel?: unknown }>(input: T): T {
+  return input.comparator === 'DONE' ? { ...input, targetValue: MILESTONE_TARGET, unitLabel: '✓' } : input;
+}
+
+/**
+ * OKR Objective of a quarter, written as a SMART goal. Measurable is satisfied by the linked KPIs
+ * (Key Results) and Time-bound by the quarter end, so only Specific, Achievable and Relevant are entered.
+ */
+export const objectiveSchema = z.object({
+  title: z.string().trim().min(5, 'Give the Objective a title of at least 5 characters.').max(200),
+  annualGoalKey: z.string().min(1).max(64).optional(),
+  specific: z.string().trim().max(1000).default(''),
+  achievable: z.string().trim().max(1000).default(''),
+  relevant: z.string().trim().max(1000).default(''),
+});
+export type ObjectiveInput = z.infer<typeof objectiveSchema>;
+
+export const smartFields = ['specific', 'achievable', 'relevant'] as const;
+export type SmartGap =
+  | { kind: 'NO_OBJECTIVES' }
+  | { kind: 'MISSING_SMART'; objectiveId: string; title: string; fields: Array<(typeof smartFields)[number]> }
+  | { kind: 'NO_KEY_RESULTS'; objectiveId: string; title: string }
+  | { kind: 'KPI_WITHOUT_OBJECTIVE'; count: number };
+
+/** A KPI set is ready for approval when every Objective is SMART with at least one Key Result and every KPI belongs to one. */
+export function smartGaps(
+  objectives: Array<{ id: string; title: string; specific: string; achievable: string; relevant: string }>,
+  kpis: Array<{ objectiveId: string | null; removedAt?: Date | null }>,
+): SmartGap[] {
+  const active = kpis.filter((kpi) => !kpi.removedAt);
+  if (!objectives.length) return [{ kind: 'NO_OBJECTIVES' }];
+  const gaps: SmartGap[] = [];
+  for (const objective of objectives) {
+    const fields = smartFields.filter((field) => !objective[field].trim());
+    if (fields.length) gaps.push({ kind: 'MISSING_SMART', objectiveId: objective.id, title: objective.title, fields });
+    if (!active.some((kpi) => kpi.objectiveId === objective.id)) gaps.push({ kind: 'NO_KEY_RESULTS', objectiveId: objective.id, title: objective.title });
+  }
+  const orphans = active.filter((kpi) => !kpi.objectiveId || !objectives.some((objective) => objective.id === kpi.objectiveId)).length;
+  if (orphans) gaps.push({ kind: 'KPI_WITHOUT_OBJECTIVE', count: orphans });
+  return gaps;
+}
+
+export function describeSmartGaps(gaps: SmartGap[]) {
+  return gaps.map((gap) => {
+    switch (gap.kind) {
+      case 'NO_OBJECTIVES': return 'Add at least one Objective.';
+      case 'MISSING_SMART': return `Objective "${gap.title}" is missing: ${gap.fields.join(', ')}.`;
+      case 'NO_KEY_RESULTS': return `Objective "${gap.title}" has no Key Result (KPI).`;
+      case 'KPI_WITHOUT_OBJECTIVE': return `${gap.count} KPI(s) are not linked to an Objective.`;
+    }
+  }).join(' ');
+}
 
 export const progressUpdateSchema = z.object({
   actualValue: finiteNumber,
@@ -110,7 +201,11 @@ export type KpiEvaluation = 'ACHIEVED' | 'NOT_ACHIEVED' | 'NOT_REPORTED';
 
 export function evaluateKpi(comparator: KpiComparator, target: number, actual: number | null | undefined): KpiEvaluation {
   if (actual === null || actual === undefined || !Number.isFinite(actual)) return 'NOT_REPORTED';
-  return (comparator === 'GTE' ? actual >= target : actual <= target) ? 'ACHIEVED' : 'NOT_ACHIEVED';
+  const met = comparator === 'GTE' ? actual >= target
+    : comparator === 'LTE' ? actual <= target
+      : comparator === 'EQ' ? actual === target
+        : actual >= MILESTONE_TARGET;
+  return met ? 'ACHIEVED' : 'NOT_ACHIEVED';
 }
 
 export function summarizeEvaluations(kpis: Array<{ comparator: KpiComparator; targetValue: number; actualValue: number | null; removedAt?: Date | null }>) {
@@ -178,8 +273,23 @@ export function diffKpiSets(previous: ComparableKpi[], current: ComparableKpi[])
   return changes;
 }
 
-export function formatTarget(comparator: KpiComparator, target: number, unit: string) {
-  return `${comparator === 'GTE' ? '≥' : '≤'} ${formatNumber(target)} ${unit}`.trim();
+const comparatorSymbols: Record<Exclude<KpiComparator, 'DONE'>, string> = { GTE: '≥', LTE: '≤', EQ: '=' };
+const milestoneLabels = {
+  en: { target: 'Complete', done: 'Done', notDone: 'Not done' },
+  vi: { target: 'Hoàn thành', done: 'Đã hoàn thành', notDone: 'Chưa hoàn thành' },
+} as const;
+type Locale = keyof typeof milestoneLabels;
+
+export function formatTarget(comparator: KpiComparator, target: number, unit: string, locale: Locale = 'en') {
+  if (comparator === 'DONE') return milestoneLabels[locale].target;
+  return `${comparatorSymbols[comparator]} ${formatNumber(target)} ${unit}`.trim();
+}
+
+/** The reported value with its unit; milestones read as done / not done. */
+export function formatActual(comparator: KpiComparator, actual: number | null | undefined, unit: string, locale: Locale = 'en') {
+  if (actual === null || actual === undefined) return '—';
+  if (comparator === 'DONE') return actual >= MILESTONE_TARGET ? milestoneLabels[locale].done : milestoneLabels[locale].notDone;
+  return `${formatNumber(actual)} ${unit}`.trim();
 }
 
 export function formatNumber(value: number | null | undefined) {

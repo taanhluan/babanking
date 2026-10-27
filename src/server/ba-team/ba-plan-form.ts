@@ -1,4 +1,4 @@
-import { baPlanProfileSchema, managerNotesSchema, type BaPlanProfile, type ManagerNotes } from './ba-plan-domain';
+import { managerNotesSchema, normalizeKpiInput, type ManagerNotes } from './ba-plan-domain';
 
 function value(formData: FormData, name: string) {
   const entry = formData.get(name);
@@ -10,20 +10,16 @@ function optional(formData: FormData, name: string) {
   return entry ? entry : undefined;
 }
 
-/** Reads `profile.<section>.<field>` inputs into a validated plan profile; unknown sections are rejected. */
-export function profileFromForm(formData: FormData): BaPlanProfile {
-  const profile: Record<string, Record<string, string>> = {};
-  for (const [key, entry] of formData.entries()) {
-    if (!key.startsWith('profile.') || typeof entry !== 'string') continue;
-    const [, section, field] = key.split('.');
-    if (!section || !field) continue;
-    (profile[section] ??= {})[field] = entry;
-  }
-  return baPlanProfileSchema.parse({ schemaVersion: 1, ...profile });
+export function profileFromForm(formData: FormData) {
+  return { level: value(formData, 'level') ?? '', primaryDomain: value(formData, 'primaryDomain') ?? '' };
+}
+
+export function annualGoalFromForm(formData: FormData) {
+  return { title: value(formData, 'title') ?? '', measure: value(formData, 'measure') ?? '' };
 }
 
 export function kpiFromForm(formData: FormData) {
-  return {
+  return normalizeKpiInput({
     name: value(formData, 'name') ?? '',
     description: optional(formData, 'description'),
     capabilityArea: optional(formData, 'capabilityArea'),
@@ -31,6 +27,17 @@ export function kpiFromForm(formData: FormData) {
     targetValue: value(formData, 'targetValue') ?? '',
     unitLabel: value(formData, 'unitLabel') ?? '',
     templateId: optional(formData, 'templateId'),
+    objectiveId: optional(formData, 'objectiveId'),
+  });
+}
+
+export function objectiveFromForm(formData: FormData) {
+  return {
+    title: value(formData, 'title') ?? '',
+    specific: value(formData, 'specific') ?? '',
+    achievable: value(formData, 'achievable') ?? '',
+    relevant: value(formData, 'relevant') ?? '',
+    annualGoalKey: optional(formData, 'annualGoalKey'),
   };
 }
 

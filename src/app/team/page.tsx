@@ -54,7 +54,7 @@ export default async function TeamPlansPage({ searchParams }: { searchParams: Pr
                   {templates.map((template) => (
                     <label key={template.id} className="flex min-h-11 items-start gap-2 rounded-lg p-2 text-sm hover:bg-slate-50">
                       <input type="checkbox" name="templateIds" value={template.id} defaultChecked className="mt-1 h-4 w-4" />
-                      <span><span className="font-semibold">{template.name}</span> <span className="text-textSecondary">{formatTarget(template.comparator, template.defaultTarget, template.unitLabel)}</span><br /><span className="text-xs text-slate-500">{capabilityAreaLabels[locale][template.capabilityArea as CapabilityArea] ?? template.capabilityArea}</span></span>
+                      <span><span className="font-semibold">{template.name}</span> <span className="text-textSecondary">{formatTarget(template.comparator, template.defaultTarget, template.unitLabel, locale)}</span><br /><span className="text-xs text-slate-500">{capabilityAreaLabels[locale][template.capabilityArea as CapabilityArea] ?? template.capabilityArea}</span></span>
                     </label>
                   ))}
                 </div>

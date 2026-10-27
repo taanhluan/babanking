@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   baPlanProfileSchema, canTransitionPlan, canTransitionQuarter, diffKpiSets, emptyPlanProfile, evaluateKpi, formatTarget,
-  kpiDefinitionSchema, parseAnnualOutcomes, parsePlanProfile, progressUpdateSchema, quarterOfDate, quarterRange, ratingSchema, summarizeEvaluations,
+  formatActual, kpiDefinitionSchema, normalizeKpiInput, parseAnnualOutcomes, parsePlanProfile, progressUpdateSchema, quarterOfDate, quarterRange, ratingSchema, smartGaps, summarizeEvaluations,
 } from './ba-plan-domain';
 
 describe('KPI evaluation', () => {
@@ -106,7 +106,7 @@ describe('schemas', () => {
 
   it('validates KPI definitions and progress updates', () => {
     expect(kpiDefinitionSchema.parse({ name: 'Rework Rate', comparator: 'LTE', targetValue: '5', unitLabel: '%' }).targetValue).toBe(5);
-    expect(() => kpiDefinitionSchema.parse({ name: 'Rework Rate', comparator: 'EQ', targetValue: 5, unitLabel: '%' })).toThrow();
+    expect(() => kpiDefinitionSchema.parse({ name: 'Rework Rate', comparator: 'NE', targetValue: 5, unitLabel: '%' })).toThrow();
     expect(() => kpiDefinitionSchema.parse({ name: 'Rework Rate', comparator: 'LTE', targetValue: 'abc', unitLabel: '%' })).toThrow();
     expect(() => progressUpdateSchema.parse({ actualValue: 3, evidenceUrl: 'javascript:alert(1)' })).toThrow();
     expect(progressUpdateSchema.parse({ actualValue: '4.5', evidenceUrl: 'https://example.com/doc' }).actualValue).toBe(4.5);
@@ -123,5 +123,47 @@ describe('schemas', () => {
     expect(parseAnnualOutcomes(JSON.stringify({ a: { outcome: 'ACHIEVED', comment: '' } }))).toEqual({ a: { outcome: 'ACHIEVED', comment: '' } });
     expect(parseAnnualOutcomes(JSON.stringify({ a: { outcome: 'MAYBE' } }))).toEqual({});
     expect(parseAnnualOutcomes(null)).toEqual({});
+  });
+});
+
+describe('OKR SMART readiness', () => {
+  const objective = { id: 'o1', title: 'Raise specification quality', specific: 'All BRDs', achievable: 'Within capacity', relevant: 'Team goal' };
+
+  it('is ready when every Objective is SMART, has a Key Result and every KPI is linked', () => {
+    expect(smartGaps([objective], [{ objectiveId: 'o1' }])).toEqual([]);
+  });
+
+  it('reports missing Objectives, SMART fields, Key Results and unlinked KPIs', () => {
+    expect(smartGaps([], [{ objectiveId: null }])).toEqual([{ kind: 'NO_OBJECTIVES' }]);
+    const gaps = smartGaps([{ ...objective, achievable: ' ' }, { ...objective, id: 'o2', title: 'Second' }], [{ objectiveId: 'o1' }, { objectiveId: null }, { objectiveId: 'o2', removedAt: new Date() }]);
+    expect(gaps).toEqual([
+      { kind: 'MISSING_SMART', objectiveId: 'o1', title: 'Raise specification quality', fields: ['achievable'] },
+      { kind: 'NO_KEY_RESULTS', objectiveId: 'o2', title: 'Second' },
+      { kind: 'KPI_WITHOUT_OBJECTIVE', count: 1 },
+    ]);
+  });
+});
+
+describe('KPI comparators', () => {
+  it('evaluates =, ≥, ≤ and milestones', () => {
+    expect(evaluateKpi('EQ', 0, 0)).toBe('ACHIEVED');
+    expect(evaluateKpi('EQ', 0, 1)).toBe('NOT_ACHIEVED');
+    expect(evaluateKpi('DONE', 1, 1)).toBe('ACHIEVED');
+    expect(evaluateKpi('DONE', 1, 0)).toBe('NOT_ACHIEVED');
+    expect(evaluateKpi('DONE', 1, null)).toBe('NOT_REPORTED');
+  });
+
+  it('formats milestone targets and results in the page language', () => {
+    expect(formatTarget('EQ', 0, 'defects')).toBe('= 0 defects');
+    expect(formatTarget('DONE', 1, '✓', 'vi')).toBe('Hoàn thành');
+    expect(formatActual('DONE', 1, '✓', 'en')).toBe('Done');
+    expect(formatActual('DONE', 0, '✓', 'vi')).toBe('Chưa hoàn thành');
+    expect(formatActual('GTE', 4.5, '/ 5')).toBe('4.5 / 5');
+  });
+
+  it('fixes the target and unit of a milestone KPI', () => {
+    expect(normalizeKpiInput({ comparator: 'DONE', targetValue: '', unitLabel: '' })).toEqual({ comparator: 'DONE', targetValue: 1, unitLabel: '✓' });
+    expect(normalizeKpiInput({ comparator: 'GTE', targetValue: '90', unitLabel: '%' })).toEqual({ comparator: 'GTE', targetValue: '90', unitLabel: '%' });
+    expect(kpiDefinitionSchema.parse(normalizeKpiInput({ name: 'CBAP certified', comparator: 'DONE', targetValue: '', unitLabel: '' }))).toMatchObject({ comparator: 'DONE', targetValue: 1 });
   });
 });

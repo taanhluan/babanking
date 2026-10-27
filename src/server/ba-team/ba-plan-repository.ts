@@ -28,6 +28,7 @@ export const BaPlanRepository = {
             kpiApprovedBy: { select: { name: true } },
             reviewedBy: { select: { name: true } },
             kpis: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], include: { progressLogs: { orderBy: { createdAt: 'desc' }, take: 20, include: { author: { select: { name: true } } } } } },
+            objectives: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] },
             adjustments: { orderBy: { createdAt: 'desc' }, include: { actor: { select: { name: true } } } },
           },
         },
@@ -36,8 +37,8 @@ export const BaPlanRepository = {
   },
 
   async listPlanHistory(planId: string) {
-    const quarters = await db.baPlanQuarter.findMany({ where: { planId }, select: { id: true, kpis: { select: { id: true } } } });
-    const entityIds = [planId, ...quarters.flatMap((quarter) => [quarter.id, ...quarter.kpis.map((kpi) => kpi.id)])];
+    const quarters = await db.baPlanQuarter.findMany({ where: { planId }, select: { id: true, kpis: { select: { id: true } }, objectives: { select: { id: true } } } });
+    const entityIds = [planId, ...quarters.flatMap((quarter) => [quarter.id, ...quarter.kpis.map((kpi) => kpi.id), ...quarter.objectives.map((objective) => objective.id)])];
     return db.auditLog.findMany({ where: { entityId: { in: entityIds }, action: { startsWith: 'BA_' } }, orderBy: { createdAt: 'desc' }, take: 200, select: { id: true, action: true, createdAt: true, metadataJson: true, actor: { select: { name: true } } } });
   },
 

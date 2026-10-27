@@ -1,5 +1,88 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## BA KPI plans: OKR + SMART and KPI tracking table (2026-10-27, `develop`, local)
+
+- Owner decisions: quarterly OKR. Each quarter has Objectives and its KPIs are
+  the Key Results. Each Objective is a SMART goal. KPI evaluation is unchanged
+  (target, actual, achieved / not achieved, Lead rating 1–5); no OKR score.
+- Model: new `BaQuarterObjective` (quarter, `lineageKey`, title, specific,
+  achievable, relevant) and nullable `BaQuarterKpi.objectiveId` (SetNull).
+  Measurable = linked KPIs and Time-bound = quarter end, so neither is stored.
+  Migration `20261027072930_add_ba_quarter_objectives` (additive only) applied to
+  Development via `db:migrate:dev` after `db:check-env` and a clean
+  `db:migrate:status`. Clone tooling classifies the model `EXCLUDE` and adds it
+  to `cleanupModels`.
+- Rules (`ba-plan-domain.ts` `smartGaps`): a KPI set can be submitted (Q1 with
+  the plan, Q2–Q4 on their own) only when there is at least one Objective, each
+  Objective has S, A and R filled and at least one active KPI, and every
+  active KPI is linked. Objectives are added, edited and removed only while the
+  quarter is `KPI_DRAFT`; removal unlinks its KPIs. A KPI may only link to an
+  Objective of its own quarter (also for Lead mid-quarter adjustments). Audits:
+  `BA_OBJECTIVE_ADDED|UPDATED|REMOVED`.
+- Plan creation and "open remaining quarters" copy Objectives with their KPI
+  links (by lineage); creation from templates starts with no Objectives.
+- UI: quarter tab shows an OKR card (SMART per Objective, readiness checklist)
+  and a KPI table grouped by Objective. KPI forms have an Objective select.
+- KPI table rows expand in place (click the row or "Details", client
+  `KpiTableRow`) to show the description and the edit / adjust / result
+  forms and progress log; the separate "KPI details" cards were removed.
+- Targets are read-only in the table and change only through the row's detail
+  form (owner request), so the table always shows the saved value. The bulk
+  "Save targets" action and `updateQuarterTargets` were removed.
+- Existing Development plans have no Objectives: members must add them before
+  submitting a quarter. 60 files / 461 tests, ESLint and `tsc --noEmit` pass.
+  Not committed; Production will need the migration in an approved release.
+- Simplified annual plan (owner decision, same day): the plan tab now edits
+  only Level, Primary domain and up to 5 annual goals (title + "measured by"),
+  stored as `annualGoals` in `profileJson` (schema v1, defaults to `[]`). The
+  ten earlier sections are no longer edited; `savePlanProfile` merges the basics
+  onto the stored profile, so their content is kept and shown read-only under
+  "Detailed sections (earlier template)". Submitting the plan needs at least
+  one annual goal. Objectives can name the goal they serve:
+  `BaQuarterObjective.annualGoalKey` (migration
+  `…_add_ba_objective_annual_goal`, one nullable column, applied to
+  Development), validated against the plan's goals and copied with Objectives.
+- Declare vs report (owner request, same day): each quarter tab has two views,
+  `?view=declare` (OKR, KPI targets, submit/approve/return, Lead adjustments
+  and their history) and `?view=report` (tracking table with results, update
+  result, update log, submit/reopen results, Lead review). Report shows a
+  notice until the KPI set is approved. Without `view` the page opens declare
+  before approval and report after. Form posts carry `view` so actions return
+  to the same view. UI only: no rule, data or schema change, and no deadline
+  or time-based lock (owner: not needed for now).
+- Annual goals are added, edited and removed one at a time
+  (`addAnnualGoal` / `updateAnnualGoal` / `removeAnnualGoal`, audits
+  `BA_PLAN_GOAL_ADDED|UPDATED|REMOVED`, at most 5). Removing a goal clears
+  `annualGoalKey` on the plan's Objectives in the same transaction. Every
+  profile write is conditioned on the profile that was read. Level is now a
+  select of the team levels (`baLevels`, FRESHER…PRINCIPAL; blank allowed);
+  an earlier free-text level is shown as "Previously entered" and on the
+  overview until a level is chosen.
+- Declare view "Key Results and targets" table: while the quarter is a draft,
+  each row has Remove (a button joined through the `form` attribute to one
+  remove form outside the table) and the card has an inline "Add Key Result" row (Objective,
+  name, ≥/≤, target, unit) plus add-from-template. The separate "Add KPI" card
+  now appears only for the Lead's mid-quarter adjustment (reason required).
+  Same services and rules as before.
+- More comparators (owner request, same day): `KpiComparator` adds `EQ`
+  (exactly =) and `DONE` (milestone, done / not done). Migration
+  `20261027081510_add_kpi_comparator_eq_done` (enum values only, additive)
+  was applied to Development via `db:migrate:dev`.
+  - `DONE` is normalized at the form layer (`normalizeKpiInput`): target 1,
+    unit `✓`. Achieved when the result is 1.
+  - The report form shows a Done / Not done select for milestones, and the
+    table, log and year summary display the result as text (`formatActual`).
+  - `formatTarget` now takes the page locale. Templates use the same parsing.
+  - KPI and template forms use the client `ComparatorTargetFields`: choosing
+    Done / not done disables and clears Target and Unit (disabled inputs are
+    not posted; the server still fixes target 1 and unit `✓`). Switching back
+    restores what was typed. The form class strings moved to
+    `team-styles.ts` (re-exported by `TeamShell`), since `TeamShell` imports
+    server-only code.
+- Validation: 60 files / 464 tests, ESLint and `tsc --noEmit` pass; local dev
+  pages return 200. Nothing since `a366220` is committed. Production will need
+  the three new migrations in a separately approved release.
+
 ## BA KPI plans open all four quarters up front (2026-10-27, `develop`, local)
 
 - Owner decision: Q2–Q4 no longer wait for the previous quarter. This replaces

@@ -7,7 +7,7 @@ import { ReasonField } from '@/components/team/KpiFields';
 import { ManagerNotesSection } from '@/components/team/ManagerNotesSection';
 import { PlanHistorySection } from '@/components/team/PlanHistorySection';
 import { PlanProfileSection } from '@/components/team/PlanProfileSection';
-import { QuarterSection } from '@/components/team/QuarterSection';
+import { isReportOpen, QuarterSection, type QuarterView } from '@/components/team/QuarterSection';
 import { Badge, ResultBanner, TeamNav, buttonClass, cardClass, secondaryButtonClass } from '@/components/team/TeamShell';
 import { YearSummarySection } from '@/components/team/YearSummarySection';
 import { planStatusLabels, quarterStatusLabels, teamCopy } from '@/components/team/team-copy';
@@ -24,7 +24,7 @@ import { requirePlanAccess } from '@/server/ba-team/ba-team-access';
 const tabs = ['plan', 'q1', 'q2', 'q3', 'q4', 'year', 'notes', 'history'] as const;
 type Tab = (typeof tabs)[number];
 
-export default async function PlanPage({ params, searchParams }: { params: Promise<{ planId: string }>; searchParams: Promise<{ tab?: string; error?: string; saved?: string }> }) {
+export default async function PlanPage({ params, searchParams }: { params: Promise<{ planId: string }>; searchParams: Promise<{ tab?: string; view?: string; error?: string; saved?: string }> }) {
   const { planId } = await params;
   const { actor } = await requirePlanAccess(planId);
   const [query, locale] = await Promise.all([searchParams, getCurrentLocale()]);
@@ -37,6 +37,12 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   const quarterNumber = tab.startsWith('q') ? Number(tab.slice(1)) : 0;
   const quarter = plan.quarters.find((entry) => entry.quarter === quarterNumber);
   const previous = plan.quarters.find((entry) => entry.quarter === quarterNumber - 1);
+  // Without an explicit choice, a quarter opens on declaring goals until its KPI set is approved, then on reporting results.
+  const view: QuarterView = query.view === 'declare' || query.view === 'report' ? query.view : quarter && isReportOpen(quarter.status) ? 'report' : 'declare';
+  const viewHrefs = {
+    declare: getLocalizedPath(`/team/plans/${plan.id}?tab=${tab}&view=declare`, locale) as Route,
+    report: getLocalizedPath(`/team/plans/${plan.id}?tab=${tab}&view=report`, locale) as Route,
+  };
   const [templates, history] = await Promise.all([
     quarter ? BaPlanRepository.listTemplates({ activeOnly: true }) : Promise.resolve([]),
     tab === 'history' ? BaPlanRepository.listPlanHistory(plan.id) : Promise.resolve([]),
@@ -100,7 +106,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
       {tab === 'plan' ? <AllocationSuggestion userId={plan.userId} locale={locale} /> : null}
       {tab === 'plan' ? <PlanProfileSection planId={plan.id} profile={parsePlanProfile(plan.profileJson)} editable={canEditPlanProfile(actor, plan)} copy={copy} locale={locale} /> : null}
       {quarterNumber ? (quarter
-        ? <QuarterSection plan={plan} quarter={quarter} previous={previous} actor={actor} templates={templates} copy={copy} locale={locale} />
+        ? <QuarterSection plan={plan} quarter={quarter} previous={previous} annualGoals={parsePlanProfile(plan.profileJson).annualGoals} actor={actor} templates={templates} copy={copy} locale={locale} view={view} viewHrefs={viewHrefs} />
         : <p className={`${cardClass} text-sm text-textSecondary`}>{copy.notOpened}</p>) : null}
       {tab === 'year' ? <YearSummarySection plan={plan} canClose={canCloseYear(actor, plan, plan.quarters)} copy={copy} locale={locale} /> : null}
       {tab === 'notes' ? <ManagerNotesSection planId={plan.id} notes={parseManagerNotes(plan.managerNotesJson)} editable={canWriteManagerNotes(actor, plan)} copy={copy} /> : null}
