@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingIncludes: {
-    '/banking-journeys/*/mockup/**': ['./docs/mockups/customer-onboarding/**/*'],
+    '/banking-journeys/*/mockup/**': [
+      './docs/mockups/customer-onboarding/**/*',
+      './docs/mockups/digital-lending/**/*',
+    ],
   },
   experimental: {
     // Full Journey JSON drafts can exceed the default 1 MB request limit.

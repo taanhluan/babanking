@@ -4,6 +4,7 @@ import type { ServerEnvironment } from '@/server/environment-core';
 
 const mockups = {
   'customer-onboarding': { directory: 'customer-onboarding' },
+  lending: { directory: 'digital-lending' },
 } as const;
 
 const files: Record<string, string> = {

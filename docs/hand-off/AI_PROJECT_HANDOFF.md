@@ -1,5 +1,51 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## Digital lending onboarding mockup (2026-10-27, `develop`)
+
+- Owner asked for a mockup of the Digital Lending Onboarding content, built
+  the same way as the Customer Onboarding one.
+- Source: Development Journey `lending`, published v6 (title "Digital Lending
+  Onboarding", 10 domain modules), read-only after `db:check-env`. A v7
+  DRAFT exists and was not used.
+- New package `docs/mockups/digital-lending/` with the files `index.html`,
+  `app.mjs`, `model.mjs`, `model.test.mjs`, `README.md` and
+  `VALIDATION_RULES.md`, plus a copy of the Datum Bank assets.
+  - Three products: unsecured, collateral (adds a collateral stage), and
+    repeat top-up for existing customers only.
+  - Four personas and six exception scenarios.
+  - A "Domain outcomes" panel uses the Journey's outcome taxonomy.
+- Integration:
+  - `src/server/journey-mockups/catalog.ts` maps `lending` →
+    `digital-lending`, so the existing Development-only, VIEW-authorized
+    `/banking-journeys/[slug]/mockup` handler serves it and `KnowledgeActions`
+    shows **Mockup** on the lending reader.
+  - `next.config.mjs` output tracing includes the new directory.
+  - The route test now covers the second Journey.
+- `VALIDATION_RULES.md` lists six content gaps found in the Journey for the
+  owner. The main one: the example score factors sum to 800, but the stated
+  maximum is 1000.
+- Validation:
+  - Mockup: 20 node tests and ESLint pass.
+  - Headless Chrome walkthroughs of all products and personas, including a
+    390px mobile run, finished with no console errors.
+  - Route test: 11 tests pass.
+- No database, CMS or revision change. Committed and pushed to
+  `origin/develop` at the owner's request; the hosted Development check of the
+  button and assets is next. Preview and Production untouched.
+
+## BA team test account gets membership (2026-10-26, Development)
+
+- At the owner's request, the existing disposable account
+  `ba-team-member.test@example.com` (MEMBER, BA team) got a new password, an
+  ACTIVE INTERNAL membership (365 days, no plan) and the
+  `FULL_KNOWLEDGE_ACCESS` package. It now covers both `/team` and premium
+  content in `enforced` matrix mode.
+- One Serializable transaction with preconditions (no membership, no active
+  package). Actor: the owner's ADMIN account. Audits:
+  `DEVELOPMENT_TEST_USER_PASSWORD_RESET`, `DEVELOPMENT_TEST_MEMBERSHIP_CREATED`,
+  `KNOWLEDGE_PACKAGE_ASSIGNED`. Read-back verified bcrypt, membership and
+  package. The password is not recorded here. Preview and Production untouched.
+
 ## Team form layout and select chevron (2026-10-26, `develop`)
 
 - Fixed overflowing filter forms on `/team/allocation` (now a responsive grid:

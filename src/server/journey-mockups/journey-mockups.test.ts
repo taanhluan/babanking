@@ -31,6 +31,8 @@ describe('Development-only Journey mockup', () => {
       .toBe('/en/banking-journeys/customer-onboarding/mockup');
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'vi', dev))
       .toBe('/vi/banking-journeys/customer-onboarding/mockup');
+    expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'lending', 'vi', dev))
+      .toBe('/vi/banking-journeys/lending/mockup');
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'cards', 'en', dev)).toBeNull();
     expect(getDevelopmentMockupHref('CASE_STUDY', 'customer-onboarding', 'en', dev)).toBeNull();
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'en', {
@@ -44,6 +46,12 @@ describe('Development-only Journey mockup', () => {
     expect(mocks.authorize.mock.invocationCallOrder[0]).toBeLessThan(mocks.readFile.mock.invocationCallOrder[0]);
     expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
     expect(await response.text()).toContain('<base href="/banking-journeys/customer-onboarding/mockup/">');
+  });
+
+  it('serves each registered Journey from its own mockup directory', async () => {
+    await request(undefined, 'lending');
+    expect(mocks.authorize).toHaveBeenCalledWith('BANKING_JOURNEY', 'lending');
+    expect(String(mocks.readFile.mock.calls[0][0])).toMatch(/docs\/mockups\/digital-lending\/index\.html$/);
   });
 
   it('does not read files when access is denied', async () => {
