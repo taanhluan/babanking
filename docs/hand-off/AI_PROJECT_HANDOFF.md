@@ -83,6 +83,8 @@
   `.team-forms`; a rule in `globals.css` adds a red `*` after the text of any
   label whose direct control is `required` and not disabled (CSS `:has`, no
   per-form markup). Committed and pushed to `origin/develop` at the owner's request.
+  Follow-up: `align-content: flex-start` keeps controls level when a hint
+  makes a grid row taller (it had pushed required controls down).
 - Validation: 60 files / 464 tests, ESLint and `tsc --noEmit` pass; local dev
   pages return 200. Nothing since `a366220` is committed. Production will need
   the three new migrations in a separately approved release.

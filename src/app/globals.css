@@ -90,11 +90,13 @@ select:not([multiple]):not([size]) {
 /*
  * /team forms: a label whose own control is required shows a red asterisk after its text. The label becomes a
  * wrapping flex row so the anonymous text item comes first, the asterisk next and the control on its own line.
+ * Lines pack to the top so a label stretched by its grid row keeps its control level with its neighbours.
  * Disabled controls (for example a milestone KPI's target) are not marked.
  */
 .team-forms label:has(> :is(input, select, textarea):required:not(:disabled)) {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   align-items: baseline;
   column-gap: 0.25rem;
 }
