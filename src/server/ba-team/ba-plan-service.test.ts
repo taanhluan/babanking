@@ -33,7 +33,7 @@ vi.mock('@/lib/db', () => ({
 }));
 
 import {
-  approvePlan, closeYear, createPlan, leadChangeKpi, leadRemoveKpi, openNextQuarter, returnPlan, reviewQuarter, savePlanProfile,
+  approvePlan, closeYear, createPlan, leadChangeKpi, leadRemoveKpi, openRemainingQuarters, returnPlan, reviewQuarter, savePlanProfile,
   setBaTeamMembership, submitPlan, updateKpiProgress, updateQuarterKpi,
 } from './ba-plan-service';
 
@@ -78,14 +78,16 @@ describe('membership and visibility', () => {
 });
 
 describe('annual plan lifecycle', () => {
-  it('creates a plan with a Q1 KPI draft seeded from active templates', async () => {
+  it('creates a plan with all four quarters as KPI drafts seeded from active templates', async () => {
     mocks.planFindUnique.mockResolvedValue(null);
     mocks.templateFindMany.mockResolvedValue([{ id: 'ckt0000000000000000000001', name: 'Rework Rate', description: null, capabilityArea: 'STRUCTURED_SPECIFICATION', comparator: 'LTE', defaultTarget: 5, unitLabel: '%' }]);
     mocks.tx.baPerformancePlan.create.mockResolvedValue({ id: 'plan-1' });
     await createPlan({ year: 2026, source: 'TEMPLATES', templateIds: ['ckt0000000000000000000001'] }, owner);
     const data = mocks.tx.baPerformancePlan.create.mock.calls[0][0].data;
     expect(data).toMatchObject({ userId: 'owner', year: 2026 });
-    expect(data.quarters.create.kpis.create).toEqual([expect.objectContaining({ name: 'Rework Rate', comparator: 'LTE', targetValue: 5, templateId: 'ckt0000000000000000000001', sortOrder: 0 })]);
+    expect(data.quarters.create.map((entry: { quarter: number }) => entry.quarter)).toEqual([1, 2, 3, 4]);
+    for (const entry of data.quarters.create) expect(entry.kpis.create).toEqual([expect.objectContaining({ name: 'Rework Rate', comparator: 'LTE', targetValue: 5, templateId: 'ckt0000000000000000000001', sortOrder: 0 })]);
+    expect(new Set(data.quarters.create.map((entry: { kpis: { create: Array<{ lineageKey: string }> } }) => entry.kpis.create[0].lineageKey)).size).toBe(1);
     expect(auditActions()).toEqual(['BA_PLAN_CREATED']);
   });
 
@@ -129,15 +131,23 @@ describe('annual plan lifecycle', () => {
 });
 
 describe('quarterly cycle', () => {
-  it('copies the active KPI set with lineage keys when opening the next quarter', async () => {
-    mocks.planFindUnique.mockResolvedValue(planRecord('APPROVED', [{ id: 'q1', quarter: 1, status: 'RESULTS_SUBMITTED' }]));
+  it('opens every missing quarter of an older plan from the latest KPI set, keeping lineage keys', async () => {
+    mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
     mocks.kpiFindMany.mockResolvedValue([{ lineageKey: 'line-1', templateId: null, capabilityArea: null, name: 'Rework Rate', description: null, comparator: 'LTE', targetValue: 5, unitLabel: '%' }]);
-    mocks.tx.baPlanQuarter.create.mockResolvedValue({ id: 'q2' });
-    await expect(openNextQuarter('plan-1', owner)).resolves.toEqual({ quarter: 2 });
-    const data = mocks.tx.baPlanQuarter.create.mock.calls[0][0].data;
-    expect(data).toMatchObject({ planId: 'plan-1', quarter: 2 });
-    expect(data.kpis.create[0]).toMatchObject({ lineageKey: 'line-1', targetValue: 5 });
-    expect(data.kpis.create[0]).not.toHaveProperty('actualValue');
+    mocks.tx.baPlanQuarter.create.mockResolvedValue({ id: 'qn' });
+    await expect(openRemainingQuarters('plan-1', owner)).resolves.toEqual({ quarter: 2 });
+    const created = mocks.tx.baPlanQuarter.create.mock.calls.map((call) => call[0].data);
+    expect(created.map((data) => data.quarter)).toEqual([2, 3, 4]);
+    expect(created[2]).toMatchObject({ planId: 'plan-1' });
+    expect(created[2].kpis.create[0]).toMatchObject({ lineageKey: 'line-1', targetValue: 5 });
+    expect(created[2].kpis.create[0]).not.toHaveProperty('actualValue');
+    expect(auditActions()).toEqual(['BA_QUARTER_OPENED', 'BA_QUARTER_OPENED', 'BA_QUARTER_OPENED']);
+  });
+
+  it('refuses to open quarters when all four are already open', async () => {
+    mocks.planFindUnique.mockResolvedValue(planRecord('APPROVED', [1, 2, 3, 4].map((quarter) => ({ id: `q${quarter}`, quarter, status: 'KPI_DRAFT' }))));
+    await expect(openRemainingQuarters('plan-1', owner)).rejects.toThrow(/already open/);
+    expect(mocks.tx.baPlanQuarter.create).not.toHaveBeenCalled();
   });
 
   it('locks the KPI set for the owner once approved', async () => {

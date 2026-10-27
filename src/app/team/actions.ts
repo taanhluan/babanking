@@ -9,7 +9,7 @@ import type { BaTeamActor } from '@/server/ba-team/ba-plan-policy';
 import { BaPlanRepository } from '@/server/ba-team/ba-plan-repository';
 import {
   addQuarterKpi, approvePlan, approveQuarterKpis, closeYear, createPlan, deleteQuarterKpi, leadAddKpi, leadChangeKpi, leadRemoveKpi,
-  openNextQuarter, reopenPlan, reopenQuarterResults, returnPlan, returnQuarterKpis, reviewQuarter, saveKpiTemplate, saveManagerNotes,
+  openRemainingQuarters, reopenPlan, reopenQuarterResults, returnPlan, returnQuarterKpis, reviewQuarter, saveKpiTemplate, saveManagerNotes,
   savePlanProfile, setBaTeamMembership, submitPlan, submitQuarterKpis, submitQuarterResults, updateKpiProgress, updateQuarterKpi,
 } from '@/server/ba-team/ba-plan-service';
 import { requireBaTeamLead, requireBaTeamMember } from '@/server/ba-team/ba-team-access';
@@ -113,13 +113,13 @@ export async function closeYearAction(formData: FormData) {
 
 // ---------- Quarterly KPI set ----------
 
-export async function openNextQuarterAction(formData: FormData) {
+export async function openRemainingQuartersAction(formData: FormData) {
   const planId = idSchema.parse(formData.get('planId'));
   const actor = await requireBaTeamMember();
   let error: string | undefined;
   let tab = 'plan';
   try {
-    tab = `q${(await openNextQuarter(planId, actor)).quarter}`;
+    tab = `q${(await openRemainingQuarters(planId, actor)).quarter}`;
     revalidatePath('/team', 'layout');
   } catch (caught) {
     error = message(caught);

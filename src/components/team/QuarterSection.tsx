@@ -240,10 +240,12 @@ function QuarterActions({ plan, quarter, actor, copy, isQ1WithPlan }: { plan: Pr
   const approveKpis = canApproveQuarterKpis(actor, plan, quarter);
   const submitResults = canSubmitResults(actor, plan, quarter);
   const reopen = canReopenResults(actor, plan, quarter);
-  if (!submitKpis && !approveKpis && !submitResults && !reopen && !isQ1WithPlan) return null;
+  const waitingForPlan = !isQ1WithPlan && quarter.status === 'KPI_DRAFT' && plan.status !== 'APPROVED' && plan.status !== 'CLOSED';
+  if (!submitKpis && !approveKpis && !submitResults && !reopen && !isQ1WithPlan && !waitingForPlan) return null;
   return (
     <section className={`${cardClass} grid gap-4`}>
       {isQ1WithPlan && quarter.status === 'KPI_DRAFT' ? <p className="text-sm text-textSecondary">{copy.submitPlanHint}</p> : null}
+      {waitingForPlan ? <p className="text-sm text-textSecondary">{copy.quarterWaitsForPlanHint}</p> : null}
       {submitKpis ? (
         <form action={submitQuarterKpisAction} className="grid gap-3">
           <Hidden planId={plan.id} quarter={quarter.quarter} />

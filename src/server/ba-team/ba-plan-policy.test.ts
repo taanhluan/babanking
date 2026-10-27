@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAdjustQuarterKpis, canApprovePlan, canApproveQuarterKpis, canCloseYear, canEditPlanProfile, canEditQuarterKpis, canManageTemplates,
-  canOpenNextQuarter, canReopenResults, canReviewQuarter, canSubmitPlan, canSubmitQuarterKpis, canUpdateProgress, canUseBaTeam, canViewPlan,
+  canOpenRemainingQuarters, canReopenResults, canReviewQuarter, canSubmitPlan, canSubmitQuarterKpis, canUpdateProgress, canUseBaTeam, canViewPlan,
   canWriteManagerNotes,
 } from './ba-plan-policy';
 
@@ -77,11 +77,12 @@ describe('quarterly cycle rules', () => {
     expect(canUpdateProgress(peer, plan('APPROVED'), { status: 'IN_PROGRESS' })).toBe(false);
   });
 
-  it('opens the next quarter only after the current one is under way, up to Q4', () => {
-    expect(canOpenNextQuarter(owner, plan('APPROVED'), { quarter: 1, status: 'IN_PROGRESS' })).toBe(true);
-    expect(canOpenNextQuarter(owner, plan('APPROVED'), { quarter: 1, status: 'KPI_PENDING' })).toBe(false);
-    expect(canOpenNextQuarter(owner, plan('APPROVED'), { quarter: 4, status: 'REVIEWED' })).toBe(false);
-    expect(canOpenNextQuarter(owner, plan('DRAFT'), { quarter: 1, status: 'REVIEWED' })).toBe(false);
+  it('opens missing quarters for an open plan only while some are missing', () => {
+    expect(canOpenRemainingQuarters(owner, plan('DRAFT'), [{ quarter: 1 }])).toBe(true);
+    expect(canOpenRemainingQuarters(owner, plan('APPROVED'), [{ quarter: 1 }, { quarter: 2 }])).toBe(true);
+    expect(canOpenRemainingQuarters(owner, plan('APPROVED'), [1, 2, 3, 4].map((quarter) => ({ quarter })))).toBe(false);
+    expect(canOpenRemainingQuarters(owner, plan('CLOSED'), [{ quarter: 1 }])).toBe(false);
+    expect(canOpenRemainingQuarters(peer, plan('DRAFT'), [{ quarter: 1 }])).toBe(false);
   });
 
   it('limits template management to the Lead', () => {

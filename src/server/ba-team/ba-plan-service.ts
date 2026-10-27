@@ -5,11 +5,11 @@ import { db } from '@/lib/db';
 import { getServerEnvironment } from '@/server/env';
 import {
   annualOutcomesSchema, baPlanProfileSchema, emptyPlanProfile, kpiDefinitionSchema, managerNotesSchema, parsePlanProfile,
-  planYearSchema, progressUpdateSchema, ratingSchema, reasonSchema, type BaPlanProfile, type KpiDefinition, type Quarter,
+  planYearSchema, progressUpdateSchema, quarters, ratingSchema, reasonSchema, type BaPlanProfile, type KpiDefinition, type Quarter,
 } from './ba-plan-domain';
 import {
   canAdjustQuarterKpis, canApprovePlan, canApproveQuarterKpis, canCloseYear, canEditPlanProfile, canEditQuarterKpis,
-  canManageTemplates, canOpenNextQuarter, canReopenPlan, canReopenResults, canReviewQuarter, canSubmitPlan,
+  canManageTemplates, canOpenRemainingQuarters, canReopenPlan, canReopenResults, canReviewQuarter, canSubmitPlan,
   canSubmitQuarterKpis, canSubmitResults, canUpdateProgress, canUseBaTeam, canWriteManagerNotes, isBaTeamLead, type BaTeamActor,
 } from './ba-plan-policy';
 
@@ -99,7 +99,9 @@ export async function createPlan(input: CreatePlanInput, actor: BaTeamActor) {
     kpis = (previous.quarters[0]?.kpis ?? []).map((kpi, index) => ({ name: kpi.name, description: kpi.description, capabilityArea: kpi.capabilityArea, comparator: kpi.comparator, targetValue: kpi.targetValue, unitLabel: kpi.unitLabel, templateId: kpi.templateId, lineageKey: kpi.lineageKey, sortOrder: index }));
   }
   return db.$transaction(async (tx) => {
-    const plan = await tx.baPerformancePlan.create({ data: { userId: actor.id, year, profileJson: JSON.stringify(profile), quarters: { create: { quarter: 1, kpis: { create: kpis } } } }, select: { id: true } });
+    // All four quarters open as drafts with the same starting KPI set (owner decision 2026-10-27).
+    const quarterDrafts = quarters.map((quarter) => ({ quarter, kpis: { create: kpis } }));
+    const plan = await tx.baPerformancePlan.create({ data: { userId: actor.id, year, profileJson: JSON.stringify(profile), quarters: { create: quarterDrafts } }, select: { id: true } });
     await audit(tx, actor.id, 'BA_PLAN_CREATED', 'BaPerformancePlan', plan.id, { year, source: input.source });
     return plan;
   });
@@ -196,23 +198,26 @@ export async function closeYear(planId: string, input: { rating: unknown; assess
 
 // ---------- Quarterly KPI set ----------
 
-export async function openNextQuarter(planId: string, actor: BaTeamActor) {
+/** Plans created before all quarters opened up front get their missing quarters, copied from the latest one. */
+export async function openRemainingQuarters(planId: string, actor: BaTeamActor) {
   const plan = await loadPlan(planId, actor);
-  const latest = plan.quarters.at(-1);
-  if (!canOpenNextQuarter(actor, plan, latest)) deny('The next quarter can be opened once the current quarter is in progress and the plan is approved.');
-  const next = (latest!.quarter + 1) as Quarter;
-  const source = await db.baQuarterKpi.findMany({ where: { quarterId: latest!.id, removedAt: null }, orderBy: { sortOrder: 'asc' } });
+  if (!canOpenRemainingQuarters(actor, plan, plan.quarters)) deny('Every quarter of this plan is already open.');
+  const latest = plan.quarters.at(-1)!;
+  const missing = quarters.filter((quarter) => !plan.quarters.some((entry) => entry.quarter === quarter));
+  const source = await db.baQuarterKpi.findMany({ where: { quarterId: latest.id, removedAt: null }, orderBy: { sortOrder: 'asc' } });
   return db.$transaction(async (tx) => {
-    const created = await tx.baPlanQuarter.create({
-      data: {
-        planId,
-        quarter: next,
-        kpis: { create: source.map((kpi, index) => ({ lineageKey: kpi.lineageKey, templateId: kpi.templateId, capabilityArea: kpi.capabilityArea, name: kpi.name, description: kpi.description, comparator: kpi.comparator, targetValue: kpi.targetValue, unitLabel: kpi.unitLabel, sortOrder: index })) },
-      },
-      select: { id: true },
-    });
-    await audit(tx, actor.id, 'BA_QUARTER_OPENED', 'BaPlanQuarter', created.id, { planId, quarter: next });
-    return { quarter: next };
+    for (const quarter of missing) {
+      const created = await tx.baPlanQuarter.create({
+        data: {
+          planId,
+          quarter,
+          kpis: { create: source.map((kpi, index) => ({ lineageKey: kpi.lineageKey, templateId: kpi.templateId, capabilityArea: kpi.capabilityArea, name: kpi.name, description: kpi.description, comparator: kpi.comparator, targetValue: kpi.targetValue, unitLabel: kpi.unitLabel, sortOrder: index })) },
+        },
+        select: { id: true },
+      });
+      await audit(tx, actor.id, 'BA_QUARTER_OPENED', 'BaPlanQuarter', created.id, { planId, quarter });
+    }
+    return { quarter: missing[0] };
   });
 }
 

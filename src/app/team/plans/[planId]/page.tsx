@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Route } from 'next';
-import { approvePlanAction, openNextQuarterAction, reopenPlanAction, returnPlanAction, submitPlanAction } from '@/app/team/actions';
+import { approvePlanAction, openRemainingQuartersAction, reopenPlanAction, returnPlanAction, submitPlanAction } from '@/app/team/actions';
 import { AllocationSuggestion } from '@/components/team/AllocationSuggestion';
 import { ReasonField } from '@/components/team/KpiFields';
 import { ManagerNotesSection } from '@/components/team/ManagerNotesSection';
@@ -16,7 +16,7 @@ import { getCurrentLocale } from '@/i18n/server';
 import { getLocalizedPath } from '@/i18n/routing';
 import { parseManagerNotes, parsePlanProfile } from '@/server/ba-team/ba-plan-domain';
 import {
-  canApprovePlan, canCloseYear, isBaTeamLead, canEditPlanProfile, canOpenNextQuarter, canReopenPlan, canSubmitPlan, canWriteManagerNotes,
+  canApprovePlan, canCloseYear, isBaTeamLead, canEditPlanProfile, canOpenRemainingQuarters, canReopenPlan, canSubmitPlan, canWriteManagerNotes,
 } from '@/server/ba-team/ba-plan-policy';
 import { BaPlanRepository } from '@/server/ba-team/ba-plan-repository';
 import { requirePlanAccess } from '@/server/ba-team/ba-team-access';
@@ -74,11 +74,11 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
               <form action={reopenPlanAction} className="mt-2">{hidden}<button className={secondaryButtonClass}>{copy.reopenPlan}</button></form>
             </details>
           ) : null}
-          {canOpenNextQuarter(actor, plan, latest) ? (
-            <form action={openNextQuarterAction} className="grid gap-1">
+          {canOpenRemainingQuarters(actor, plan, plan.quarters) ? (
+            <form action={openRemainingQuartersAction} className="grid gap-1">
               <input type="hidden" name="planId" value={plan.id} />
-              <button className={secondaryButtonClass}>{copy.openNextQuarter} (Q{(latest?.quarter ?? 0) + 1})</button>
-              <span className="text-xs text-slate-500">{copy.openNextQuarterHint}</span>
+              <button className={secondaryButtonClass}>{copy.openRemainingQuarters} (Q{(latest?.quarter ?? 0) + 1}–Q4)</button>
+              <span className="text-xs text-slate-500">{copy.openRemainingQuartersHint}</span>
             </form>
           ) : null}
         </div>

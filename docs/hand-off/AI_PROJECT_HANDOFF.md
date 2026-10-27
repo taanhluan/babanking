@@ -1,5 +1,25 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## BA KPI plans open all four quarters up front (2026-10-27, `develop`, local)
+
+- Owner decision: Q2–Q4 no longer wait for the previous quarter. This replaces
+  the 2026-10-21 "open next quarter after the current one is under way" rule.
+- `createPlan` now creates Q1–Q4 as `KPI_DRAFT`, each with the same starting
+  KPI set and shared `lineageKey`s. Q1 still goes through approval with the
+  plan; Q2–Q4 are editable at once and submitted per quarter once the plan is
+  `APPROVED` (unchanged `canSubmitQuarterKpis`). Edits to one quarter's
+  draft are not copied to the others.
+- `openNextQuarter` / `canOpenNextQuarter` were replaced by
+  `openRemainingQuarters` / `canOpenRemainingQuarters`: plans created earlier
+  with fewer than four quarters get one button that opens every missing
+  quarter from the latest quarter's active KPIs (one `BA_QUARTER_OPENED`
+  audit per quarter). Allowed for owner or Lead on any non-CLOSED plan.
+- Q2–Q4 drafts show a hint while the plan is not yet approved.
+- No migration and no Development data change; existing plans keep their
+  quarters until someone uses the button. 60 files / 455 tests, ESLint and
+  `tsc --noEmit` pass. Committed and pushed to `origin/develop` at the
+  owner's request, as a Q4 2026 team trial ahead of real use in 2027.
+
 ## Onboarding and lending Journeys exported to Markdown (2026-10-27, `develop`, local)
 
 - The owner asked for the Customer Onboarding and Digital Lending content as

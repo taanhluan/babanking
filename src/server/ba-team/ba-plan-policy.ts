@@ -79,9 +79,9 @@ export function canReviewQuarter(actor: BaTeamActor, plan: { status: BaPlanStatu
   return canReopenResults(actor, plan, quarter);
 }
 
-export function canOpenNextQuarter(actor: BaTeamActor, plan: { userId: string; status: BaPlanStatus }, latest: { quarter: number; status: BaQuarterStatus } | undefined) {
-  if (!isOwnerOrLead(actor, plan.userId) || plan.status !== 'APPROVED' || !latest || latest.quarter >= 4) return false;
-  return latest.status === 'IN_PROGRESS' || latest.status === 'RESULTS_SUBMITTED' || latest.status === 'REVIEWED';
+/** Every quarter opens with the plan; older plans with missing quarters can open the rest at once. */
+export function canOpenRemainingQuarters(actor: BaTeamActor, plan: { userId: string; status: BaPlanStatus }, quarters: Array<{ quarter: number }>) {
+  return isOwnerOrLead(actor, plan.userId) && plan.status !== 'CLOSED' && quarters.length > 0 && quarters.length < 4;
 }
 
 /** The Lead self-assesses the annual result once every quarter has been reviewed (owner decision 2026-10-21). */
