@@ -52,7 +52,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   return (
     <>
       <TeamNav active={plan.userId === actor.id ? 'plans' : 'overview'} isLead={isBaTeamLead(actor)} />
-      <WorkspaceTitle eyebrow={copy.area} title={`${copy.plan} ${plan.year}`} description={`${copy.owner}: ${plan.user.name}`} />
+      <WorkspaceTitle title={`${copy.plan} ${plan.year}`} description={plan.userId === actor.id ? undefined : `${copy.owner}: ${plan.user.name}`} />
       <ResultBanner error={query.error} saved={query.saved} savedLabel={copy.saved} />
 
       <section className={`${cardClass} mb-5 grid gap-4`}>
