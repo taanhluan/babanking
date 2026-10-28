@@ -82,13 +82,15 @@ describe('Development-only Journey mockup', () => {
     expect(response.headers.get('Content-Security-Policy')).toContain("style-src 'self' 'unsafe-inline'");
     const ift = getJourneyMockup('payments-and-transfers')!;
     expect(getMockupResource(ift, ['engine.mjs'])?.contentType).toBe('text/javascript; charset=utf-8');
+    expect(getMockupResource(ift, ['assets', 'manrope-bold.ttf'])?.contentType).toBe('font/ttf');
+    expect(getMockupResource(ift, ['assets', 'Manrope-OFL.txt'])).toBeNull();
     for (const asset of [['model.mjs'], ['engine.test.mjs'], ['README.md']]) expect(getMockupResource(ift, asset)).toBeNull();
     expect(getMockupResource(getJourneyMockup('lending')!, ['engine.mjs'])).toBeNull();
   });
 
   it('ships the IFT fee workbench in English with Datum Bank branding only', () => {
     const directory = path.join(process.cwd(), 'docs/mockups/ift-fee-workbench');
-    for (const file of Object.keys(getJourneyMockup('payments-and-transfers')!.files)) {
+    for (const file of Object.keys(getJourneyMockup('payments-and-transfers')!.files).filter((name) => !name.startsWith('assets/'))) {
       const text = readFileSync(path.join(directory, file), 'utf8');
       expect(text, file).not.toMatch(/vietcombank|\bVCB\b/i);
       expect(text, file).not.toMatch(/[ạ-ỹăâđêôơưẠ-ỸĂÂĐÊÔƠƯ]/);

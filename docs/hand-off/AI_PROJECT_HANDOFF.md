@@ -29,6 +29,15 @@
   `origin/develop` at the owner's request; the owner's `.xlsx` and `.mht`
   reference files are now git-ignored too. Next: signed-in check of the button
   on the hosted Development deployment.
+- Datum theme (owner request, same day): the workbench now matches the
+  onboarding and lending mockups (navy sidebar with the Datum logo, primary
+  `#315cd4`, Manrope, "fictional data" strip, lending-style form controls). The
+  original palette was hue-shifted to blue and a theme block added at the end of
+  `styles.css`. `assets/` is copied from `digital-lending`; the catalog shares a
+  `datumAssets` allow-list between all three mockups. Same validation as above
+  plus screenshots against lending (1440px, mobile); fonts load under the CSP,
+  no console errors. Committed and pushed to `origin/develop` at the owner's
+  request.
 
 ## BA plan submitted with the current quarter + Q4 trial data (2026-10-28, `develop`, Development)
 

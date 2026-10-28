@@ -38,10 +38,7 @@ const onboardingStep = {
   provisioning: { step: 'provisioning', label: 'Create product' },
 } satisfies Record<string, MockupStep>;
 
-const datumFiles: Record<string, string> = {
-  'index.html': 'text/html; charset=utf-8',
-  'app.mjs': 'text/javascript; charset=utf-8',
-  'model.mjs': 'text/javascript; charset=utf-8',
+const datumAssets: Record<string, string> = {
   'assets/datum-logo-white.png': 'image/png',
   'assets/datum-favicon.svg': 'image/svg+xml',
   'assets/manrope-regular.ttf': 'font/ttf',
@@ -49,11 +46,19 @@ const datumFiles: Record<string, string> = {
   'assets/manrope-bold.ttf': 'font/ttf',
 };
 
+const datumFiles: Record<string, string> = {
+  'index.html': 'text/html; charset=utf-8',
+  'app.mjs': 'text/javascript; charset=utf-8',
+  'model.mjs': 'text/javascript; charset=utf-8',
+  ...datumAssets,
+};
+
 const iftFeeWorkbenchFiles: Record<string, string> = {
   'index.html': 'text/html; charset=utf-8',
   'styles.css': 'text/css; charset=utf-8',
   'app.mjs': 'text/javascript; charset=utf-8',
   'engine.mjs': 'text/javascript; charset=utf-8',
+  ...datumAssets,
 };
 
 const mockups: Record<string, JourneyMockup> = {

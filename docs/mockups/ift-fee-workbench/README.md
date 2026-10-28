@@ -20,9 +20,15 @@ Changes against the original (owner decisions, 2026-10-28):
   link to the real bank's tariff PDF was removed; the Temenos pricing-capability
   link is kept as a public reference.
 - Storage key renamed so old Vietnamese sessions are not reused.
-- `styles.css` is byte-identical to the original. Fee logic in `engine.mjs` is
-  unchanged; only text strings changed. `engine.test.mjs` is the original 25
-  checks (`checks.mjs`) on `node:test`.
+- Fee logic in `engine.mjs` is unchanged; only text strings changed.
+  `engine.test.mjs` is the original 25 checks (`checks.mjs`) on `node:test`.
+- Datum Bank theme (2026-10-28), matching the onboarding and lending mockups:
+  the original green palette in `styles.css` was hue-shifted to blue, then a
+  theme block at the end sets navy `#111f55`, primary `#315cd4`, paper
+  `#f5f7fb`, Manrope, larger radii and the lending form controls. The sidebar
+  shows the Datum symbol and wordmark, and a "fictional data" strip sits on top.
+  `assets/` is copied from `digital-lending/assets` (see its README for
+  provenance and the Manrope OFL licence).
 
 ## Development integration
 
@@ -31,7 +37,8 @@ On Development, the `payments-and-transfers` Journey (Retail) toolbar shows
 It uses the same protected route handler as the other mockups:
 
 - Journey VIEW authorization runs before any file is read.
-- Only `index.html`, `styles.css`, `app.mjs` and `engine.mjs` are served
+- Only `index.html`, `styles.css`, `app.mjs`, `engine.mjs` and the Datum
+  logo, favicon and Manrope files are served
   (per-mockup allow-list in `src/server/journey-mockups/catalog.ts`), with
   private/no-store, noindex and CSP headers (`connect-src 'none'`).
 - The handler is disabled outside matching Development labels.
