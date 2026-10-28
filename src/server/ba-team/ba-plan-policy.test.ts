@@ -49,6 +49,9 @@ describe('annual plan rules', () => {
     expect(canCloseYear(lead, plan('APPROVED'), reviewed.slice(0, 3))).toBe(false);
     expect(canCloseYear(lead, plan('APPROVED'), [...reviewed.slice(0, 3), { quarter: 4, status: 'RESULTS_SUBMITTED' }])).toBe(false);
     expect(canCloseYear(owner, plan('APPROVED'), reviewed)).toBe(false);
+    const trial = [{ quarter: 1, status: 'KPI_DRAFT' as const }, { quarter: 2, status: 'KPI_DRAFT' as const }, { quarter: 3, status: 'KPI_DRAFT' as const }, { quarter: 4, status: 'REVIEWED' as const }];
+    expect(canCloseYear(lead, plan('APPROVED'), trial)).toBe(true);
+    expect(canCloseYear(lead, plan('APPROVED'), [...trial.slice(0, 2), { quarter: 3, status: 'IN_PROGRESS' as const }, trial[3]])).toBe(false);
   });
 });
 

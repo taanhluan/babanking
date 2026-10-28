@@ -46,7 +46,7 @@ const owner = { id: 'owner', role: 'MEMBER' as const, isBaTeamMember: true };
 const peer = { id: 'peer', role: 'MEMBER' as const, isBaTeamMember: true };
 const outsider = { id: 'outsider', role: 'CONTRIBUTOR' as const, isBaTeamMember: false };
 
-type QuarterState = { id: string; quarter: number; status: string };
+type QuarterState = { id: string; quarter: number; status: string; kpiSubmittedAt?: Date };
 const planRecord = (status: string, quarters: QuarterState[] = [{ id: 'q1', quarter: 1, status: 'KPI_DRAFT' }]) => ({ id: 'plan-1', userId: 'owner', year: 2026, status, profileJson: '{"schemaVersion":1}', quarters });
 const kpiRecord = (quarterStatus: string, overrides: Record<string, unknown> = {}) => ({
   id: 'kpi-1', lineageKey: 'line-1', name: 'Rework Rate', description: null, capabilityArea: null, comparator: 'LTE', targetValue: 5, unitLabel: '%', actualValue: null, removedAt: null,
@@ -107,35 +107,64 @@ describe('annual plan lifecycle', () => {
     await expect(createPlan({ year: 2026, source: 'BLANK' }, owner)).rejects.toThrow(/already have a plan/);
   });
 
-  it('requires at least one Q1 KPI and moves Q1 to pending together with the plan', async () => {
-    mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
-    await expect(submitPlan('plan-1', owner)).rejects.toThrow(/at least one annual goal/);
-    mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT'), profileJson: withGoal });
-    mocks.kpiCount.mockResolvedValue(0);
-    await expect(submitPlan('plan-1', owner)).rejects.toThrow(/at least one Q1 KPI/);
-    mocks.kpiCount.mockResolvedValue(3);
-    await expect(submitPlan('plan-1', owner)).rejects.toThrow(/OKR set is not ready: Add at least one Objective/);
-    mocks.objectiveFindMany.mockResolvedValue([smartObjective]);
-    mocks.kpiFindMany.mockResolvedValue([{ objectiveId: 'obj-1', removedAt: null }]);
-    await submitPlan('plan-1', owner);
-    expect(mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'plan-1', status: 'DRAFT' }, data: { status: 'PENDING_APPROVAL' } });
-    expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'q1', status: 'KPI_DRAFT' }, data: { status: 'KPI_PENDING' } });
-    expect(auditActions()).toEqual(['BA_PLAN_SUBMITTED']);
+  it('submits the current quarter with this year\'s plan and Q1 with a later year\'s plan', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 5));
+    try {
+      const all = [1, 2, 3, 4].map((quarter) => ({ id: `q${quarter}`, quarter, status: 'KPI_DRAFT' }));
+      mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT', all), profileJson: withGoal });
+      mocks.kpiCount.mockResolvedValue(0);
+      await expect(submitPlan('plan-1', owner)).rejects.toThrow(/at least one Q4 KPI/);
+      mocks.kpiCount.mockResolvedValue(3);
+      await expect(submitPlan('plan-1', owner)).rejects.toThrow(/OKR set is not ready: Add at least one Objective/);
+      mocks.objectiveFindMany.mockResolvedValue([smartObjective]);
+      mocks.kpiFindMany.mockResolvedValue([{ objectiveId: 'obj-1', removedAt: null }]);
+      await submitPlan('plan-1', owner);
+      const planUpdate = mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0];
+      const quarterUpdate = mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0];
+      expect(planUpdate).toMatchObject({ where: { id: 'plan-1', status: 'DRAFT' }, data: { status: 'PENDING_APPROVAL' } });
+      expect(quarterUpdate).toMatchObject({ where: { id: 'q4', status: 'KPI_DRAFT' }, data: { status: 'KPI_PENDING' } });
+      expect(quarterUpdate.data.kpiSubmittedAt).toEqual(planUpdate.data.submittedAt);
+      expect(mocks.tx.baPlanQuarter.updateMany).toHaveBeenCalledTimes(1);
+      expect(auditActions()).toEqual(['BA_PLAN_SUBMITTED']);
+
+      vi.clearAllMocks();
+      mocks.tx.baPerformancePlan.updateMany.mockResolvedValue({ count: 1 });
+      mocks.tx.baPlanQuarter.updateMany.mockResolvedValue({ count: 1 });
+      mocks.planFindUnique.mockResolvedValue({ ...planRecord('DRAFT', all), year: 2027, profileJson: withGoal });
+      await submitPlan('plan-1', owner);
+      expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'q1' } });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it('lets only the Lead approve, snapshotting the profile and starting Q1', async () => {
-    mocks.planFindUnique.mockResolvedValue(planRecord('PENDING_APPROVAL', [{ id: 'q1', quarter: 1, status: 'KPI_PENDING' }]));
+  it('requires an annual goal before the plan is submitted', async () => {
+    mocks.planFindUnique.mockResolvedValue(planRecord('DRAFT'));
+    await expect(submitPlan('plan-1', owner)).rejects.toThrow(/at least one annual goal/);
+  });
+
+  const submittedAt = new Date(2026, 9, 28);
+  const pendingWithPlan = () => ({ ...planRecord('PENDING_APPROVAL', [
+    { id: 'q3', quarter: 3, status: 'KPI_PENDING', kpiSubmittedAt: new Date(2026, 7, 1) },
+    { id: 'q4', quarter: 4, status: 'KPI_PENDING', kpiSubmittedAt: submittedAt },
+  ]), submittedAt });
+
+  it('lets only the Lead approve, snapshotting the profile and starting the quarter submitted with the plan', async () => {
+    mocks.planFindUnique.mockResolvedValue(pendingWithPlan());
     await expect(approvePlan('plan-1', owner)).rejects.toThrow(/Only the Lead/);
     await approvePlan('plan-1', lead);
     expect(mocks.tx.baPerformancePlan.updateMany.mock.calls[0][0].data).toMatchObject({ status: 'APPROVED', approvedById: 'lead', approvedSnapshotJson: '{"schemaVersion":1}' });
-    expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0]).toMatchObject({ where: { status: 'KPI_PENDING' }, data: { status: 'IN_PROGRESS', kpiApprovedById: 'lead' } });
+    expect(mocks.tx.baPlanQuarter.updateMany).toHaveBeenCalledTimes(1);
+    expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'q4', status: 'KPI_PENDING' }, data: { status: 'IN_PROGRESS', kpiApprovedById: 'lead' } });
   });
 
-  it('requires a reason to return a plan and returns Q1 to draft', async () => {
-    mocks.planFindUnique.mockResolvedValue(planRecord('PENDING_APPROVAL', [{ id: 'q1', quarter: 1, status: 'KPI_PENDING' }]));
+  it('requires a reason to return a plan and returns only its quarter to draft', async () => {
+    mocks.planFindUnique.mockResolvedValue(pendingWithPlan());
     await expect(returnPlan('plan-1', 'short', lead)).rejects.toThrow();
-    await returnPlan('plan-1', 'Please tighten the Q1 targets.', lead);
-    expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0].data).toMatchObject({ status: 'KPI_DRAFT', returnNote: 'Please tighten the Q1 targets.' });
+    await returnPlan('plan-1', 'Please tighten the Q4 targets.', lead);
+    expect(mocks.tx.baPlanQuarter.updateMany).toHaveBeenCalledTimes(1);
+    expect(mocks.tx.baPlanQuarter.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: 'q4' }, data: { status: 'KPI_DRAFT', returnNote: 'Please tighten the Q4 targets.' } });
   });
 
   it('saves the profile basics while keeping goals and sections of the earlier template', async () => {

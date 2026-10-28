@@ -4,7 +4,7 @@ import type { BaQuarterStatus, Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getServerEnvironment } from '@/server/env';
 import {
-  annualOutcomesSchema, baPlanProfileSchema, annualGoalInputSchema, describeSmartGaps, MAX_ANNUAL_GOALS, planPersonalSchema, emptyPlanProfile, kpiDefinitionSchema, managerNotesSchema, objectiveSchema, parsePlanProfile, smartGaps,
+  annualOutcomesSchema, baPlanProfileSchema, annualGoalInputSchema, describeSmartGaps, MAX_ANNUAL_GOALS, planPersonalSchema, emptyPlanProfile, kpiDefinitionSchema, managerNotesSchema, objectiveSchema, parsePlanProfile, planEntryQuarter, smartGaps,
   planYearSchema, progressUpdateSchema, quarters, ratingSchema, reasonSchema, type BaPlanProfile, type KpiDefinition, type Quarter,
 } from './ba-plan-domain';
 import {
@@ -39,7 +39,7 @@ function deny(message = 'You are not allowed to perform this action.'): never {
 
 async function loadPlan(planId: string, actor: BaTeamActor) {
   assertMember(actor);
-  const plan = await db.baPerformancePlan.findUnique({ where: { id: planId }, select: { id: true, userId: true, year: true, status: true, profileJson: true, quarters: { select: { id: true, quarter: true, status: true }, orderBy: { quarter: 'asc' } } } });
+  const plan = await db.baPerformancePlan.findUnique({ where: { id: planId }, select: { id: true, userId: true, year: true, status: true, profileJson: true, submittedAt: true, quarters: { select: { id: true, quarter: true, status: true, kpiSubmittedAt: true }, orderBy: { quarter: 'asc' } } } });
   if (!plan || (!isBaTeamLead(actor) && plan.userId !== actor.id)) throw new Error('Plan not found.');
   return plan;
 }
@@ -204,26 +204,34 @@ export async function submitPlan(planId: string, actor: BaTeamActor) {
   const plan = await loadPlan(planId, actor);
   if (!canSubmitPlan(actor, plan)) deny();
   if (!parsePlanProfile(plan.profileJson).annualGoals.length) throw new Error('Set at least one annual goal before submitting the plan.');
-  const q1 = plan.quarters.find((entry) => entry.quarter === 1);
-  if (q1?.status === 'KPI_DRAFT' && await db.baQuarterKpi.count({ where: { quarterId: q1.id } }) === 0) throw new Error('Add at least one Q1 KPI before submitting the plan.');
-  if (q1?.status === 'KPI_DRAFT') await assertSmart(q1.id);
+  const entry = planEntryQuarter(plan.year);
+  const bundled = plan.quarters.find((quarter) => quarter.quarter === entry && quarter.status === 'KPI_DRAFT');
+  if (bundled && await db.baQuarterKpi.count({ where: { quarterId: bundled.id } }) === 0) throw new Error(`Add at least one Q${entry} KPI before submitting the plan.`);
+  if (bundled) await assertSmart(bundled.id);
   await db.$transaction(async (tx) => {
-    const updated = await tx.baPerformancePlan.updateMany({ where: { id: planId, status: plan.status }, data: { status: 'PENDING_APPROVAL', submittedAt: new Date() } });
+    // The shared timestamp marks the quarter submitted with the plan, so approval and return act on that quarter only.
+    const now = new Date();
+    const updated = await tx.baPerformancePlan.updateMany({ where: { id: planId, status: plan.status }, data: { status: 'PENDING_APPROVAL', submittedAt: now } });
     if (updated.count !== 1) throw new Error('The plan changed before it could be submitted.');
-    if (q1?.status === 'KPI_DRAFT') await moveQuarter(tx, q1.id, 'KPI_DRAFT', { status: 'KPI_PENDING', kpiSubmittedAt: new Date(), returnNote: null });
-    await audit(tx, actor.id, 'BA_PLAN_SUBMITTED', 'BaPerformancePlan', planId, { from: plan.status, to: 'PENDING_APPROVAL' });
+    if (bundled) await moveQuarter(tx, bundled.id, 'KPI_DRAFT', { status: 'KPI_PENDING', kpiSubmittedAt: now, returnNote: null });
+    await audit(tx, actor.id, 'BA_PLAN_SUBMITTED', 'BaPerformancePlan', planId, { from: plan.status, to: 'PENDING_APPROVAL', ...(bundled ? { quarter: entry } : {}) });
   });
+}
+
+/** The quarter that was submitted together with the plan, if it is still waiting. */
+function bundledQuarter(plan: Awaited<ReturnType<typeof loadPlan>>) {
+  return plan.quarters.find((quarter) => quarter.status === 'KPI_PENDING' && plan.submittedAt && quarter.kpiSubmittedAt?.getTime() === plan.submittedAt.getTime());
 }
 
 export async function approvePlan(planId: string, actor: BaTeamActor) {
   const plan = await loadPlan(planId, actor);
   if (!canApprovePlan(actor, plan)) deny('Only the Lead can approve a plan that is pending approval.');
-  const q1 = plan.quarters.find((entry) => entry.quarter === 1);
+  const bundled = bundledQuarter(plan);
   await db.$transaction(async (tx) => {
     const now = new Date();
     const updated = await tx.baPerformancePlan.updateMany({ where: { id: planId, status: 'PENDING_APPROVAL', profileJson: plan.profileJson }, data: { status: 'APPROVED', approvedAt: now, approvedById: actor.id, approvedSnapshotJson: plan.profileJson, reviewNote: null } });
     if (updated.count !== 1) throw new Error('The plan changed before it could be approved.');
-    if (q1?.status === 'KPI_PENDING') await moveQuarter(tx, q1.id, 'KPI_PENDING', { status: 'IN_PROGRESS', kpiApprovedAt: now, kpiApprovedById: actor.id, returnNote: null });
+    if (bundled) await moveQuarter(tx, bundled.id, 'KPI_PENDING', { status: 'IN_PROGRESS', kpiApprovedAt: now, kpiApprovedById: actor.id, returnNote: null });
     await audit(tx, actor.id, 'BA_PLAN_APPROVED', 'BaPerformancePlan', planId, { from: 'PENDING_APPROVAL', to: 'APPROVED' });
   });
 }
@@ -232,11 +240,11 @@ export async function returnPlan(planId: string, note: string, actor: BaTeamActo
   const plan = await loadPlan(planId, actor);
   if (!canApprovePlan(actor, plan)) deny('Only the Lead can return a plan that is pending approval.');
   const reason = reasonSchema.parse(note);
-  const q1 = plan.quarters.find((entry) => entry.quarter === 1);
+  const bundled = bundledQuarter(plan);
   await db.$transaction(async (tx) => {
     const updated = await tx.baPerformancePlan.updateMany({ where: { id: planId, status: 'PENDING_APPROVAL' }, data: { status: 'CHANGES_REQUESTED', reviewNote: reason } });
     if (updated.count !== 1) throw new Error('The plan changed before it could be returned.');
-    if (q1?.status === 'KPI_PENDING') await moveQuarter(tx, q1.id, 'KPI_PENDING', { status: 'KPI_DRAFT', returnNote: reason });
+    if (bundled) await moveQuarter(tx, bundled.id, 'KPI_PENDING', { status: 'KPI_DRAFT', returnNote: reason });
     await audit(tx, actor.id, 'BA_PLAN_CHANGES_REQUESTED', 'BaPerformancePlan', planId, { from: 'PENDING_APPROVAL', to: 'CHANGES_REQUESTED' });
   });
 }

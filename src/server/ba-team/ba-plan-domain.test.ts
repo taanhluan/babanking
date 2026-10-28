@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   baPlanProfileSchema, canTransitionPlan, canTransitionQuarter, diffKpiSets, emptyPlanProfile, evaluateKpi, formatTarget,
-  formatActual, kpiDefinitionSchema, normalizeKpiInput, parseAnnualOutcomes, parsePlanProfile, progressUpdateSchema, quarterOfDate, quarterRange, ratingSchema, smartGaps, summarizeEvaluations,
+  formatActual, kpiDefinitionSchema, planEntryQuarter, normalizeKpiInput, parseAnnualOutcomes, parsePlanProfile, progressUpdateSchema, quarterOfDate, quarterRange, ratingSchema, smartGaps, summarizeEvaluations,
 } from './ba-plan-domain';
 
 describe('KPI evaluation', () => {
@@ -165,5 +165,13 @@ describe('KPI comparators', () => {
     expect(normalizeKpiInput({ comparator: 'DONE', targetValue: '', unitLabel: '' })).toEqual({ comparator: 'DONE', targetValue: 1, unitLabel: '✓' });
     expect(normalizeKpiInput({ comparator: 'GTE', targetValue: '90', unitLabel: '%' })).toEqual({ comparator: 'GTE', targetValue: '90', unitLabel: '%' });
     expect(kpiDefinitionSchema.parse(normalizeKpiInput({ name: 'CBAP certified', comparator: 'DONE', targetValue: '', unitLabel: '' }))).toMatchObject({ comparator: 'DONE', targetValue: 1 });
+  });
+});
+
+describe('planEntryQuarter', () => {
+  it('uses the current quarter for this year and Q1 for other years', () => {
+    expect(planEntryQuarter(2026, new Date(2026, 9, 28))).toBe(4);
+    expect(planEntryQuarter(2026, new Date(2026, 0, 2))).toBe(1);
+    expect(planEntryQuarter(2027, new Date(2026, 9, 28))).toBe(1);
   });
 });

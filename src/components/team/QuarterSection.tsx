@@ -6,7 +6,7 @@ import {
 } from '@/app/team/actions';
 import type { KpiComparator } from '@prisma/client';
 import type { SupportedLocale } from '@/i18n/config';
-import { type AnnualGoal, diffKpiSets, evaluateKpi, formatActual, formatTarget, summarizeEvaluations, type CapabilityArea } from '@/server/ba-team/ba-plan-domain';
+import { type AnnualGoal, diffKpiSets, evaluateKpi, planEntryQuarter, formatActual, formatTarget, summarizeEvaluations, type CapabilityArea } from '@/server/ba-team/ba-plan-domain';
 import {
   canAdjustQuarterKpis, canApproveQuarterKpis, canEditQuarterKpis, canReopenResults, canReviewQuarter, canSubmitQuarterKpis,
   canSubmitResults, canUpdateProgress, type BaTeamActor,
@@ -85,10 +85,12 @@ function DeclareView({ plan, quarter, previous, annualGoals, actor, templates, c
   const kpis = quarter.kpis;
   const showDiff = previous && (quarter.status === 'KPI_DRAFT' || quarter.status === 'KPI_PENDING');
   const changes = showDiff ? diffKpiSets(previous.kpis, kpis).filter((change) => change.change !== 'UNCHANGED') : [];
-  const isQ1WithPlan = quarter.quarter === 1 && plan.status !== 'APPROVED' && plan.status !== 'CLOSED';
+  const entry = planEntryQuarter(plan.year);
+  const isEntryWithPlan = quarter.quarter === entry && plan.status !== 'APPROVED' && plan.status !== 'CLOSED';
+  const passedBeforePlan = quarter.quarter < entry && quarter.status === 'KPI_DRAFT' && plan.status !== 'APPROVED' && plan.status !== 'CLOSED';
   const submitKpis = canSubmitQuarterKpis(actor, plan, quarter);
   const approveKpis = canApproveQuarterKpis(actor, plan, quarter);
-  const waitingForPlan = !isQ1WithPlan && quarter.status === 'KPI_DRAFT' && plan.status !== 'APPROVED' && plan.status !== 'CLOSED';
+  const waitingForPlan = !isEntryWithPlan && !passedBeforePlan && quarter.status === 'KPI_DRAFT' && plan.status !== 'APPROVED' && plan.status !== 'CLOSED';
 
   const declareDetail = (kpi: Kpi) => {
     const removed = Boolean(kpi.removedAt);
@@ -178,9 +180,10 @@ function DeclareView({ plan, quarter, previous, annualGoals, actor, templates, c
         </section>
       ) : null}
 
-      {submitKpis || approveKpis || isQ1WithPlan || waitingForPlan ? (
+      {submitKpis || approveKpis || isEntryWithPlan || waitingForPlan || passedBeforePlan ? (
         <section className={`${cardClass} grid gap-4`}>
-          {isQ1WithPlan && quarter.status === 'KPI_DRAFT' ? <p className="text-sm text-textSecondary">{copy.submitPlanHint}</p> : null}
+          {isEntryWithPlan && quarter.status === 'KPI_DRAFT' ? <p className="text-sm text-textSecondary">{copy.submitPlanHint}</p> : null}
+          {passedBeforePlan ? <p className="text-sm text-textSecondary">{copy.quarterPassedHint}</p> : null}
           {waitingForPlan ? <p className="text-sm text-textSecondary">{copy.quarterWaitsForPlanHint}</p> : null}
           {submitKpis ? (
             <form action={submitQuarterKpisAction} className="grid gap-3">

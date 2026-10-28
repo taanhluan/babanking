@@ -1,5 +1,30 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## BA plan submitted with the current quarter + Q4 trial data (2026-10-28, `develop`, Development)
+
+- Owner decision: a plan is submitted together with its entry quarter, not
+  always Q1. `planEntryQuarter(year)` returns the current quarter for this
+  year's plan and Q1 for other years, so a 2026 plan now bundles Q4.
+  - `submitPlan` gives the plan and that quarter the same timestamp
+    (`submittedAt` = `kpiSubmittedAt`). `approvePlan` / `returnPlan` act only
+    on the KPI_PENDING quarter carrying that timestamp, so a quarter submitted
+    on its own is never approved by accident. No migration.
+  - Quarters before the entry quarter stay `KPI_DRAFT`, show "already passed,
+    not required", and can still be used after approval. `canCloseYear` now
+    needs Q4 `REVIEWED` and every other quarter `REVIEWED` or never submitted
+    (`KPI_DRAFT`).
+  - 60 files / 466 tests, ESLint and `tsc --noEmit` pass. Committed and pushed to `origin/develop`.
+- Development data (owner request, after `db:check-env`): acting as
+  `ba-team-member.test@example.com` through the plan services (same checks
+  and audits as the UI), plan `cmvrhj7yl0001l2072pi2v5v9` (2026, level
+  Junior) now has the annual goal "Grow from Junior BA to Middle BA", three Q4
+  SMART Objectives linked to that goal, and all 13 Q4 KPIs linked to them.
+  The plan was submitted: plan `PENDING_APPROVAL`, Q4 `KPI_PENDING`, Q1–Q3
+  untouched drafts. Audits: `BA_PLAN_GOAL_UPDATED`, `BA_OBJECTIVE_ADDED` ×3,
+  `BA_KPI_UPDATED` ×13, `BA_PLAN_SUBMITTED`. A one-off script in the session
+  scratchpad ran it; no repo script was added. Next: the Lead reviews it in
+  `/team/approvals`.
+
 ## BA KPI plans: OKR + SMART and KPI tracking table (2026-10-27, `develop`, local)
 
 - Owner decisions: quarterly OKR. Each quarter has Objectives and its KPIs are

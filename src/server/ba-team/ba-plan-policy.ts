@@ -86,8 +86,9 @@ export function canOpenRemainingQuarters(actor: BaTeamActor, plan: { userId: str
 
 /** The Lead self-assesses the annual result once every quarter has been reviewed (owner decision 2026-10-21). */
 export function canCloseYear(actor: BaTeamActor, plan: { status: BaPlanStatus }, quarterStatuses: Array<{ quarter: number; status: BaQuarterStatus }>) {
+  // Quarters never submitted (for example those already past when the plan started) do not block closing.
   const q4 = quarterStatuses.find((entry) => entry.quarter === 4);
-  return isBaTeamLead(actor) && plan.status === 'APPROVED' && Boolean(q4) && quarterStatuses.every((entry) => entry.status === 'REVIEWED');
+  return isBaTeamLead(actor) && plan.status === 'APPROVED' && q4?.status === 'REVIEWED' && quarterStatuses.every((entry) => entry.status === 'REVIEWED' || entry.status === 'KPI_DRAFT');
 }
 
 export function canManageTemplates(actor: BaTeamActor) {

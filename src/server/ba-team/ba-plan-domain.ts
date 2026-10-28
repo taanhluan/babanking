@@ -193,6 +193,14 @@ export function quarterOfDate(date: Date): Quarter {
   return (Math.floor(date.getMonth() / 3) + 1) as Quarter;
 }
 
+/**
+ * The quarter whose KPI set goes for approval together with the plan: the current quarter for this year's plan
+ * (quarters already past are skipped), Q1 for any other year.
+ */
+export function planEntryQuarter(year: number, now = new Date()): Quarter {
+  return year === now.getFullYear() ? quarterOfDate(now) : 1;
+}
+
 export function quarterRange(year: number, quarter: Quarter) {
   return { start: new Date(year, (quarter - 1) * 3, 1), end: new Date(year, quarter * 3, 0, 23, 59, 59, 999) };
 }
