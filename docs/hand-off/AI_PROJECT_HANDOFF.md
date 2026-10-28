@@ -25,8 +25,10 @@
   (static server with the route's CSP, 1280px and 390px): all 10 views, the full
   draft → approve → sync → quote (50 USD) → approve → reconcile journey, no
   Vietnamese text, no console errors, no horizontal overflow.
-- No database or CMS change. Not committed. A signed-in check of the button
-  on Development is still to do.
+- No database or CMS change. Committed (`5f1a3d5`) and pushed to
+  `origin/develop` at the owner's request; the owner's `.xlsx` and `.mht`
+  reference files are now git-ignored too. Next: signed-in check of the button
+  on the hosted Development deployment.
 
 ## BA plan submitted with the current quarter + Q4 trial data (2026-10-28, `develop`, Development)
 
