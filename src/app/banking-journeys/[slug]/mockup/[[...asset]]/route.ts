@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: Context) {
 
   // Every document, module, image and font uses the Journey's normal VIEW gate.
   await requireContentSlugAccess('BANKING_JOURNEY', slug);
-  const resource = getMockupResource(asset);
+  const resource = getMockupResource(mockup, asset);
   if (!resource) notFound();
 
   let bytes: Uint8Array;
@@ -44,7 +44,7 @@ export async function GET(_request: Request, { params }: Context) {
       'X-Content-Type-Options': 'nosniff',
       'X-Robots-Tag': 'noindex, nofollow',
       'Referrer-Policy': 'same-origin',
-      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'",
+      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'",
     },
   });
 }

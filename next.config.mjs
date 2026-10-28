@@ -5,6 +5,7 @@ const nextConfig = {
     '/banking-journeys/*/mockup/**': [
       './docs/mockups/customer-onboarding/**/*',
       './docs/mockups/digital-lending/**/*',
+      './docs/mockups/ift-fee-workbench/**/*',
     ],
   },
   experimental: {

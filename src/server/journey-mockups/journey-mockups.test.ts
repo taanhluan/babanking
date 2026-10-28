@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDevelopmentMockupHref, getDevelopmentMockupStepLinks, getMockupResource } from './catalog';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { getDevelopmentMockupHref, getDevelopmentMockupStepLinks, getJourneyMockup, getMockupResource } from './catalog';
 
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
@@ -33,6 +35,8 @@ describe('Development-only Journey mockup', () => {
       .toBe('/vi/banking-journeys/customer-onboarding/mockup');
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'lending', 'vi', dev))
       .toBe('/vi/banking-journeys/lending/mockup');
+    expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'payments-and-transfers', 'en', dev))
+      .toBe('/en/banking-journeys/payments-and-transfers/mockup');
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'cards', 'en', dev)).toBeNull();
     expect(getDevelopmentMockupHref('CASE_STUDY', 'customer-onboarding', 'en', dev)).toBeNull();
     expect(getDevelopmentMockupHref('BANKING_JOURNEY', 'customer-onboarding', 'en', {
@@ -69,6 +73,28 @@ describe('Development-only Journey mockup', () => {
     expect(String(mocks.readFile.mock.calls[0][0])).toMatch(/docs\/mockups\/digital-lending\/index\.html$/);
   });
 
+  it('serves the IFT fee workbench with its own allow-list for Payments & Transfers', async () => {
+    await request(undefined, 'payments-and-transfers');
+    expect(mocks.authorize).toHaveBeenCalledWith('BANKING_JOURNEY', 'payments-and-transfers');
+    expect(String(mocks.readFile.mock.calls[0][0])).toMatch(/docs\/mockups\/ift-fee-workbench\/index\.html$/);
+    const response = await request(['styles.css'], 'payments-and-transfers');
+    expect(response.headers.get('Content-Type')).toBe('text/css; charset=utf-8');
+    expect(response.headers.get('Content-Security-Policy')).toContain("style-src 'self' 'unsafe-inline'");
+    const ift = getJourneyMockup('payments-and-transfers')!;
+    expect(getMockupResource(ift, ['engine.mjs'])?.contentType).toBe('text/javascript; charset=utf-8');
+    for (const asset of [['model.mjs'], ['engine.test.mjs'], ['README.md']]) expect(getMockupResource(ift, asset)).toBeNull();
+    expect(getMockupResource(getJourneyMockup('lending')!, ['engine.mjs'])).toBeNull();
+  });
+
+  it('ships the IFT fee workbench in English with Datum Bank branding only', () => {
+    const directory = path.join(process.cwd(), 'docs/mockups/ift-fee-workbench');
+    for (const file of Object.keys(getJourneyMockup('payments-and-transfers')!.files)) {
+      const text = readFileSync(path.join(directory, file), 'utf8');
+      expect(text, file).not.toMatch(/vietcombank|\bVCB\b/i);
+      expect(text, file).not.toMatch(/[ạ-ỹăâđêôơưẠ-ỸĂÂĐÊÔƠƯ]/);
+    }
+  });
+
   it('does not read files when access is denied', async () => {
     mocks.authorize.mockRejectedValue(new Error('Journey access denied'));
     await expect(request()).rejects.toThrow('Journey access denied');
@@ -102,7 +128,7 @@ describe('Development-only Journey mockup', () => {
   it('does not serve unregistered Journeys, source tests, docs or traversed paths', async () => {
     await expect(request(undefined, 'cards')).rejects.toThrow('404');
     for (const asset of [['model.test.mjs'], ['README.md'], ['assets', '..', 'app.mjs'], ['toString']]) {
-      expect(getMockupResource(asset)).toBeNull();
+      expect(getMockupResource(getJourneyMockup('customer-onboarding')!, asset)).toBeNull();
       await expect(request(asset)).rejects.toThrow('404');
     }
     expect(mocks.readFile).not.toHaveBeenCalled();

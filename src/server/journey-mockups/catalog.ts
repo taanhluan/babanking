@@ -5,6 +5,8 @@ import type { ServerEnvironment } from '@/server/environment-core';
 type MockupStep = { step: string; label: string };
 type JourneyMockup = {
   directory: string;
+  // Allow-listed files (path → content type); nothing else in the directory is served.
+  files: Record<string, string>;
   // Journey stage (module) and section ids that deep-link into a mockup step.
   stages?: Record<string, MockupStep>;
   sections?: Record<string, MockupStep>;
@@ -36,9 +38,28 @@ const onboardingStep = {
   provisioning: { step: 'provisioning', label: 'Create product' },
 } satisfies Record<string, MockupStep>;
 
+const datumFiles: Record<string, string> = {
+  'index.html': 'text/html; charset=utf-8',
+  'app.mjs': 'text/javascript; charset=utf-8',
+  'model.mjs': 'text/javascript; charset=utf-8',
+  'assets/datum-logo-white.png': 'image/png',
+  'assets/datum-favicon.svg': 'image/svg+xml',
+  'assets/manrope-regular.ttf': 'font/ttf',
+  'assets/manrope-semibold.ttf': 'font/ttf',
+  'assets/manrope-bold.ttf': 'font/ttf',
+};
+
+const iftFeeWorkbenchFiles: Record<string, string> = {
+  'index.html': 'text/html; charset=utf-8',
+  'styles.css': 'text/css; charset=utf-8',
+  'app.mjs': 'text/javascript; charset=utf-8',
+  'engine.mjs': 'text/javascript; charset=utf-8',
+};
+
 const mockups: Record<string, JourneyMockup> = {
   'customer-onboarding': {
     directory: 'customer-onboarding',
+    files: datumFiles,
     stages: {
       overview: onboardingStep.product,
       'initiation-and-eligibility': onboardingStep.eligibility,
@@ -57,6 +78,7 @@ const mockups: Record<string, JourneyMockup> = {
   },
   lending: {
     directory: 'digital-lending',
+    files: datumFiles,
     stages: {
       'registration-and-onboarding': lendingStep.registration,
       'profile-and-information-collection': lendingStep.profile,
@@ -74,21 +96,15 @@ const mockups: Record<string, JourneyMockup> = {
       'offer-and-agreement-step-6-agreement-signing': lendingStep.signing,
     },
   },
+  // T24 → IFT corporate international transfer fee workbench (no step deep links).
+  'payments-and-transfers': {
+    directory: 'ift-fee-workbench',
+    files: iftFeeWorkbenchFiles,
+  },
 };
 
 export type MockupStepLink = { href: string; label: string };
 export type JourneyMockupLinks = { stages: Record<string, MockupStepLink>; sections: Record<string, MockupStepLink> };
-
-const files: Record<string, string> = {
-  'index.html': 'text/html; charset=utf-8',
-  'app.mjs': 'text/javascript; charset=utf-8',
-  'model.mjs': 'text/javascript; charset=utf-8',
-  'assets/datum-logo-white.png': 'image/png',
-  'assets/datum-favicon.svg': 'image/svg+xml',
-  'assets/manrope-regular.ttf': 'font/ttf',
-  'assets/manrope-semibold.ttf': 'font/ttf',
-  'assets/manrope-bold.ttf': 'font/ttf',
-};
 
 export function isDevelopmentMockupEnvironment(
   environment: Pick<ServerEnvironment, 'APP_ENV' | 'DATABASE_ENVIRONMENT'>,
@@ -101,9 +117,9 @@ export function getJourneyMockup(slug: string) {
   return Object.hasOwn(mockups, slug) ? mockups[slug] : null;
 }
 
-export function getMockupResource(asset?: string[]) {
+export function getMockupResource(mockup: JourneyMockup, asset?: string[]) {
   const file = asset?.length ? asset.join('/') : 'index.html';
-  return Object.hasOwn(files, file) ? { file, contentType: files[file] } : null;
+  return Object.hasOwn(mockup.files, file) ? { file, contentType: mockup.files[file] } : null;
 }
 
 export function getDevelopmentMockupHref(

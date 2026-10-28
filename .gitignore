@@ -86,3 +86,11 @@ skills-lock.json
 .agents/skills/*
 !.agents/skills/banking-ba-project/
 !.agents/skills/banking-ba-project/**
+
+# Original IFT Fee Workbench handover kit (kept locally as the source of truth;
+# the English, Datum Bank-branded copy lives in docs/mockups/ift-fee-workbench)
+/IFT_Fee_Workbench_Developer_Kit/
+
+# Owner reference files with real names, client and performance data; never commit
+/BA Resource Master Table.xlsx
+/*.mht

@@ -1,5 +1,33 @@
 # Banking BA Knowledge Hub — AI Project Handoff
 
+## IFT fee workbench mockup on Payments & Transfers (2026-10-28, `develop`, local)
+
+- The owner supplied `IFT_Fee_Workbench_Developer_Kit/` (T24 → IFT corporate
+  international transfer fee mock: tariff maker–checker, 7-step sync, quote,
+  approval, posting, reconciliation, 12 failure scenarios). Owner decisions:
+  attach it to the Retail `payments-and-transfers` Journey, rebrand it as Datum
+  Bank, translate it to English, and keep the kit at the repo root as the
+  original without committing it (now in `.gitignore` and ESLint ignores).
+- `docs/mockups/ift-fee-workbench/`: English copies of `index.html`,
+  `app.mjs` and `engine.mjs`, a byte-identical `styles.css`,
+  `engine.test.mjs` (the kit's 25 checks on `node:test`) and a README with the
+  differences from the original. Fee logic is unchanged. The real-bank tariff
+  link and references were removed; storage key `datum-ift-fee-workbench.v1`.
+- `catalog.ts`: each mockup now has its own file allow-list (`files`).
+  `getMockupResource(mockup, asset)` takes the mockup. `payments-and-transfers`
+  serves only the four files above, with no `#step=` deep links (the app has no
+  router). The route CSP now allows `style-src 'self'` for the external
+  stylesheet; `connect-src 'none'` is unchanged. Output tracing includes the
+  new directory. The Mockup button shows on the Payments portal through
+  `KnowledgeActions`.
+- Validation: 60 files / 468 tests, 25 engine checks, ESLint, `tsc --noEmit`
+  and build pass; the build trace contains the new files. Headless Chrome
+  (static server with the route's CSP, 1280px and 390px): all 10 views, the full
+  draft → approve → sync → quote (50 USD) → approve → reconcile journey, no
+  Vietnamese text, no console errors, no horizontal overflow.
+- No database or CMS change. Not committed. A signed-in check of the button
+  on Development is still to do.
+
 ## BA plan submitted with the current quarter + Q4 trial data (2026-10-28, `develop`, Development)
 
 - Owner decision: a plan is submitted together with its entry quarter, not
